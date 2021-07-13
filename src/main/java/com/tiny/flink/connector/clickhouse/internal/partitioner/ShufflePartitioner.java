@@ -9,15 +9,12 @@ import org.apache.flink.table.data.RowData;
 
 import java.util.concurrent.ThreadLocalRandom;
 
-/**
- * @author tiger
- */
+/** Shuffle data by random numbers. */
 public class ShufflePartitioner implements ClickHousePartitioner {
 
     private static final long serialVersionUID = 1L;
 
-    public ShufflePartitioner() {
-    }
+    public ShufflePartitioner() {}
 
     @Override
     public int select(RowData record, int numShards) {

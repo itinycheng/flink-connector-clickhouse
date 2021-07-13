@@ -16,6 +16,7 @@ import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.table.types.logical.RowType.RowField;
 import org.apache.flink.table.types.logical.TimestampType;
 import org.apache.flink.util.Preconditions;
+
 import ru.yandex.clickhouse.ClickHousePreparedStatement;
 
 import java.io.Serializable;
@@ -30,9 +31,7 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
-/**
- * @author tiny.wang
- */
+/** Row converter，convert flink type to/from ClickHouse type. */
 public class ClickHouseRowConverter implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -47,15 +46,17 @@ public class ClickHouseRowConverter implements Serializable {
 
     public ClickHouseRowConverter(RowType rowType) {
         this.rowType = Preconditions.checkNotNull(rowType);
-        this.fieldTypes = rowType.getFields().stream().map(RowField::getType).toArray(LogicalType[]::new);
-        this.toFlinkConverters = new ClickHouseRowConverter.DeserializationConverter[rowType.getFieldCount()];
-        this.toClickHouseConverters = new ClickHouseRowConverter.SerializationConverter[rowType.getFieldCount()];
+        this.fieldTypes =
+                rowType.getFields().stream().map(RowField::getType).toArray(LogicalType[]::new);
+        this.toFlinkConverters =
+                new ClickHouseRowConverter.DeserializationConverter[rowType.getFieldCount()];
+        this.toClickHouseConverters =
+                new ClickHouseRowConverter.SerializationConverter[rowType.getFieldCount()];
 
         for (int i = 0; i < rowType.getFieldCount(); ++i) {
             this.toFlinkConverters[i] = this.createToFlinkConverter(rowType.getTypeAt(i));
             this.toClickHouseConverters[i] = this.createToClickHouseConverter(this.fieldTypes[i]);
         }
-
     }
 
     public RowData toFlink(ResultSet resultSet) throws SQLException {
@@ -69,7 +70,8 @@ public class ClickHouseRowConverter implements Serializable {
         return genericRowData;
     }
 
-    public void toClickHouse(RowData rowData, ClickHousePreparedStatement statement) throws SQLException {
+    public void toClickHouse(RowData rowData, ClickHousePreparedStatement statement)
+            throws SQLException {
         for (int index = 0; index < rowData.getArity(); ++index) {
             if (!rowData.isNullAt(index)) {
                 this.toClickHouseConverters[index].serialize(rowData, index, statement);
@@ -79,7 +81,8 @@ public class ClickHouseRowConverter implements Serializable {
         }
     }
 
-    protected ClickHouseRowConverter.DeserializationConverter createToFlinkConverter(LogicalType type) {
+    protected ClickHouseRowConverter.DeserializationConverter createToFlinkConverter(
+            LogicalType type) {
         switch (type.getTypeRoot()) {
             case NULL:
                 return (val) -> null;
@@ -100,7 +103,11 @@ public class ClickHouseRowConverter implements Serializable {
             case DECIMAL:
                 int precision = ((DecimalType) type).getPrecision();
                 int scale = ((DecimalType) type).getScale();
-                return (val) -> val instanceof BigInteger ? DecimalData.fromBigDecimal(new BigDecimal((BigInteger) val, 0), precision, scale) : DecimalData.fromBigDecimal((BigDecimal) val, precision, scale);
+                return (val) ->
+                        val instanceof BigInteger
+                                ? DecimalData.fromBigDecimal(
+                                        new BigDecimal((BigInteger) val, 0), precision, scale)
+                                : DecimalData.fromBigDecimal((BigDecimal) val, precision, scale);
             case DATE:
                 return (val) -> (int) ((Date) val).toLocalDate().toEpochDay();
             case TIME_WITHOUT_TIME_ZONE:
@@ -121,14 +128,18 @@ public class ClickHouseRowConverter implements Serializable {
         }
     }
 
-    protected ClickHouseRowConverter.SerializationConverter createToClickHouseConverter(LogicalType type) {
+    protected ClickHouseRowConverter.SerializationConverter createToClickHouseConverter(
+            LogicalType type) {
         switch (type.getTypeRoot()) {
             case BOOLEAN:
-                return (val, index, statement) -> statement.setBoolean(index + 1, val.getBoolean(index));
+                return (val, index, statement) ->
+                        statement.setBoolean(index + 1, val.getBoolean(index));
             case FLOAT:
-                return (val, index, statement) -> statement.setFloat(index + 1, val.getFloat(index));
+                return (val, index, statement) ->
+                        statement.setFloat(index + 1, val.getFloat(index));
             case DOUBLE:
-                return (val, index, statement) -> statement.setDouble(index + 1, val.getDouble(index));
+                return (val, index, statement) ->
+                        statement.setDouble(index + 1, val.getDouble(index));
             case INTERVAL_YEAR_MONTH:
             case INTEGER:
                 return (val, index, statement) -> statement.setInt(index + 1, val.getInt(index));
@@ -138,25 +149,42 @@ public class ClickHouseRowConverter implements Serializable {
             case TINYINT:
                 return (val, index, statement) -> statement.setByte(index + 1, val.getByte(index));
             case SMALLINT:
-                return (val, index, statement) -> statement.setShort(index + 1, val.getShort(index));
+                return (val, index, statement) ->
+                        statement.setShort(index + 1, val.getShort(index));
             case DECIMAL:
                 int decimalPrecision = ((DecimalType) type).getPrecision();
                 int decimalScale = ((DecimalType) type).getScale();
-                return (val, index, statement) -> statement.setBigDecimal(index + 1, val.getDecimal(index, decimalPrecision, decimalScale).toBigDecimal());
+                return (val, index, statement) ->
+                        statement.setBigDecimal(
+                                index + 1,
+                                val.getDecimal(index, decimalPrecision, decimalScale)
+                                        .toBigDecimal());
             case DATE:
-                return (val, index, statement) -> statement.setDate(index + 1, Date.valueOf(LocalDate.ofEpochDay(val.getInt(index))));
+                return (val, index, statement) ->
+                        statement.setDate(
+                                index + 1, Date.valueOf(LocalDate.ofEpochDay(val.getInt(index))));
             case TIME_WITHOUT_TIME_ZONE:
-                return (val, index, statement) -> statement.setTime(index + 1, Time.valueOf(LocalTime.ofNanoOfDay((long) val.getInt(index) * 1000000L)));
+                return (val, index, statement) ->
+                        statement.setTime(
+                                index + 1,
+                                Time.valueOf(
+                                        LocalTime.ofNanoOfDay(
+                                                (long) val.getInt(index) * 1000000L)));
             case TIMESTAMP_WITH_TIME_ZONE:
             case TIMESTAMP_WITHOUT_TIME_ZONE:
                 int timestampPrecision = ((TimestampType) type).getPrecision();
-                return (val, index, statement) -> statement.setTimestamp(index + 1, val.getTimestamp(index, timestampPrecision).toTimestamp());
+                return (val, index, statement) ->
+                        statement.setTimestamp(
+                                index + 1,
+                                val.getTimestamp(index, timestampPrecision).toTimestamp());
             case CHAR:
             case VARCHAR:
-                return (val, index, statement) -> statement.setString(index + 1, val.getString(index).toString());
+                return (val, index, statement) ->
+                        statement.setString(index + 1, val.getString(index).toString());
             case BINARY:
             case VARBINARY:
-                return (val, index, statement) -> statement.setBytes(index + 1, val.getBinary(index));
+                return (val, index, statement) ->
+                        statement.setBytes(index + 1, val.getBinary(index));
             case ARRAY:
             case ROW:
             case MAP:

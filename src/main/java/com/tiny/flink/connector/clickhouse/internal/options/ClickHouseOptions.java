@@ -6,13 +6,12 @@
 package com.tiny.flink.connector.clickhouse.internal.options;
 
 import javax.annotation.Nullable;
+
 import java.io.Serializable;
 import java.time.Duration;
 import java.util.Optional;
 
-/**
- * @author tiger
- */
+/** ClickHouse properties. */
 public class ClickHouseOptions implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -41,7 +40,19 @@ public class ClickHouseOptions implements Serializable {
 
     private final boolean ignoreDelete;
 
-    private ClickHouseOptions(String url, @Nullable String username, @Nullable String password, String databaseName, String tableName, int batchSize, Duration flushInterval, int maxRetires, boolean writeLocal, String partitionStrategy, String partitionKey, boolean ignoreDelete) {
+    private ClickHouseOptions(
+            String url,
+            @Nullable String username,
+            @Nullable String password,
+            String databaseName,
+            String tableName,
+            int batchSize,
+            Duration flushInterval,
+            int maxRetires,
+            boolean writeLocal,
+            String partitionStrategy,
+            String partitionKey,
+            boolean ignoreDelete) {
         this.url = url;
         this.username = username;
         this.password = password;
@@ -104,6 +115,7 @@ public class ClickHouseOptions implements Serializable {
         return this.ignoreDelete;
     }
 
+    /** Builder for {@link ClickHouseOptions}. */
     public static class Builder {
         private String url;
         private String username;
@@ -118,8 +130,7 @@ public class ClickHouseOptions implements Serializable {
         private String partitionKey;
         private boolean ignoreDelete;
 
-        public Builder() {
-        }
+        public Builder() {}
 
         public ClickHouseOptions.Builder withUrl(String url) {
             this.url = url;
@@ -182,7 +193,19 @@ public class ClickHouseOptions implements Serializable {
         }
 
         public ClickHouseOptions build() {
-            return new ClickHouseOptions(this.url, this.username, this.password, this.databaseName, this.tableName, this.batchSize, this.flushInterval, this.maxRetries, this.writeLocal, this.partitionStrategy, this.partitionKey, this.ignoreDelete);
+            return new ClickHouseOptions(
+                    this.url,
+                    this.username,
+                    this.password,
+                    this.databaseName,
+                    this.tableName,
+                    this.batchSize,
+                    this.flushInterval,
+                    this.maxRetries,
+                    this.writeLocal,
+                    this.partitionStrategy,
+                    this.partitionKey,
+                    this.ignoreDelete);
         }
     }
 }

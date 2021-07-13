@@ -5,22 +5,22 @@
 
 package com.tiny.flink.connector.clickhouse.internal;
 
+import org.apache.flink.table.data.RowData;
+import org.apache.flink.util.Preconditions;
+
 import com.tiny.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import com.tiny.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
 import com.tiny.flink.connector.clickhouse.internal.options.ClickHouseOptions;
-import org.apache.flink.table.data.RowData;
-import org.apache.flink.util.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.yandex.clickhouse.ClickHouseConnection;
 
 import javax.annotation.Nonnull;
+
 import java.io.IOException;
 import java.sql.SQLException;
 
-/**
- * @author tiger
- */
+/** Output data to ClickHouse local table. */
 public class ClickHouseBatchOutputFormat extends AbstractClickHouseOutputFormat {
 
     private static final long serialVersionUID = 1L;
@@ -39,9 +39,10 @@ public class ClickHouseBatchOutputFormat extends AbstractClickHouseOutputFormat 
 
     private transient int batchCount = 0;
 
-    protected ClickHouseBatchOutputFormat(@Nonnull ClickHouseConnectionProvider connectionProvider,
-                                          @Nonnull ClickHouseExecutor executor,
-                                          @Nonnull ClickHouseOptions options) {
+    protected ClickHouseBatchOutputFormat(
+            @Nonnull ClickHouseConnectionProvider connectionProvider,
+            @Nonnull ClickHouseExecutor executor,
+            @Nonnull ClickHouseOptions options) {
         this.connectionProvider = Preconditions.checkNotNull(connectionProvider);
         this.executor = Preconditions.checkNotNull(executor);
         this.options = Preconditions.checkNotNull(options);
@@ -65,7 +66,6 @@ public class ClickHouseBatchOutputFormat extends AbstractClickHouseOutputFormat 
         if (this.batchCount >= this.options.getBatchSize()) {
             this.flush();
         }
-
     }
 
     private void addBatch(RowData record) throws IOException {
@@ -90,7 +90,6 @@ public class ClickHouseBatchOutputFormat extends AbstractClickHouseOutputFormat 
 
             this.closeConnection();
         }
-
     }
 
     private void closeConnection() {
@@ -104,6 +103,5 @@ public class ClickHouseBatchOutputFormat extends AbstractClickHouseOutputFormat 
                 this.connection = null;
             }
         }
-
     }
 }

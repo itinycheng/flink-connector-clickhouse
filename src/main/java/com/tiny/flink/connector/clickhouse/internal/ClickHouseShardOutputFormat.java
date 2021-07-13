@@ -5,19 +5,21 @@
 
 package com.tiny.flink.connector.clickhouse.internal;
 
+import org.apache.flink.table.data.RowData;
+import org.apache.flink.util.Preconditions;
+
 import com.tiny.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import com.tiny.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
 import com.tiny.flink.connector.clickhouse.internal.executor.ClickHouseBatchExecutor;
 import com.tiny.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
 import com.tiny.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import com.tiny.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner;
-import org.apache.flink.table.data.RowData;
-import org.apache.flink.util.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.yandex.clickhouse.ClickHouseConnection;
 
 import javax.annotation.Nonnull;
+
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -26,16 +28,16 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * @author tiger
- */
+/** The shard output format of distributed table. */
 public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat {
 
     private static final long serialVersionUID = 1L;
 
     private static final Logger LOG = LoggerFactory.getLogger(ClickHouseShardOutputFormat.class);
 
-    private static final Pattern PATTERN = Pattern.compile("Distributed\\((?<cluster>[a-zA-Z_][0-9a-zA-Z_]*),\\s*(?<database>[a-zA-Z_][0-9a-zA-Z_]*),\\s*(?<table>[a-zA-Z_][0-9a-zA-Z_]*)");
+    private static final Pattern PATTERN =
+            Pattern.compile(
+                    "Distributed\\((?<cluster>[a-zA-Z_][0-9a-zA-Z_]*),\\s*(?<database>[a-zA-Z_][0-9a-zA-Z_]*),\\s*(?<table>[a-zA-Z_][0-9a-zA-Z_]*)");
 
     private final ClickHouseConnectionProvider connectionProvider;
 
@@ -63,12 +65,13 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
     private final boolean ignoreDelete;
 
-    protected ClickHouseShardOutputFormat(@Nonnull ClickHouseConnectionProvider connectionProvider,
-                                          @Nonnull String[] fieldNames,
-                                          @Nonnull Optional<String[]> keyFields,
-                                          @Nonnull ClickHouseRowConverter converter,
-                                          @Nonnull ClickHousePartitioner partitioner,
-                                          @Nonnull ClickHouseOptions options) {
+    protected ClickHouseShardOutputFormat(
+            @Nonnull ClickHouseConnectionProvider connectionProvider,
+            @Nonnull String[] fieldNames,
+            @Nonnull Optional<String[]> keyFields,
+            @Nonnull ClickHouseRowConverter converter,
+            @Nonnull ClickHousePartitioner partitioner,
+            @Nonnull ClickHouseOptions options) {
         this.connectionProvider = Preconditions.checkNotNull(connectionProvider);
         this.fieldNames = Preconditions.checkNotNull(fieldNames);
         this.converter = Preconditions.checkNotNull(converter);
@@ -92,16 +95,24 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
     private void establishShardConnections() throws IOException {
         try {
-            String engine = this.connectionProvider.queryTableEngine(this.options.getDatabaseName(), this.options.getTableName());
+            String engine =
+                    this.connectionProvider.queryTableEngine(
+                            this.options.getDatabaseName(), this.options.getTableName());
             Matcher matcher = PATTERN.matcher(engine);
             if (matcher.find()) {
                 String remoteCluster = matcher.group("cluster");
                 String remoteDatabase = matcher.group("database");
                 this.remoteTable = matcher.group("table");
-                this.shardConnections = this.connectionProvider.getShardConnections(remoteCluster, remoteDatabase);
+                this.shardConnections =
+                        this.connectionProvider.getShardConnections(remoteCluster, remoteDatabase);
                 this.batchCounts = new int[this.shardConnections.size()];
             } else {
-                throw new IOException("table `" + this.options.getDatabaseName() + "`.`" + this.options.getTableName() + "` is not a Distributed table");
+                throw new IOException(
+                        "table `"
+                                + this.options.getDatabaseName()
+                                + "`.`"
+                                + this.options.getTableName()
+                                + "` is not a Distributed table");
             }
         } catch (SQLException var5) {
             throw new IOException(var5);
@@ -109,20 +120,34 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
     }
 
     private void initializeExecutors() throws SQLException {
-        String sql = ClickHouseStatementFactory.getInsertIntoStatement(this.remoteTable, this.fieldNames);
+        String sql =
+                ClickHouseStatementFactory.getInsertIntoStatement(
+                        this.remoteTable, this.fieldNames);
 
         for (ClickHouseConnection shardConnection : this.shardConnections) {
             ClickHouseExecutor executor;
             if (this.keyFields.length > 0) {
-                executor = ClickHouseExecutor.createUpsertExecutor(this.remoteTable, this.fieldNames, this.keyFields, this.converter, this.options);
+                executor =
+                        ClickHouseExecutor.createUpsertExecutor(
+                                this.remoteTable,
+                                this.fieldNames,
+                                this.keyFields,
+                                this.converter,
+                                this.options);
             } else {
-                executor = new ClickHouseBatchExecutor(sql, this.converter, this.options.getFlushInterval(), this.options.getBatchSize(), this.options.getMaxRetries(), null);
+                executor =
+                        new ClickHouseBatchExecutor(
+                                sql,
+                                this.converter,
+                                this.options.getFlushInterval(),
+                                this.options.getBatchSize(),
+                                this.options.getMaxRetries(),
+                                null);
             }
 
             executor.prepareStatement(shardConnection);
             this.shardExecutors.add(executor);
         }
-
     }
 
     @Override
@@ -146,9 +171,11 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
             case UPDATE_BEFORE:
                 break;
             default:
-                throw new UnsupportedOperationException(String.format("Unknown row kind, the supported row kinds is: INSERT, UPDATE_BEFORE, UPDATE_AFTER, DELETE, but get: %s.", record.getRowKind()));
+                throw new UnsupportedOperationException(
+                        String.format(
+                                "Unknown row kind, the supported row kinds is: INSERT, UPDATE_BEFORE, UPDATE_AFTER, DELETE, but get: %s.",
+                                record.getRowKind()));
         }
-
     }
 
     private void writeRecordToOneExecutor(RowData record) throws IOException {
@@ -158,7 +185,6 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
         if (this.batchCounts[selected] >= this.options.getBatchSize()) {
             this.flush(selected);
         }
-
     }
 
     private void writeRecordToAllExecutors(RowData record) throws IOException {
@@ -169,7 +195,6 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
                 this.flush(i);
             }
         }
-
     }
 
     @Override
@@ -177,7 +202,6 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
         for (int i = 0; i < this.shardExecutors.size(); ++i) {
             this.flush(i);
         }
-
     }
 
     public void flush(int index) throws IOException {
@@ -198,7 +222,6 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
             this.closeConnection();
         }
-
     }
 
     private void closeConnection() {
@@ -215,6 +238,5 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
                 this.connection = null;
             }
         }
-
     }
 }

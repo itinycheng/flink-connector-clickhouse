@@ -5,12 +5,6 @@
 
 package com.tiny.flink.connector.clickhouse.internal;
 
-import com.tiny.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
-import com.tiny.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
-import com.tiny.flink.connector.clickhouse.internal.executor.ClickHouseBatchExecutor;
-import com.tiny.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
-import com.tiny.flink.connector.clickhouse.internal.options.ClickHouseOptions;
-import com.tiny.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner;
 import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.configuration.Configuration;
@@ -21,6 +15,13 @@ import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.util.Preconditions;
+
+import com.tiny.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
+import com.tiny.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
+import com.tiny.flink.connector.clickhouse.internal.executor.ClickHouseBatchExecutor;
+import com.tiny.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
+import com.tiny.flink.connector.clickhouse.internal.options.ClickHouseOptions;
+import com.tiny.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,23 +34,22 @@ import static com.tiny.flink.connector.clickhouse.internal.partitioner.ClickHous
 import static com.tiny.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.HASH;
 import static com.tiny.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.SHUFFLE;
 
-/**
- * @author tiger
- */
-public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<RowData> implements Flushable {
+/** Abstract class of ClickHouse output format. */
+public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<RowData>
+        implements Flushable {
 
     private static final long serialVersionUID = 1L;
 
-    public AbstractClickHouseOutputFormat() {
-    }
+    public AbstractClickHouseOutputFormat() {}
 
     @Override
-    public void configure(Configuration parameters) {
-    }
+    public void configure(Configuration parameters) {}
 
+    /** Builder for {@link ClickHouseBatchOutputFormat} and {@link ClickHouseShardOutputFormat}. */
     public static class Builder {
 
-        private static final Logger LOG = LoggerFactory.getLogger(AbstractClickHouseOutputFormat.Builder.class);
+        private static final Logger LOG =
+                LoggerFactory.getLogger(AbstractClickHouseOutputFormat.Builder.class);
 
         private DataType[] fieldDataTypes;
 
@@ -61,15 +61,15 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
 
         private TypeInformation<RowData> rowDataTypeInformation;
 
-        public Builder() {
-        }
+        public Builder() {}
 
         public AbstractClickHouseOutputFormat.Builder withOptions(ClickHouseOptions options) {
             this.options = options;
             return this;
         }
 
-        public AbstractClickHouseOutputFormat.Builder withFieldDataTypes(DataType[] fieldDataTypes) {
+        public AbstractClickHouseOutputFormat.Builder withFieldDataTypes(
+                DataType[] fieldDataTypes) {
             this.fieldDataTypes = fieldDataTypes;
             return this;
         }
@@ -79,12 +79,14 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
             return this;
         }
 
-        public AbstractClickHouseOutputFormat.Builder withRowDataTypeInfo(TypeInformation<RowData> rowDataTypeInfo) {
+        public AbstractClickHouseOutputFormat.Builder withRowDataTypeInfo(
+                TypeInformation<RowData> rowDataTypeInfo) {
             this.rowDataTypeInformation = rowDataTypeInfo;
             return this;
         }
 
-        public AbstractClickHouseOutputFormat.Builder withPrimaryKey(Optional<UniqueConstraint> primaryKey) {
+        public AbstractClickHouseOutputFormat.Builder withPrimaryKey(
+                Optional<UniqueConstraint> primaryKey) {
             this.primaryKey = primaryKey;
             return this;
         }
@@ -93,28 +95,51 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
             Preconditions.checkNotNull(this.options);
             Preconditions.checkNotNull(this.fieldNames);
             Preconditions.checkNotNull(this.fieldDataTypes);
-            LogicalType[] logicalTypes = Arrays.stream(this.fieldDataTypes).map(DataType::getLogicalType).toArray(LogicalType[]::new);
+            LogicalType[] logicalTypes =
+                    Arrays.stream(this.fieldDataTypes)
+                            .map(DataType::getLogicalType)
+                            .toArray(LogicalType[]::new);
             ClickHouseRowConverter converter = new ClickHouseRowConverter(RowType.of(logicalTypes));
             if (this.primaryKey.isPresent()) {
                 LOG.warn("If primary key is specified, connector will be in UPSERT mode.");
                 LOG.warn("You will have significant performance loss.");
             }
-            return this.options.getWriteLocal() ? this.createShardOutputFormat(logicalTypes, converter) : this.createBatchOutputFormat(converter);
+            return this.options.getWriteLocal()
+                    ? this.createShardOutputFormat(logicalTypes, converter)
+                    : this.createBatchOutputFormat(converter);
         }
 
-        private ClickHouseBatchOutputFormat createBatchOutputFormat(ClickHouseRowConverter converter) {
+        private ClickHouseBatchOutputFormat createBatchOutputFormat(
+                ClickHouseRowConverter converter) {
             ClickHouseExecutor executor;
             if (this.primaryKey.isPresent() && !this.options.getIgnoreDelete()) {
-                executor = ClickHouseExecutor.createUpsertExecutor(this.options.getTableName(), this.fieldNames, this.listToStringArray(this.primaryKey.get().getColumns()), converter, this.options);
+                executor =
+                        ClickHouseExecutor.createUpsertExecutor(
+                                this.options.getTableName(),
+                                this.fieldNames,
+                                this.listToStringArray(this.primaryKey.get().getColumns()),
+                                converter,
+                                this.options);
             } else {
-                String sql = ClickHouseStatementFactory.getInsertIntoStatement(this.options.getTableName(), this.fieldNames);
-                executor = new ClickHouseBatchExecutor(sql, converter, this.options.getFlushInterval(), this.options.getBatchSize(), this.options.getMaxRetries(), this.rowDataTypeInformation);
+                String sql =
+                        ClickHouseStatementFactory.getInsertIntoStatement(
+                                this.options.getTableName(), this.fieldNames);
+                executor =
+                        new ClickHouseBatchExecutor(
+                                sql,
+                                converter,
+                                this.options.getFlushInterval(),
+                                this.options.getBatchSize(),
+                                this.options.getMaxRetries(),
+                                this.rowDataTypeInformation);
             }
 
-            return new ClickHouseBatchOutputFormat(new ClickHouseConnectionProvider(this.options), executor, this.options);
+            return new ClickHouseBatchOutputFormat(
+                    new ClickHouseConnectionProvider(this.options), executor, this.options);
         }
 
-        private ClickHouseShardOutputFormat createShardOutputFormat(LogicalType[] logicalTypes, ClickHouseRowConverter converter) {
+        private ClickHouseShardOutputFormat createShardOutputFormat(
+                LogicalType[] logicalTypes, ClickHouseRowConverter converter) {
             String partitionStrategy = this.options.getPartitionStrategy();
             ClickHousePartitioner partitioner;
             switch (partitionStrategy) {
@@ -125,15 +150,20 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
                     partitioner = ClickHousePartitioner.createShuffle();
                     break;
                 case HASH:
-                    int index = Arrays.asList(this.fieldNames).indexOf(this.options.getPartitionKey());
+                    int index =
+                            Arrays.asList(this.fieldNames).indexOf(this.options.getPartitionKey());
                     if (index == -1) {
-                        throw new IllegalArgumentException("Partition key `" + this.options.getPartitionKey() + "` not found in table schema");
+                        throw new IllegalArgumentException(
+                                "Partition key `"
+                                        + this.options.getPartitionKey()
+                                        + "` not found in table schema");
                     }
                     FieldGetter getter = RowData.createFieldGetter(logicalTypes[index], index);
                     partitioner = ClickHousePartitioner.createHash(getter);
                     break;
                 default:
-                    throw new IllegalArgumentException("Unknown sink.partition-strategy `" + partitionStrategy + "`");
+                    throw new IllegalArgumentException(
+                            "Unknown sink.partition-strategy `" + partitionStrategy + "`");
             }
 
             Optional<String[]> keyFields;
@@ -142,7 +172,13 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
             } else {
                 keyFields = Optional.empty();
             }
-            return new ClickHouseShardOutputFormat(new ClickHouseConnectionProvider(this.options), this.fieldNames, keyFields, converter, partitioner, this.options);
+            return new ClickHouseShardOutputFormat(
+                    new ClickHouseConnectionProvider(this.options),
+                    this.fieldNames,
+                    keyFields,
+                    converter,
+                    partitioner,
+                    this.options);
         }
 
         private String[] listToStringArray(List<String> lists) {
