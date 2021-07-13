@@ -136,7 +136,6 @@ public class ClickHouseBatchExecutor implements ClickHouseExecutor {
         while (i <= this.maxRetries) {
             try {
                 this.stmt.executeBatch();
-                this.stmt.clearBatch();
                 this.batch.clear();
                 break;
             } catch (SQLException var5) {
@@ -173,6 +172,7 @@ public class ClickHouseBatchExecutor implements ClickHouseExecutor {
     }
 
     private class ExecuteBatchService extends AbstractExecutionThreadService {
+
         private ExecuteBatchService() {}
 
         @Override
@@ -188,36 +188,8 @@ public class ClickHouseBatchExecutor implements ClickHouseExecutor {
                             ClickHouseBatchExecutor.this.stmt.addBatch();
                         }
 
-                        this.attemptExecuteBatch();
+                        ClickHouseBatchExecutor.this.attemptExecuteBatch();
                     }
-                }
-            }
-        }
-
-        private void attemptExecuteBatch() throws IOException {
-            int i = 1;
-
-            while (i <= ClickHouseBatchExecutor.this.maxRetries) {
-                try {
-                    ClickHouseBatchExecutor.this.stmt.executeBatch();
-                    ClickHouseBatchExecutor.this.batch.clear();
-                    break;
-                } catch (SQLException var5) {
-                    ClickHouseBatchExecutor.LOG.error(
-                            "ClickHouse executeBatch error, retry times = {}", i, var5);
-                    if (i >= ClickHouseBatchExecutor.this.maxRetries) {
-                        throw new IOException(var5);
-                    }
-
-                    try {
-                        Thread.sleep(1000 * i);
-                    } catch (InterruptedException var4) {
-                        Thread.currentThread().interrupt();
-                        throw new IOException(
-                                "unable to flush; interrupted while doing another attempt", var5);
-                    }
-
-                    ++i;
                 }
             }
         }

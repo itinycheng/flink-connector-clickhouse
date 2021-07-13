@@ -20,7 +20,9 @@ import com.tiny.flink.connector.clickhouse.internal.options.ClickHouseOptions;
  * a logical description.
  */
 public class ClickHouseDynamicTableSink implements DynamicTableSink {
+
     private final TableSchema tableSchema;
+
     private final ClickHouseOptions options;
 
     public ClickHouseDynamicTableSink(ClickHouseOptions options, TableSchema tableSchema) {
@@ -52,7 +54,7 @@ public class ClickHouseDynamicTableSink implements DynamicTableSink {
                         .withOptions(this.options)
                         .withFieldNames(this.tableSchema.getFieldNames())
                         .withFieldDataTypes(this.tableSchema.getFieldDataTypes())
-                        .withPrimaryKey(this.tableSchema.getPrimaryKey())
+                        .withPrimaryKey(this.tableSchema.getPrimaryKey().orElse(null))
                         .withRowDataTypeInfo(
                                 context.createTypeInformation(this.tableSchema.toRowDataType()))
                         .build();

@@ -17,7 +17,6 @@ import ru.yandex.clickhouse.ClickHouseConnection;
 import java.io.IOException;
 import java.io.Serializable;
 import java.sql.SQLException;
-import java.util.Optional;
 
 /** Executor interface for submitting data to ClickHouse. */
 public interface ClickHouseExecutor extends Serializable {
@@ -43,10 +42,9 @@ public interface ClickHouseExecutor extends Serializable {
         String insertSql = ClickHouseStatementFactory.getInsertIntoStatement(tableName, fieldNames);
         String updateSql =
                 ClickHouseStatementFactory.getUpdateStatement(
-                        tableName, fieldNames, keyFields, Optional.empty());
+                        tableName, fieldNames, keyFields, null);
         String deleteSql =
-                ClickHouseStatementFactory.getDeleteStatement(
-                        tableName, keyFields, Optional.empty());
+                ClickHouseStatementFactory.getDeleteStatement(tableName, keyFields, null);
         return new ClickHouseUpsertExecutor(insertSql, updateSql, deleteSql, converter, options);
     }
 }

@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory;
 import java.io.Flushable;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 import static com.tiny.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.BALANCED;
 import static com.tiny.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.HASH;
@@ -57,7 +56,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
 
         private String[] fieldNames;
 
-        private Optional<UniqueConstraint> primaryKey;
+        private UniqueConstraint primaryKey;
 
         private TypeInformation<RowData> rowDataTypeInformation;
 
@@ -85,8 +84,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
             return this;
         }
 
-        public AbstractClickHouseOutputFormat.Builder withPrimaryKey(
-                Optional<UniqueConstraint> primaryKey) {
+        public AbstractClickHouseOutputFormat.Builder withPrimaryKey(UniqueConstraint primaryKey) {
             this.primaryKey = primaryKey;
             return this;
         }
@@ -100,7 +98,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
                             .map(DataType::getLogicalType)
                             .toArray(LogicalType[]::new);
             ClickHouseRowConverter converter = new ClickHouseRowConverter(RowType.of(logicalTypes));
-            if (this.primaryKey.isPresent()) {
+            if (this.primaryKey != null) {
                 LOG.warn("If primary key is specified, connector will be in UPSERT mode.");
                 LOG.warn("You will have significant performance loss.");
             }
@@ -112,12 +110,12 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
         private ClickHouseBatchOutputFormat createBatchOutputFormat(
                 ClickHouseRowConverter converter) {
             ClickHouseExecutor executor;
-            if (this.primaryKey.isPresent() && !this.options.getIgnoreDelete()) {
+            if (this.primaryKey != null && !this.options.getIgnoreDelete()) {
                 executor =
                         ClickHouseExecutor.createUpsertExecutor(
                                 this.options.getTableName(),
                                 this.fieldNames,
-                                this.listToStringArray(this.primaryKey.get().getColumns()),
+                                this.listToStringArray(this.primaryKey.getColumns()),
                                 converter,
                                 this.options);
             } else {
@@ -166,11 +164,9 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
                             "Unknown sink.partition-strategy `" + partitionStrategy + "`");
             }
 
-            Optional<String[]> keyFields;
-            if (this.primaryKey.isPresent() && !this.options.getIgnoreDelete()) {
-                keyFields = Optional.of(this.listToStringArray(this.primaryKey.get().getColumns()));
-            } else {
-                keyFields = Optional.empty();
+            String[] keyFields = new String[0];
+            if (this.primaryKey != null && !this.options.getIgnoreDelete()) {
+                keyFields = this.listToStringArray(this.primaryKey.getColumns());
             }
             return new ClickHouseShardOutputFormat(
                     new ClickHouseConnectionProvider(this.options),
