@@ -10,9 +10,7 @@ import org.apache.flink.table.data.RowData.FieldGetter;
 
 import java.io.Serializable;
 
-/**
- * @author tiger
- */
+/** ClickHouse data partitioner interface. */
 public interface ClickHousePartitioner extends Serializable {
 
     String BALANCED = "balanced";

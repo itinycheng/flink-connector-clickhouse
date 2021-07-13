@@ -5,12 +5,14 @@
 
 package com.tiny.flink.connector.clickhouse.internal.executor;
 
-import com.google.common.util.concurrent.AbstractExecutionThreadService;
+import org.apache.flink.api.common.functions.RuntimeContext;
+import org.apache.flink.table.data.RowData;
+
+import org.apache.flink.shaded.guava18.com.google.common.util.concurrent.AbstractExecutionThreadService;
+
 import com.tiny.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import com.tiny.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
 import com.tiny.flink.connector.clickhouse.internal.options.ClickHouseOptions;
-import org.apache.flink.api.common.functions.RuntimeContext;
-import org.apache.flink.table.data.RowData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.yandex.clickhouse.ClickHouseConnection;
@@ -23,9 +25,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * @author tiger
- */
+/** ClickHouse's upsert executor. */
 public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
     private static final long serialVersionUID = 1L;
     private static final Logger LOG = LoggerFactory.getLogger(ClickHouseUpsertExecutor.class);
@@ -43,7 +43,12 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
     private final Duration flushInterval;
     private final int maxRetries;
 
-    public ClickHouseUpsertExecutor(String insertSql, String updateSql, String deleteSql, ClickHouseRowConverter converter, ClickHouseOptions options) {
+    public ClickHouseUpsertExecutor(
+            String insertSql,
+            String updateSql,
+            String deleteSql,
+            ClickHouseRowConverter converter,
+            ClickHouseOptions options) {
         this.insertSql = insertSql;
         this.updateSql = updateSql;
         this.deleteSql = deleteSql;
@@ -65,12 +70,10 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
     }
 
     @Override
-    public void prepareStatement(ClickHouseConnectionProvider connectionProvider) {
-    }
+    public void prepareStatement(ClickHouseConnectionProvider connectionProvider) {}
 
     @Override
-    public void setRuntimeContext(RuntimeContext context) {
-    }
+    public void setRuntimeContext(RuntimeContext context) {}
 
     @Override
     public synchronized void addBatch(RowData record) {
@@ -87,9 +90,11 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
             case UPDATE_BEFORE:
                 break;
             default:
-                throw new UnsupportedOperationException(String.format("Unknown row kind, the supported row kinds is: INSERT, UPDATE_BEFORE, UPDATE_AFTER, DELETE, but get: %s.", record.getRowKind()));
+                throw new UnsupportedOperationException(
+                        String.format(
+                                "Unknown row kind, the supported row kinds is: INSERT, UPDATE_BEFORE, UPDATE_AFTER, DELETE, but get: %s.",
+                                record.getRowKind()));
         }
-
     }
 
     @Override
@@ -109,32 +114,38 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
             LOG.warn("executor closed before initialized");
         }
 
-        for (ClickHousePreparedStatement clickHousePreparedStatement : Arrays.asList(this.insertStmt, this.updateStmt, this.deleteStmt)) {
+        for (ClickHousePreparedStatement clickHousePreparedStatement :
+                Arrays.asList(this.insertStmt, this.updateStmt, this.deleteStmt)) {
             if (clickHousePreparedStatement != null) {
                 clickHousePreparedStatement.close();
             }
         }
-
     }
 
     private class ExecuteBatchService extends AbstractExecutionThreadService {
-        private ExecuteBatchService() {
-        }
+        private ExecuteBatchService() {}
 
         @Override
         protected void run() throws Exception {
             while (this.isRunning()) {
                 synchronized (ClickHouseUpsertExecutor.this) {
-                    ClickHouseUpsertExecutor.this.wait(ClickHouseUpsertExecutor.this.flushInterval.toMillis());
-                    this.processBatch(ClickHouseUpsertExecutor.this.insertStmt, ClickHouseUpsertExecutor.this.insertBatch);
-                    this.processBatch(ClickHouseUpsertExecutor.this.updateStmt, ClickHouseUpsertExecutor.this.updateBatch);
-                    this.processBatch(ClickHouseUpsertExecutor.this.deleteStmt, ClickHouseUpsertExecutor.this.deleteBatch);
+                    ClickHouseUpsertExecutor.this.wait(
+                            ClickHouseUpsertExecutor.this.flushInterval.toMillis());
+                    this.processBatch(
+                            ClickHouseUpsertExecutor.this.insertStmt,
+                            ClickHouseUpsertExecutor.this.insertBatch);
+                    this.processBatch(
+                            ClickHouseUpsertExecutor.this.updateStmt,
+                            ClickHouseUpsertExecutor.this.updateBatch);
+                    this.processBatch(
+                            ClickHouseUpsertExecutor.this.deleteStmt,
+                            ClickHouseUpsertExecutor.this.deleteBatch);
                 }
             }
-
         }
 
-        private void processBatch(ClickHousePreparedStatement stmt, List<RowData> batch) throws SQLException, IOException {
+        private void processBatch(ClickHousePreparedStatement stmt, List<RowData> batch)
+                throws SQLException, IOException {
             if (!batch.isEmpty()) {
 
                 for (RowData r : ClickHouseUpsertExecutor.this.insertBatch) {
@@ -144,10 +155,10 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
 
                 this.attemptExecuteBatch(stmt, batch);
             }
-
         }
 
-        private void attemptExecuteBatch(ClickHousePreparedStatement stmt, List<RowData> batch) throws IOException {
+        private void attemptExecuteBatch(ClickHousePreparedStatement stmt, List<RowData> batch)
+                throws IOException {
             int i = 1;
 
             while (i <= ClickHouseUpsertExecutor.this.maxRetries) {
@@ -156,7 +167,8 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
                     batch.clear();
                     break;
                 } catch (SQLException var7) {
-                    ClickHouseUpsertExecutor.LOG.error("ClickHouse executeBatch error, retry times = {}", i, var7);
+                    ClickHouseUpsertExecutor.LOG.error(
+                            "ClickHouse executeBatch error, retry times = {}", i, var7);
                     if (i >= ClickHouseUpsertExecutor.this.maxRetries) {
                         throw new IOException(var7);
                     }
@@ -165,13 +177,13 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
                         Thread.sleep(1000 * i);
                     } catch (InterruptedException var6) {
                         Thread.currentThread().interrupt();
-                        throw new IOException("unable to flush; interrupted while doing another attempt", var7);
+                        throw new IOException(
+                                "unable to flush; interrupted while doing another attempt", var7);
                     }
 
                     ++i;
                 }
             }
-
         }
     }
 }

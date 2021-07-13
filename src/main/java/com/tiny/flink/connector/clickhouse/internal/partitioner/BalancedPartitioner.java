@@ -7,17 +7,14 @@ package com.tiny.flink.connector.clickhouse.internal.partitioner;
 
 import org.apache.flink.table.data.RowData;
 
-/**
- * @author tiger
- */
+/** Use round-robin mode to partition data. */
 public class BalancedPartitioner implements ClickHousePartitioner {
 
     private static final long serialVersionUID = 1L;
 
     private int nextShard = 0;
 
-    public BalancedPartitioner() {
-    }
+    public BalancedPartitioner() {}
 
     @Override
     public int select(RowData record, int numShards) {

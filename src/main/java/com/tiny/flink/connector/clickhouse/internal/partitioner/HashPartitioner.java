@@ -10,9 +10,7 @@ import org.apache.flink.table.data.RowData.FieldGetter;
 
 import java.util.Objects;
 
-/**
- * @author tiger
- */
+/** Use primary-key's hash code to partition data. */
 public class HashPartitioner implements ClickHousePartitioner {
 
     private static final long serialVersionUID = 1L;
