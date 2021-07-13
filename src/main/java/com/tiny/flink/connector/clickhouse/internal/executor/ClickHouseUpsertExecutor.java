@@ -27,20 +27,35 @@ import java.util.List;
 
 /** ClickHouse's upsert executor. */
 public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
+
     private static final long serialVersionUID = 1L;
+
     private static final Logger LOG = LoggerFactory.getLogger(ClickHouseUpsertExecutor.class);
+
     private transient ClickHousePreparedStatement insertStmt;
+
     private transient ClickHousePreparedStatement updateStmt;
+
     private transient ClickHousePreparedStatement deleteStmt;
+
     private final String insertSql;
+
     private final String updateSql;
+
     private final String deleteSql;
+
     private final ClickHouseRowConverter converter;
+
     private final transient List<RowData> insertBatch;
+
     private final transient List<RowData> updateBatch;
+
     private final transient List<RowData> deleteBatch;
+
     private transient ClickHouseUpsertExecutor.ExecuteBatchService service;
+
     private final Duration flushInterval;
+
     private final int maxRetries;
 
     public ClickHouseUpsertExecutor(
@@ -122,7 +137,36 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
         }
     }
 
+    private void attemptExecuteBatch(ClickHousePreparedStatement stmt, List<RowData> batch)
+            throws IOException {
+        int i = 1;
+
+        while (i <= this.maxRetries) {
+            try {
+                stmt.executeBatch();
+                batch.clear();
+                break;
+            } catch (SQLException var7) {
+                LOG.error("ClickHouse executeBatch error, retry times = {}", i, var7);
+                if (i >= this.maxRetries) {
+                    throw new IOException(var7);
+                }
+
+                try {
+                    Thread.sleep(1000 * i);
+                } catch (InterruptedException var6) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException(
+                            "unable to flush; interrupted while doing another attempt", var7);
+                }
+
+                ++i;
+            }
+        }
+    }
+
     private class ExecuteBatchService extends AbstractExecutionThreadService {
+
         private ExecuteBatchService() {}
 
         @Override
@@ -153,36 +197,7 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
                     stmt.addBatch();
                 }
 
-                this.attemptExecuteBatch(stmt, batch);
-            }
-        }
-
-        private void attemptExecuteBatch(ClickHousePreparedStatement stmt, List<RowData> batch)
-                throws IOException {
-            int i = 1;
-
-            while (i <= ClickHouseUpsertExecutor.this.maxRetries) {
-                try {
-                    stmt.executeBatch();
-                    batch.clear();
-                    break;
-                } catch (SQLException var7) {
-                    ClickHouseUpsertExecutor.LOG.error(
-                            "ClickHouse executeBatch error, retry times = {}", i, var7);
-                    if (i >= ClickHouseUpsertExecutor.this.maxRetries) {
-                        throw new IOException(var7);
-                    }
-
-                    try {
-                        Thread.sleep(1000 * i);
-                    } catch (InterruptedException var6) {
-                        Thread.currentThread().interrupt();
-                        throw new IOException(
-                                "unable to flush; interrupted while doing another attempt", var7);
-                    }
-
-                    ++i;
-                }
+                ClickHouseUpsertExecutor.this.attemptExecuteBatch(stmt, batch);
             }
         }
     }

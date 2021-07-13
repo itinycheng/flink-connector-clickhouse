@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -68,7 +67,7 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
     protected ClickHouseShardOutputFormat(
             @Nonnull ClickHouseConnectionProvider connectionProvider,
             @Nonnull String[] fieldNames,
-            @Nonnull Optional<String[]> keyFields,
+            @Nonnull String[] keyFields,
             @Nonnull ClickHouseRowConverter converter,
             @Nonnull ClickHousePartitioner partitioner,
             @Nonnull ClickHouseOptions options) {
@@ -79,7 +78,7 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
         this.options = Preconditions.checkNotNull(options);
         this.shardExecutors = new ArrayList<>();
         this.ignoreDelete = options.getIgnoreDelete();
-        this.keyFields = keyFields.orElseGet(() -> new String[0]);
+        this.keyFields = keyFields;
     }
 
     @Override

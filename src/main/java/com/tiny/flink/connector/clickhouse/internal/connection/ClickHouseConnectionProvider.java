@@ -38,6 +38,12 @@ public class ClickHouseConnectionProvider implements Serializable {
     private static final Pattern PATTERN =
             Pattern.compile("You must use port (?<port>[0-9]+) for HTTP.");
 
+    private static final String QUERY_CLUSTER_INFO_SQL =
+            "SELECT shard_num, host_address, port FROM system.clusters WHERE cluster = ?";
+
+    private static final String QUERY_TABLE_ENGINE_SQL =
+            "SELECT engine_full FROM system.tables WHERE database = ? AND name = ?";
+
     private transient ClickHouseConnection connection;
 
     private transient List<ClickHouseConnection> shardConnections;
@@ -53,69 +59,22 @@ public class ClickHouseConnectionProvider implements Serializable {
             this.connection =
                     createConnection(this.options.getUrl(), this.options.getDatabaseName());
         }
-
         return this.connection;
-    }
-
-    private ClickHouseConnection createConnection(String url, String database) throws SQLException {
-        LOG.info("connecting to {}", url);
-
-        try {
-            Class.forName("ru.yandex.clickhouse.ClickHouseDriver");
-        } catch (ClassNotFoundException var4) {
-            throw new SQLException(var4);
-        }
-
-        ClickHouseConnection conn;
-        if (this.options.getUsername().isPresent()) {
-            conn =
-                    (ClickHouseConnection)
-                            DriverManager.getConnection(
-                                    this.getJdbcUrl(url, database),
-                                    this.options.getUsername().orElse(null),
-                                    this.options.getPassword().orElse(null));
-        } else {
-            conn =
-                    (ClickHouseConnection)
-                            DriverManager.getConnection(this.getJdbcUrl(url, database));
-        }
-
-        return conn;
     }
 
     public synchronized List<ClickHouseConnection> getShardConnections(
             String remoteCluster, String remoteDatabase) throws SQLException {
         if (this.shardConnections == null) {
-            ClickHouseConnection conn = this.getConnection();
-            PreparedStatement stmt =
-                    conn.prepareStatement(
-                            "SELECT shard_num, host_address, port FROM system.clusters WHERE cluster = ?");
-            stmt.setString(1, remoteCluster);
-            ResultSet rs = stmt.executeQuery();
-            Throwable var6 = null;
-
-            try {
-                this.shardConnections = new ArrayList<>();
-
-                while (rs.next()) {
-                    String host = rs.getString("host_address");
-                    int port = this.getActualHttpPort(host, rs.getInt("port"));
-                    String url = "clickhouse://" + host + ":" + port;
-                    this.shardConnections.add(this.createConnection(url, remoteDatabase));
-                }
-            } catch (Throwable var17) {
-                var6 = var17;
-                throw var17;
-            } finally {
-                if (rs != null) {
-                    if (var6 != null) {
-                        try {
-                            rs.close();
-                        } catch (Throwable var16) {
-                            var6.addSuppressed(var16);
-                        }
-                    } else {
-                        rs.close();
+            try (ClickHouseConnection conn = this.getConnection();
+                    PreparedStatement stmt = conn.prepareStatement(QUERY_CLUSTER_INFO_SQL)) {
+                stmt.setString(1, remoteCluster);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    this.shardConnections = new ArrayList<>();
+                    while (rs.next()) {
+                        String host = rs.getString("host_address");
+                        int port = this.getActualHttpPort(host, rs.getInt("port"));
+                        String url = "clickhouse://" + host + ":" + port;
+                        this.shardConnections.add(this.createConnection(url, remoteDatabase));
                     }
                 }
             }
@@ -129,52 +88,28 @@ public class ClickHouseConnectionProvider implements Serializable {
     }
 
     private int getActualHttpPort(String host, int port) throws SQLException {
-        try {
-            CloseableHttpClient httpclient = HttpClients.createDefault();
-            Throwable var4 = null;
-
-            int var8;
-            try {
-                HttpGet request =
-                        new HttpGet(
-                                (new URIBuilder())
-                                        .setScheme("http")
-                                        .setHost(host)
-                                        .setPort(port)
-                                        .build());
-                HttpResponse response = httpclient.execute(request);
-                int statusCode = response.getStatusLine().getStatusCode();
-                if (statusCode != 200) {
-                    String raw = EntityUtils.toString(response.getEntity());
-                    Matcher matcher = PATTERN.matcher(raw);
-                    if (matcher.find()) {
-                        return Integer.parseInt(matcher.group("port"));
-                    }
-
-                    throw new SQLException("Cannot query ClickHouse http port");
+        try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
+            HttpGet request =
+                    new HttpGet(
+                            (new URIBuilder())
+                                    .setScheme("http")
+                                    .setHost(host)
+                                    .setPort(port)
+                                    .build());
+            HttpResponse response = httpclient.execute(request);
+            int statusCode = response.getStatusLine().getStatusCode();
+            if (statusCode != 200) {
+                String raw = EntityUtils.toString(response.getEntity());
+                Matcher matcher = PATTERN.matcher(raw);
+                if (matcher.find()) {
+                    return Integer.parseInt(matcher.group("port"));
                 }
-
-                var8 = port;
-            } catch (Throwable var21) {
-                var4 = var21;
-                throw var21;
-            } finally {
-                if (httpclient != null) {
-                    if (var4 != null) {
-                        try {
-                            httpclient.close();
-                        } catch (Throwable var20) {
-                            var4.addSuppressed(var20);
-                        }
-                    } else {
-                        httpclient.close();
-                    }
-                }
+                throw new SQLException("Cannot query ClickHouse http port");
             }
 
-            return var8;
-        } catch (Exception var23) {
-            throw new SQLException("Cannot connect to ClickHouse server using HTTP", var23);
+            return port;
+        } catch (Throwable throwable) {
+            throw new SQLException("Cannot connect to ClickHouse server using HTTP", throwable);
         }
     }
 
@@ -199,59 +134,33 @@ public class ClickHouseConnectionProvider implements Serializable {
     }
 
     public String queryTableEngine(String databaseName, String tableName) throws SQLException {
-        ClickHouseConnection conn = this.getConnection();
-        PreparedStatement stmt =
-                conn.prepareStatement(
-                        "SELECT engine_full FROM system.tables WHERE database = ? AND name = ?");
-        Throwable var5 = null;
-
-        try {
+        try (ClickHouseConnection conn = this.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(QUERY_TABLE_ENGINE_SQL)) {
             stmt.setString(1, databaseName);
             stmt.setString(2, tableName);
-            ResultSet rs = stmt.executeQuery();
-            Throwable var7 = null;
-
-            try {
-                String var8;
-                try {
-                    if (rs.next()) {
-                        var8 = rs.getString("engine_full");
-                        return var8;
-                    }
-                } catch (Throwable var34) {
-                    var7 = var34;
-                    throw var34;
-                }
-            } finally {
-                if (rs != null) {
-                    if (var7 != null) {
-                        try {
-                            rs.close();
-                        } catch (Throwable var33) {
-                            var7.addSuppressed(var33);
-                        }
-                    } else {
-                        rs.close();
-                    }
-                }
-            }
-        } catch (Throwable var36) {
-            var5 = var36;
-            throw var36;
-        } finally {
-            if (stmt != null) {
-                if (var5 != null) {
-                    try {
-                        stmt.close();
-                    } catch (Throwable var32) {
-                        var5.addSuppressed(var32);
-                    }
-                } else {
-                    stmt.close();
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("engine_full");
                 }
             }
         }
 
         throw new SQLException("table `" + databaseName + "`.`" + tableName + "` does not exist");
+    }
+
+    private ClickHouseConnection createConnection(String url, String database) throws SQLException {
+        LOG.info("connecting to {}", url);
+
+        try {
+            Class.forName(CLICKHOUSE_DRIVER_NAME);
+        } catch (ClassNotFoundException exception) {
+            throw new SQLException(exception);
+        }
+
+        return (ClickHouseConnection)
+                DriverManager.getConnection(
+                        this.getJdbcUrl(url, database),
+                        this.options.getUsername().orElse(null),
+                        this.options.getPassword().orElse(null));
     }
 }
