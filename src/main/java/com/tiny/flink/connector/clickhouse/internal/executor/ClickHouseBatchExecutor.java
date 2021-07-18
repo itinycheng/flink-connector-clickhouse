@@ -138,10 +138,10 @@ public class ClickHouseBatchExecutor implements ClickHouseExecutor {
                 this.stmt.executeBatch();
                 this.batch.clear();
                 break;
-            } catch (SQLException var5) {
-                LOG.error("ClickHouse executeBatch error, retry times = {}", i, var5);
+            } catch (SQLException exception) {
+                LOG.error("ClickHouse executeBatch error, retry times = {}", i, exception);
                 if (i >= this.maxRetries) {
-                    throw new IOException(var5);
+                    throw new IOException(exception);
                 }
 
                 try {
@@ -149,7 +149,7 @@ public class ClickHouseBatchExecutor implements ClickHouseExecutor {
                 } catch (InterruptedException var4) {
                     Thread.currentThread().interrupt();
                     throw new IOException(
-                            "unable to flush; interrupted while doing another attempt", var5);
+                            "unable to flush; interrupted while doing another attempt", exception);
                 }
 
                 ++i;
@@ -183,7 +183,7 @@ public class ClickHouseBatchExecutor implements ClickHouseExecutor {
                             ClickHouseBatchExecutor.this.flushInterval.toMillis());
                     if (!ClickHouseBatchExecutor.this.batch.isEmpty()) {
                         for (RowData r : ClickHouseBatchExecutor.this.batch) {
-                            ClickHouseBatchExecutor.this.converter.toClickHouse(
+                            ClickHouseBatchExecutor.this.converter.toExternal(
                                     r, ClickHouseBatchExecutor.this.stmt);
                             ClickHouseBatchExecutor.this.stmt.addBatch();
                         }
