@@ -193,7 +193,7 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
             if (!batch.isEmpty()) {
 
                 for (RowData r : ClickHouseUpsertExecutor.this.insertBatch) {
-                    ClickHouseUpsertExecutor.this.converter.toClickHouse(r, stmt);
+                    ClickHouseUpsertExecutor.this.converter.toExternal(r, stmt);
                     stmt.addBatch();
                 }
 

@@ -23,7 +23,6 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Date;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Time;
@@ -40,52 +39,50 @@ public class ClickHouseRowConverter implements Serializable {
 
     private final LogicalType[] fieldTypes;
 
-    private final ClickHouseRowConverter.DeserializationConverter[] toFlinkConverters;
+    private final DeserializationConverter[] toInternalConverters;
 
-    private final ClickHouseRowConverter.SerializationConverter[] toClickHouseConverters;
+    private final SerializationConverter[] toExternalConverters;
 
     public ClickHouseRowConverter(RowType rowType) {
         this.rowType = Preconditions.checkNotNull(rowType);
         this.fieldTypes =
                 rowType.getFields().stream().map(RowField::getType).toArray(LogicalType[]::new);
-        this.toFlinkConverters =
+        this.toInternalConverters =
                 new ClickHouseRowConverter.DeserializationConverter[rowType.getFieldCount()];
-        this.toClickHouseConverters =
+        this.toExternalConverters =
                 new ClickHouseRowConverter.SerializationConverter[rowType.getFieldCount()];
 
         for (int i = 0; i < rowType.getFieldCount(); ++i) {
-            this.toFlinkConverters[i] = this.createToFlinkConverter(rowType.getTypeAt(i));
-            this.toClickHouseConverters[i] = this.createToClickHouseConverter(this.fieldTypes[i]);
+            this.toInternalConverters[i] = this.createToInternalConverter(rowType.getTypeAt(i));
+            this.toExternalConverters[i] = this.createToExternalConverter(this.fieldTypes[i]);
         }
     }
 
-    public RowData toFlink(ResultSet resultSet) throws SQLException {
+    public RowData toInternal(ResultSet resultSet) throws SQLException {
         GenericRowData genericRowData = new GenericRowData(this.rowType.getFieldCount());
-
         for (int pos = 0; pos < this.rowType.getFieldCount(); ++pos) {
             Object field = resultSet.getObject(pos + 1);
-            genericRowData.setField(pos, this.toFlinkConverters[pos].deserialize(field));
+            genericRowData.setField(pos, this.toInternalConverters[pos].deserialize(field));
         }
-
         return genericRowData;
     }
 
-    public void toClickHouse(RowData rowData, ClickHousePreparedStatement statement)
+    public void toExternal(RowData rowData, ClickHousePreparedStatement statement)
             throws SQLException {
         for (int index = 0; index < rowData.getArity(); ++index) {
             if (!rowData.isNullAt(index)) {
-                this.toClickHouseConverters[index].serialize(rowData, index, statement);
+                this.toExternalConverters[index].serialize(rowData, index, statement);
             } else {
                 statement.setObject(index + 1, null);
             }
         }
     }
 
-    protected ClickHouseRowConverter.DeserializationConverter createToFlinkConverter(
+    protected ClickHouseRowConverter.DeserializationConverter createToInternalConverter(
             LogicalType type) {
         switch (type.getTypeRoot()) {
             case NULL:
-                return (val) -> null;
+                return val -> null;
             case BOOLEAN:
             case FLOAT:
             case DOUBLE:
@@ -95,32 +92,33 @@ public class ClickHouseRowConverter implements Serializable {
             case BIGINT:
             case BINARY:
             case VARBINARY:
-                return (val) -> val;
+                return val -> val;
             case TINYINT:
-                return (val) -> ((Integer) val).byteValue();
+                return val -> ((Integer) val).byteValue();
             case SMALLINT:
-                return (val) -> val instanceof Integer ? ((Integer) val).shortValue() : val;
+                return val -> val instanceof Integer ? ((Integer) val).shortValue() : val;
             case DECIMAL:
-                int precision = ((DecimalType) type).getPrecision();
-                int scale = ((DecimalType) type).getScale();
-                return (val) ->
+                final int precision = ((DecimalType) type).getPrecision();
+                final int scale = ((DecimalType) type).getScale();
+                return val ->
                         val instanceof BigInteger
                                 ? DecimalData.fromBigDecimal(
-                                        new BigDecimal((BigInteger) val, 0), precision, scale)
+                                new BigDecimal((BigInteger) val, 0), precision, scale)
                                 : DecimalData.fromBigDecimal((BigDecimal) val, precision, scale);
             case DATE:
-                return (val) -> (int) ((Date) val).toLocalDate().toEpochDay();
+                return val -> (int) ((Date) val).toLocalDate().toEpochDay();
             case TIME_WITHOUT_TIME_ZONE:
-                return (val) -> (int) (((Time) val).toLocalTime().toNanoOfDay() / 1000000L);
+                return val -> (int) (((Time) val).toLocalTime().toNanoOfDay() / 1_000_000L);
             case TIMESTAMP_WITH_TIME_ZONE:
             case TIMESTAMP_WITHOUT_TIME_ZONE:
-                return (val) -> TimestampData.fromTimestamp((Timestamp) val);
+                return val -> TimestampData.fromTimestamp((Timestamp) val);
             case CHAR:
             case VARCHAR:
-                return (val) -> StringData.fromString((String) val);
+                return val -> StringData.fromString((String) val);
             case ARRAY:
-            case ROW:
             case MAP:
+                return val -> ClickHouseConverterUtils.toInternal(val, type);
+            case ROW:
             case MULTISET:
             case RAW:
             default:
@@ -128,7 +126,7 @@ public class ClickHouseRowConverter implements Serializable {
         }
     }
 
-    protected ClickHouseRowConverter.SerializationConverter createToClickHouseConverter(
+    protected ClickHouseRowConverter.SerializationConverter createToExternalConverter(
             LogicalType type) {
         switch (type.getTypeRoot()) {
             case BOOLEAN:
@@ -151,14 +149,15 @@ public class ClickHouseRowConverter implements Serializable {
             case SMALLINT:
                 return (val, index, statement) ->
                         statement.setShort(index + 1, val.getShort(index));
-            case DECIMAL:
-                int decimalPrecision = ((DecimalType) type).getPrecision();
-                int decimalScale = ((DecimalType) type).getScale();
+            case CHAR:
+            case VARCHAR:
+                // value is BinaryString
                 return (val, index, statement) ->
-                        statement.setBigDecimal(
-                                index + 1,
-                                val.getDecimal(index, decimalPrecision, decimalScale)
-                                        .toBigDecimal());
+                        statement.setString(index + 1, val.getString(index).toString());
+            case BINARY:
+            case VARBINARY:
+                return (val, index, statement) ->
+                        statement.setBytes(index + 1, val.getBinary(index));
             case DATE:
                 return (val, index, statement) ->
                         statement.setDate(
@@ -168,27 +167,33 @@ public class ClickHouseRowConverter implements Serializable {
                         statement.setTime(
                                 index + 1,
                                 Time.valueOf(
-                                        LocalTime.ofNanoOfDay(
-                                                (long) val.getInt(index) * 1000000L)));
+                                        LocalTime.ofNanoOfDay(val.getInt(index) * 1_000_000L)));
             case TIMESTAMP_WITH_TIME_ZONE:
             case TIMESTAMP_WITHOUT_TIME_ZONE:
-                int timestampPrecision = ((TimestampType) type).getPrecision();
+                final int timestampPrecision = ((TimestampType) type).getPrecision();
                 return (val, index, statement) ->
                         statement.setTimestamp(
                                 index + 1,
                                 val.getTimestamp(index, timestampPrecision).toTimestamp());
-            case CHAR:
-            case VARCHAR:
+            case DECIMAL:
+                final int decimalPrecision = ((DecimalType) type).getPrecision();
+                final int decimalScale = ((DecimalType) type).getScale();
                 return (val, index, statement) ->
-                        statement.setString(index + 1, val.getString(index).toString());
-            case BINARY:
-            case VARBINARY:
-                return (val, index, statement) ->
-                        statement.setBytes(index + 1, val.getBinary(index));
+                        statement.setBigDecimal(
+                                index + 1,
+                                val.getDecimal(index, decimalPrecision, decimalScale)
+                                        .toBigDecimal());
             case ARRAY:
-            case ROW:
+                return (val, index, statement) ->
+                        statement.setArray(
+                                index + 1,
+                                (Object[]) ClickHouseConverterUtils.toExternal(val.getArray(index), type));
             case MAP:
+                return (val, index, statement) ->
+                        statement.setObject(
+                                index + 1, ClickHouseConverterUtils.toExternal(val.getMap(index), type));
             case MULTISET:
+            case ROW:
             case RAW:
             default:
                 throw new UnsupportedOperationException("Unsupported type:" + type);
@@ -197,11 +202,12 @@ public class ClickHouseRowConverter implements Serializable {
 
     @FunctionalInterface
     interface SerializationConverter extends Serializable {
-        void serialize(RowData var1, int var2, PreparedStatement var3) throws SQLException;
+        void serialize(RowData rowData, int index, ClickHousePreparedStatement statement)
+                throws SQLException;
     }
 
     @FunctionalInterface
     interface DeserializationConverter extends Serializable {
-        Object deserialize(Object var1) throws SQLException;
+        Object deserialize(Object field) throws SQLException;
     }
 }
