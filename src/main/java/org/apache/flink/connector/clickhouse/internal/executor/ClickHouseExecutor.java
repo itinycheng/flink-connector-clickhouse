@@ -3,15 +3,15 @@
 // (powered by FernFlower decompiler)
 //
 
-package com.tiny.flink.connector.clickhouse.internal.executor;
+package org.apache.flink.connector.clickhouse.internal.executor;
 
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.table.data.RowData;
 
-import com.tiny.flink.connector.clickhouse.internal.ClickHouseStatementFactory;
-import com.tiny.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
-import com.tiny.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
-import com.tiny.flink.connector.clickhouse.internal.options.ClickHouseOptions;
+import org.apache.flink.connector.clickhouse.internal.ClickHouseStatementFactory;
+import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
+import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
+import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import ru.yandex.clickhouse.ClickHouseConnection;
 
 import java.io.Serializable;

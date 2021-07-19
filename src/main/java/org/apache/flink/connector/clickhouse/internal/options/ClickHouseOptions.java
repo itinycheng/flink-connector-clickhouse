@@ -3,7 +3,7 @@
 // (powered by FernFlower decompiler)
 //
 
-package com.tiny.flink.connector.clickhouse.internal.options;
+package org.apache.flink.connector.clickhouse.internal.options;
 
 import javax.annotation.Nullable;
 
