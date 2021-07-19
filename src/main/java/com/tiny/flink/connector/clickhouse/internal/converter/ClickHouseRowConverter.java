@@ -18,6 +18,7 @@ import org.apache.flink.table.types.logical.TimestampType;
 import org.apache.flink.util.Preconditions;
 
 import ru.yandex.clickhouse.ClickHousePreparedStatement;
+import ru.yandex.clickhouse.response.ClickHouseResultSet;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -37,32 +38,28 @@ public class ClickHouseRowConverter implements Serializable {
 
     private final RowType rowType;
 
-    private final LogicalType[] fieldTypes;
-
     private final DeserializationConverter[] toInternalConverters;
 
     private final SerializationConverter[] toExternalConverters;
 
     public ClickHouseRowConverter(RowType rowType) {
         this.rowType = Preconditions.checkNotNull(rowType);
-        this.fieldTypes =
+        LogicalType[] logicalTypes =
                 rowType.getFields().stream().map(RowField::getType).toArray(LogicalType[]::new);
-        this.toInternalConverters =
-                new ClickHouseRowConverter.DeserializationConverter[rowType.getFieldCount()];
-        this.toExternalConverters =
-                new ClickHouseRowConverter.SerializationConverter[rowType.getFieldCount()];
+        this.toInternalConverters = new DeserializationConverter[rowType.getFieldCount()];
+        this.toExternalConverters = new SerializationConverter[rowType.getFieldCount()];
 
         for (int i = 0; i < rowType.getFieldCount(); ++i) {
-            this.toInternalConverters[i] = this.createToInternalConverter(rowType.getTypeAt(i));
-            this.toExternalConverters[i] = this.createToExternalConverter(this.fieldTypes[i]);
+            this.toInternalConverters[i] = createToInternalConverter(rowType.getTypeAt(i));
+            this.toExternalConverters[i] = createToExternalConverter(logicalTypes[i]);
         }
     }
 
     public RowData toInternal(ResultSet resultSet) throws SQLException {
-        GenericRowData genericRowData = new GenericRowData(this.rowType.getFieldCount());
-        for (int pos = 0; pos < this.rowType.getFieldCount(); ++pos) {
+        GenericRowData genericRowData = new GenericRowData(rowType.getFieldCount());
+        for (int pos = 0; pos < rowType.getFieldCount(); ++pos) {
             Object field = resultSet.getObject(pos + 1);
-            genericRowData.setField(pos, this.toInternalConverters[pos].deserialize(field));
+            genericRowData.setField(pos, toInternalConverters[pos].deserialize(field));
         }
         return genericRowData;
     }
@@ -71,7 +68,7 @@ public class ClickHouseRowConverter implements Serializable {
             throws SQLException {
         for (int index = 0; index < rowData.getArity(); ++index) {
             if (!rowData.isNullAt(index)) {
-                this.toExternalConverters[index].serialize(rowData, index, statement);
+                toExternalConverters[index].serialize(rowData, index, statement);
             } else {
                 statement.setObject(index + 1, null);
             }
@@ -103,7 +100,7 @@ public class ClickHouseRowConverter implements Serializable {
                 return val ->
                         val instanceof BigInteger
                                 ? DecimalData.fromBigDecimal(
-                                new BigDecimal((BigInteger) val, 0), precision, scale)
+                                        new BigDecimal((BigInteger) val, 0), precision, scale)
                                 : DecimalData.fromBigDecimal((BigDecimal) val, precision, scale);
             case DATE:
                 return val -> (int) ((Date) val).toLocalDate().toEpochDay();
@@ -187,11 +184,14 @@ public class ClickHouseRowConverter implements Serializable {
                 return (val, index, statement) ->
                         statement.setArray(
                                 index + 1,
-                                (Object[]) ClickHouseConverterUtils.toExternal(val.getArray(index), type));
+                                (Object[])
+                                        ClickHouseConverterUtils.toExternal(
+                                                val.getArray(index), type));
             case MAP:
                 return (val, index, statement) ->
                         statement.setObject(
-                                index + 1, ClickHouseConverterUtils.toExternal(val.getMap(index), type));
+                                index + 1,
+                                ClickHouseConverterUtils.toExternal(val.getMap(index), type));
             case MULTISET:
             case ROW:
             case RAW:
@@ -202,12 +202,19 @@ public class ClickHouseRowConverter implements Serializable {
 
     @FunctionalInterface
     interface SerializationConverter extends Serializable {
+        /**
+         * Convert a internal field to to java object and fill into the {@link
+         * ClickHousePreparedStatement}.
+         */
         void serialize(RowData rowData, int index, ClickHousePreparedStatement statement)
                 throws SQLException;
     }
 
     @FunctionalInterface
     interface DeserializationConverter extends Serializable {
+        /**
+         * Convert a object of {@link ClickHouseResultSet} to the internal data structure object.
+         */
         Object deserialize(Object field) throws SQLException;
     }
 }

@@ -14,22 +14,21 @@ import com.tiny.flink.connector.clickhouse.internal.converter.ClickHouseRowConve
 import com.tiny.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import ru.yandex.clickhouse.ClickHouseConnection;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.sql.SQLException;
 
 /** Executor interface for submitting data to ClickHouse. */
 public interface ClickHouseExecutor extends Serializable {
 
-    void prepareStatement(ClickHouseConnection var1) throws SQLException;
+    void prepareStatement(ClickHouseConnection connection) throws SQLException;
 
-    void prepareStatement(ClickHouseConnectionProvider var1) throws SQLException;
+    void prepareStatement(ClickHouseConnectionProvider connectionProvider) throws SQLException;
 
-    void setRuntimeContext(RuntimeContext var1);
+    void setRuntimeContext(RuntimeContext context);
 
-    void addBatch(RowData var1) throws IOException;
+    void addToBatch(RowData rowData) throws SQLException;
 
-    void executeBatch() throws IOException;
+    void executeBatch() throws SQLException;
 
     void closeStatement() throws SQLException;
 

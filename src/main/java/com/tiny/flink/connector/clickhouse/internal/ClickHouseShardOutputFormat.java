@@ -40,29 +40,25 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
     private final ClickHouseConnectionProvider connectionProvider;
 
+    private final String[] fieldNames;
+
     private final ClickHouseRowConverter converter;
 
     private final ClickHousePartitioner partitioner;
 
     private final ClickHouseOptions options;
 
-    private final String[] fieldNames;
-
-    private transient boolean closed = false;
-
-    private transient ClickHouseConnection connection;
-
-    private String remoteTable;
-
-    private transient List<ClickHouseConnection> shardConnections;
-
-    private transient int[] batchCounts;
-
     private final List<ClickHouseExecutor> shardExecutors;
+
+    private final boolean ignoreDelete;
 
     private final String[] keyFields;
 
-    private final boolean ignoreDelete;
+    private transient String remoteTable;
+
+    private transient int[] batchCounts;
+
+    private transient List<ClickHouseConnection> shardConnections;
 
     protected ClickHouseShardOutputFormat(
             @Nonnull ClickHouseConnectionProvider connectionProvider,
@@ -84,86 +80,80 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         try {
-            this.connection = this.connectionProvider.getConnection();
-            this.establishShardConnections();
-            this.initializeExecutors();
-        } catch (Exception var4) {
-            throw new IOException("unable to establish connection to ClickHouse", var4);
+            establishShardConnections();
+            initializeExecutors();
+
+            long flushIntervalMillis = options.getFlushInterval().toMillis();
+            if (flushIntervalMillis > 0) {
+                scheduledFlush(flushIntervalMillis, "clickhouse-shard-output-format");
+            }
+        } catch (Exception exception) {
+            throw new IOException("Unable to establish connection to ClickHouse", exception);
         }
     }
 
     private void establishShardConnections() throws IOException {
         try {
             String engine =
-                    this.connectionProvider.queryTableEngine(
-                            this.options.getDatabaseName(), this.options.getTableName());
+                    connectionProvider.queryTableEngine(
+                            options.getDatabaseName(), options.getTableName());
             Matcher matcher = PATTERN.matcher(engine);
             if (matcher.find()) {
                 String remoteCluster = matcher.group("cluster");
                 String remoteDatabase = matcher.group("database");
-                this.remoteTable = matcher.group("table");
-                this.shardConnections =
-                        this.connectionProvider.getShardConnections(remoteCluster, remoteDatabase);
-                this.batchCounts = new int[this.shardConnections.size()];
+                remoteTable = matcher.group("table");
+                shardConnections =
+                        connectionProvider.getShardConnections(remoteCluster, remoteDatabase);
+                batchCounts = new int[shardConnections.size()];
             } else {
                 throw new IOException(
                         "table `"
-                                + this.options.getDatabaseName()
+                                + options.getDatabaseName()
                                 + "`.`"
-                                + this.options.getTableName()
+                                + options.getTableName()
                                 + "` is not a Distributed table");
             }
-        } catch (SQLException var5) {
-            throw new IOException(var5);
+        } catch (SQLException exception) {
+            throw new IOException("Establish shard connections failed.", exception);
         }
     }
 
     private void initializeExecutors() throws SQLException {
-        String sql =
-                ClickHouseStatementFactory.getInsertIntoStatement(
-                        this.remoteTable, this.fieldNames);
-
-        for (ClickHouseConnection shardConnection : this.shardConnections) {
+        String sql = ClickHouseStatementFactory.getInsertIntoStatement(remoteTable, fieldNames);
+        for (ClickHouseConnection shardConnection : shardConnections) {
             ClickHouseExecutor executor;
-            if (this.keyFields.length > 0) {
+            if (keyFields.length > 0) {
+                // TODO why use upsert mode
                 executor =
                         ClickHouseExecutor.createUpsertExecutor(
-                                this.remoteTable,
-                                this.fieldNames,
-                                this.keyFields,
-                                this.converter,
-                                this.options);
+                                remoteTable, fieldNames, keyFields, converter, options);
             } else {
-                executor =
-                        new ClickHouseBatchExecutor(
-                                sql,
-                                this.converter,
-                                this.options.getFlushInterval(),
-                                this.options.getBatchSize(),
-                                this.options.getMaxRetries(),
-                                null);
+                executor = new ClickHouseBatchExecutor(sql, converter);
             }
-
             executor.prepareStatement(shardConnection);
-            this.shardExecutors.add(executor);
+            shardExecutors.add(executor);
         }
     }
 
     @Override
     public void writeRecord(RowData record) throws IOException {
+        checkFlushException();
+
         switch (record.getRowKind()) {
             case INSERT:
-                this.writeRecordToOneExecutor(record);
+                writeRecordToOneExecutor(record);
                 break;
             case UPDATE_AFTER:
-                if (this.ignoreDelete) {
-                    this.writeRecordToOneExecutor(record);
+                if (ignoreDelete) {
+                    writeRecordToOneExecutor(record);
                 } else {
-                    this.writeRecordToAllExecutors(record);
+                    // TODO Why write record to all executors
+                    writeRecordToAllExecutors(record);
                 }
                 break;
             case DELETE:
-                if (!this.ignoreDelete) {
+                // TODO Is delete statement exists, when was it generated.
+                if (!ignoreDelete) {
                     this.writeRecordToAllExecutors(record);
                 }
                 break;
@@ -178,64 +168,56 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
     }
 
     private void writeRecordToOneExecutor(RowData record) throws IOException {
-        int selected = this.partitioner.select(record, this.shardExecutors.size());
-        this.shardExecutors.get(selected).addBatch(record);
-        this.batchCounts[selected]++;
-        if (this.batchCounts[selected] >= this.options.getBatchSize()) {
-            this.flush(selected);
+        try {
+            int selected = partitioner.select(record, shardExecutors.size());
+            shardExecutors.get(selected).addToBatch(record);
+            batchCounts[selected]++;
+            if (batchCounts[selected] >= options.getBatchSize()) {
+                flush(selected);
+            }
+        } catch (Exception exception) {
+            throw new IOException("Writing record to one executor failed.", exception);
         }
     }
 
     private void writeRecordToAllExecutors(RowData record) throws IOException {
-        for (int i = 0; i < this.shardExecutors.size(); ++i) {
-            this.shardExecutors.get(i).addBatch(record);
-            this.batchCounts[i]++;
-            if (this.batchCounts[i] >= this.options.getBatchSize()) {
-                this.flush(i);
-            }
-        }
-    }
-
-    @Override
-    public void flush() throws IOException {
-        for (int i = 0; i < this.shardExecutors.size(); ++i) {
-            this.flush(i);
-        }
-    }
-
-    public void flush(int index) throws IOException {
-        this.shardExecutors.get(index).executeBatch();
-        this.batchCounts[index] = 0;
-    }
-
-    @Override
-    public void close() {
-        if (!this.closed) {
-            this.closed = true;
-
-            try {
-                this.flush();
-            } catch (Exception var2) {
-                LOG.warn("Writing records to ClickHouse failed.", var2);
-            }
-
-            this.closeConnection();
-        }
-    }
-
-    private void closeConnection() {
-        if (this.connection != null) {
-            try {
-                for (ClickHouseExecutor shardExecutor : this.shardExecutors) {
-                    shardExecutor.closeStatement();
+        try {
+            for (int i = 0; i < shardExecutors.size(); ++i) {
+                shardExecutors.get(i).addToBatch(record);
+                batchCounts[i]++;
+                if (batchCounts[i] >= options.getBatchSize()) {
+                    flush(i);
                 }
-
-                this.connectionProvider.closeConnections();
-            } catch (SQLException var5) {
-                LOG.warn("ClickHouse connection could not be closed: {}", var5.getMessage());
-            } finally {
-                this.connection = null;
             }
+        } catch (Exception exception) {
+            throw new IOException("Writing record to all executor failed.", exception);
+        }
+    }
+
+    @Override
+    public synchronized void flush() throws IOException {
+        for (int i = 0; i < shardExecutors.size(); ++i) {
+            flush(i);
+        }
+    }
+
+    private synchronized void flush(int index) throws IOException {
+        if (batchCounts[index] > 0) {
+            attemptFlush(shardExecutors.get(index), options.getMaxRetries());
+            batchCounts[index] = 0;
+        }
+    }
+
+    @Override
+    public void closeOutputFormat() {
+        try {
+            for (ClickHouseExecutor shardExecutor : shardExecutors) {
+                shardExecutor.closeStatement();
+            }
+
+            connectionProvider.closeConnections();
+        } catch (SQLException exception) {
+            LOG.warn("ClickHouse connection could not be closed.", exception);
         }
     }
 }
