@@ -3,14 +3,14 @@
 // (powered by FernFlower decompiler)
 //
 
-package com.tiny.flink.connector.clickhouse.internal;
+package org.apache.flink.connector.clickhouse.internal;
 
+import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.util.Preconditions;
 
-import com.tiny.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
-import com.tiny.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
-import com.tiny.flink.connector.clickhouse.internal.options.ClickHouseOptions;
+import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
+import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

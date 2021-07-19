@@ -3,7 +3,7 @@
 // (powered by FernFlower decompiler)
 //
 
-package com.tiny.flink.connector.clickhouse;
+package org.apache.flink.connector.clickhouse;
 
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.connector.ChangelogMode;
@@ -12,8 +12,8 @@ import org.apache.flink.table.connector.sink.OutputFormatProvider;
 import org.apache.flink.types.RowKind;
 import org.apache.flink.util.Preconditions;
 
-import com.tiny.flink.connector.clickhouse.internal.AbstractClickHouseOutputFormat;
-import com.tiny.flink.connector.clickhouse.internal.options.ClickHouseOptions;
+import org.apache.flink.connector.clickhouse.internal.AbstractClickHouseOutputFormat;
+import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 
 /**
  * A {@link DynamicTableSink} that describes how to create a {@link ClickHouseDynamicTableSink} from

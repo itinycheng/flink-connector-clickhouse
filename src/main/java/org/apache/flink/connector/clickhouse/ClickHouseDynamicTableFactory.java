@@ -3,7 +3,7 @@
 // (powered by FernFlower decompiler)
 //
 
-package com.tiny.flink.connector.clickhouse;
+package org.apache.flink.connector.clickhouse;
 
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ConfigOptions;
@@ -15,16 +15,16 @@ import org.apache.flink.table.factories.FactoryUtil;
 import org.apache.flink.table.factories.FactoryUtil.TableFactoryHelper;
 import org.apache.flink.table.utils.TableSchemaUtils;
 
-import com.tiny.flink.connector.clickhouse.internal.options.ClickHouseOptions;
+import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-import static com.tiny.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.BALANCED;
-import static com.tiny.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.HASH;
-import static com.tiny.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.SHUFFLE;
+import static org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.BALANCED;
+import static org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.HASH;
+import static org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.SHUFFLE;
 
 /** A {@link DynamicTableSinkFactory} for discovering {@link ClickHouseDynamicTableSink}. */
 public class ClickHouseDynamicTableFactory implements DynamicTableSinkFactory {

@@ -3,7 +3,7 @@
 // (powered by FernFlower decompiler)
 //
 
-package com.tiny.flink.connector.clickhouse.internal;
+package org.apache.flink.connector.clickhouse.internal;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;

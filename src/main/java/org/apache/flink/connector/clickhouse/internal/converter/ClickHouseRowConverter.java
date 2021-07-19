@@ -3,7 +3,7 @@
 // (powered by FernFlower decompiler)
 //
 
-package com.tiny.flink.connector.clickhouse.internal.converter;
+package org.apache.flink.connector.clickhouse.internal.converter;
 
 import org.apache.flink.table.data.DecimalData;
 import org.apache.flink.table.data.GenericRowData;

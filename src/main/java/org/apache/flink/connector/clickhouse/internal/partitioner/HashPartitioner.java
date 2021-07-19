@@ -3,7 +3,7 @@
 // (powered by FernFlower decompiler)
 //
 
-package com.tiny.flink.connector.clickhouse.internal.partitioner;
+package org.apache.flink.connector.clickhouse.internal.partitioner;
 
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.RowData.FieldGetter;

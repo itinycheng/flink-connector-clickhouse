@@ -3,11 +3,14 @@
 // (powered by FernFlower decompiler)
 //
 
-package com.tiny.flink.connector.clickhouse.internal;
+package org.apache.flink.connector.clickhouse.internal;
 
 import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
+import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
+import org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner;
 import org.apache.flink.runtime.util.ExecutorThreadFactory;
 import org.apache.flink.table.api.constraints.UniqueConstraint;
 import org.apache.flink.table.data.RowData;
@@ -17,12 +20,10 @@ import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.util.Preconditions;
 
-import com.tiny.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
-import com.tiny.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
-import com.tiny.flink.connector.clickhouse.internal.executor.ClickHouseBatchExecutor;
-import com.tiny.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
-import com.tiny.flink.connector.clickhouse.internal.options.ClickHouseOptions;
-import com.tiny.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner;
+import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
+import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseBatchExecutor;
+import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,10 +35,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
-import static com.tiny.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.BALANCED;
-import static com.tiny.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.HASH;
-import static com.tiny.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.SHUFFLE;
 
 /** Abstract class of ClickHouse output format. */
 public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<RowData>
@@ -226,13 +223,13 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
             String partitionStrategy = options.getPartitionStrategy();
             ClickHousePartitioner partitioner;
             switch (partitionStrategy) {
-                case BALANCED:
+                case ClickHousePartitioner.BALANCED:
                     partitioner = ClickHousePartitioner.createBalanced();
                     break;
-                case SHUFFLE:
+                case ClickHousePartitioner.SHUFFLE:
                     partitioner = ClickHousePartitioner.createShuffle();
                     break;
-                case HASH:
+                case ClickHousePartitioner.HASH:
                     int index = Arrays.asList(fieldNames).indexOf(options.getPartitionKey());
                     if (index == -1) {
                         throw new IllegalArgumentException(
