@@ -55,36 +55,35 @@ public class ClickHouseConnectionProvider implements Serializable {
     }
 
     public synchronized ClickHouseConnection getConnection() throws SQLException {
-        if (this.connection == null) {
-            this.connection =
-                    createConnection(this.options.getUrl(), this.options.getDatabaseName());
+        if (connection == null) {
+            connection = createConnection(options.getUrl(), options.getDatabaseName());
         }
-        return this.connection;
+        return connection;
     }
 
     public synchronized List<ClickHouseConnection> getShardConnections(
             String remoteCluster, String remoteDatabase) throws SQLException {
-        if (this.shardConnections == null) {
-            try (ClickHouseConnection conn = this.getConnection();
+        if (shardConnections == null) {
+            try (ClickHouseConnection conn = getConnection();
                     PreparedStatement stmt = conn.prepareStatement(QUERY_CLUSTER_INFO_SQL)) {
                 stmt.setString(1, remoteCluster);
                 try (ResultSet rs = stmt.executeQuery()) {
-                    this.shardConnections = new ArrayList<>();
+                    shardConnections = new ArrayList<>();
                     while (rs.next()) {
                         String host = rs.getString("host_address");
-                        int port = this.getActualHttpPort(host, rs.getInt("port"));
+                        int port = getActualHttpPort(host, rs.getInt("port"));
                         String url = "clickhouse://" + host + ":" + port;
-                        this.shardConnections.add(this.createConnection(url, remoteDatabase));
+                        shardConnections.add(createConnection(url, remoteDatabase));
                     }
                 }
             }
 
-            if (this.shardConnections.isEmpty()) {
+            if (shardConnections.isEmpty()) {
                 throw new SQLException("unable to query shards in system.clusters");
             }
         }
 
-        return this.shardConnections;
+        return shardConnections;
     }
 
     private int getActualHttpPort(String host, int port) throws SQLException {
@@ -115,10 +114,10 @@ public class ClickHouseConnectionProvider implements Serializable {
 
     public void closeConnections() throws SQLException {
         if (this.connection != null) {
-            this.connection.close();
+            connection.close();
         }
 
-        if (this.shardConnections != null) {
+        if (shardConnections != null) {
             for (ClickHouseConnection shardConnection : this.shardConnections) {
                 shardConnection.close();
             }
@@ -128,13 +127,13 @@ public class ClickHouseConnectionProvider implements Serializable {
     private String getJdbcUrl(String url, String database) throws SQLException {
         try {
             return "jdbc:" + (new URIBuilder(url)).setPath("/" + database).build().toString();
-        } catch (Exception var4) {
-            throw new SQLException(var4);
+        } catch (Exception exception) {
+            throw new SQLException(exception);
         }
     }
 
     public String queryTableEngine(String databaseName, String tableName) throws SQLException {
-        try (ClickHouseConnection conn = this.getConnection();
+        try (ClickHouseConnection conn = getConnection();
                 PreparedStatement stmt = conn.prepareStatement(QUERY_TABLE_ENGINE_SQL)) {
             stmt.setString(1, databaseName);
             stmt.setString(2, tableName);
@@ -159,8 +158,8 @@ public class ClickHouseConnectionProvider implements Serializable {
 
         return (ClickHouseConnection)
                 DriverManager.getConnection(
-                        this.getJdbcUrl(url, database),
-                        this.options.getUsername().orElse(null),
-                        this.options.getPassword().orElse(null));
+                        getJdbcUrl(url, database),
+                        options.getUsername().orElse(null),
+                        options.getPassword().orElse(null));
     }
 }

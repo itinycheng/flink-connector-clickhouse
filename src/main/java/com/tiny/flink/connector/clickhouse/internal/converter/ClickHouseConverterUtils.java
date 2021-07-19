@@ -137,7 +137,8 @@ public class ClickHouseConverterUtils {
                 Object[] externalArray = (Object[]) ((Array) value).getArray();
                 Object[] internalArray = new Object[externalArray.length];
                 for (int i = 0; i < externalArray.length; i++) {
-                    internalArray[i] = ClickHouseConverterUtils.toInternal(externalArray[i], elementType);
+                    internalArray[i] =
+                            ClickHouseConverterUtils.toInternal(externalArray[i], elementType);
                 }
                 return new GenericArrayData(internalArray);
             case MAP:

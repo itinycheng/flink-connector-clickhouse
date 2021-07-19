@@ -117,7 +117,7 @@ public class ClickHouseDynamicTableFactory implements DynamicTableSinkFactory {
         this.validateConfigOptions(config);
         TableSchema physicalSchema =
                 TableSchemaUtils.getPhysicalSchema(context.getCatalogTable().getSchema());
-        return new ClickHouseDynamicTableSink(this.getOptions(config), physicalSchema);
+        return new ClickHouseDynamicTableSink(getOptions(config), physicalSchema);
     }
 
     @Override

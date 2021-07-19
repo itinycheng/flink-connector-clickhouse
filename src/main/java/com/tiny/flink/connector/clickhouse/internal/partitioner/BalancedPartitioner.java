@@ -18,7 +18,7 @@ public class BalancedPartitioner implements ClickHousePartitioner {
 
     @Override
     public int select(RowData record, int numShards) {
-        this.nextShard = (this.nextShard + 1) % numShards;
-        return this.nextShard;
+        nextShard = (nextShard + 1) % numShards;
+        return nextShard;
     }
 }

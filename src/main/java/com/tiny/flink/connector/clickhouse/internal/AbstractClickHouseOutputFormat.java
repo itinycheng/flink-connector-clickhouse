@@ -8,6 +8,7 @@ package com.tiny.flink.connector.clickhouse.internal;
 import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.runtime.util.ExecutorThreadFactory;
 import org.apache.flink.table.api.constraints.UniqueConstraint;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.RowData.FieldGetter;
@@ -26,8 +27,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Flushable;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import static com.tiny.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.BALANCED;
 import static com.tiny.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.HASH;
@@ -39,10 +45,96 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
 
     private static final long serialVersionUID = 1L;
 
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractClickHouseOutputFormat.class);
+
+    protected transient volatile boolean closed = false;
+
+    protected transient ScheduledExecutorService scheduler;
+
+    protected transient ScheduledFuture<?> scheduledFuture;
+
+    protected transient volatile Exception flushException;
+
     public AbstractClickHouseOutputFormat() {}
 
     @Override
     public void configure(Configuration parameters) {}
+
+    public void scheduledFlush(long intervalMillis, String executorName) {
+        Preconditions.checkArgument(intervalMillis > 0, "flush interval must be greater than 0");
+        scheduler = new ScheduledThreadPoolExecutor(1, new ExecutorThreadFactory(executorName));
+        scheduledFuture =
+                scheduler.scheduleWithFixedDelay(
+                        () -> {
+                            synchronized (this) {
+                                if (!closed) {
+                                    try {
+                                        flush();
+                                    } catch (Exception e) {
+                                        flushException = e;
+                                    }
+                                }
+                            }
+                        },
+                        intervalMillis,
+                        intervalMillis,
+                        TimeUnit.MILLISECONDS);
+    }
+
+    public void attemptFlush(final ClickHouseExecutor executor, final int retryAttempt)
+            throws IOException {
+        checkFlushException();
+
+        for (int i = 0; i < retryAttempt; i++) {
+            try {
+                executor.executeBatch();
+                return;
+            } catch (Exception e) {
+                LOG.error("ClickHouse executeBatch error, retry times = {}", i, e);
+                try {
+                    Thread.sleep(1000 * i);
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException(
+                            "Unable to flush, interrupted while doing another attempt.", e);
+                }
+            }
+        }
+
+        throw new IOException(
+                String.format(
+                        "Attempt to Flush ClickHouse executor failed, exhausted retry times = %d",
+                        retryAttempt));
+    }
+
+    @Override
+    public synchronized void close() {
+        if (!closed) {
+            closed = true;
+
+            try {
+                flush();
+            } catch (Exception exception) {
+                LOG.warn("Writing records to ClickHouse failed.", exception);
+            }
+
+            if (scheduledFuture != null) {
+                scheduledFuture.cancel(false);
+                this.scheduler.shutdown();
+            }
+
+            closeOutputFormat();
+            checkFlushException();
+        }
+    }
+
+    protected void checkFlushException() {
+        if (flushException != null) {
+            throw new RuntimeException("Writing records to ClickHouse failed.", flushException);
+        }
+    }
+
+    protected abstract void closeOutputFormat();
 
     /** Builder for {@link ClickHouseBatchOutputFormat} and {@link ClickHouseShardOutputFormat}. */
     public static class Builder {
@@ -90,55 +182,48 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
         }
 
         public AbstractClickHouseOutputFormat build() {
-            Preconditions.checkNotNull(this.options);
-            Preconditions.checkNotNull(this.fieldNames);
-            Preconditions.checkNotNull(this.fieldDataTypes);
+            Preconditions.checkNotNull(options);
+            Preconditions.checkNotNull(fieldNames);
+            Preconditions.checkNotNull(fieldDataTypes);
             LogicalType[] logicalTypes =
-                    Arrays.stream(this.fieldDataTypes)
+                    Arrays.stream(fieldDataTypes)
                             .map(DataType::getLogicalType)
                             .toArray(LogicalType[]::new);
             ClickHouseRowConverter converter = new ClickHouseRowConverter(RowType.of(logicalTypes));
-            if (this.primaryKey != null) {
+            if (primaryKey != null) {
                 LOG.warn("If primary key is specified, connector will be in UPSERT mode.");
                 LOG.warn("You will have significant performance loss.");
             }
-            return this.options.getWriteLocal()
-                    ? this.createShardOutputFormat(logicalTypes, converter)
-                    : this.createBatchOutputFormat(converter);
+            return options.getWriteLocal()
+                    ? createShardOutputFormat(logicalTypes, converter)
+                    : createBatchOutputFormat(converter);
         }
 
         private ClickHouseBatchOutputFormat createBatchOutputFormat(
                 ClickHouseRowConverter converter) {
             ClickHouseExecutor executor;
-            if (this.primaryKey != null && !this.options.getIgnoreDelete()) {
+            if (primaryKey != null && !options.getIgnoreDelete()) {
                 executor =
                         ClickHouseExecutor.createUpsertExecutor(
-                                this.options.getTableName(),
-                                this.fieldNames,
-                                this.listToStringArray(this.primaryKey.getColumns()),
+                                options.getTableName(),
+                                fieldNames,
+                                listToStringArray(primaryKey.getColumns()),
                                 converter,
-                                this.options);
+                                options);
             } else {
                 String sql =
                         ClickHouseStatementFactory.getInsertIntoStatement(
-                                this.options.getTableName(), this.fieldNames);
-                executor =
-                        new ClickHouseBatchExecutor(
-                                sql,
-                                converter,
-                                this.options.getFlushInterval(),
-                                this.options.getBatchSize(),
-                                this.options.getMaxRetries(),
-                                this.rowDataTypeInformation);
+                                options.getTableName(), fieldNames);
+                executor = new ClickHouseBatchExecutor(sql, converter);
             }
 
             return new ClickHouseBatchOutputFormat(
-                    new ClickHouseConnectionProvider(this.options), executor, this.options);
+                    new ClickHouseConnectionProvider(options), executor, options);
         }
 
         private ClickHouseShardOutputFormat createShardOutputFormat(
                 LogicalType[] logicalTypes, ClickHouseRowConverter converter) {
-            String partitionStrategy = this.options.getPartitionStrategy();
+            String partitionStrategy = options.getPartitionStrategy();
             ClickHousePartitioner partitioner;
             switch (partitionStrategy) {
                 case BALANCED:
@@ -148,12 +233,11 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
                     partitioner = ClickHousePartitioner.createShuffle();
                     break;
                 case HASH:
-                    int index =
-                            Arrays.asList(this.fieldNames).indexOf(this.options.getPartitionKey());
+                    int index = Arrays.asList(fieldNames).indexOf(options.getPartitionKey());
                     if (index == -1) {
                         throw new IllegalArgumentException(
                                 "Partition key `"
-                                        + this.options.getPartitionKey()
+                                        + options.getPartitionKey()
                                         + "` not found in table schema");
                     }
                     FieldGetter getter = RowData.createFieldGetter(logicalTypes[index], index);
@@ -165,16 +249,16 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
             }
 
             String[] keyFields = new String[0];
-            if (this.primaryKey != null && !this.options.getIgnoreDelete()) {
-                keyFields = this.listToStringArray(this.primaryKey.getColumns());
+            if (primaryKey != null && !options.getIgnoreDelete()) {
+                keyFields = listToStringArray(primaryKey.getColumns());
             }
             return new ClickHouseShardOutputFormat(
-                    new ClickHouseConnectionProvider(this.options),
-                    this.fieldNames,
+                    new ClickHouseConnectionProvider(options),
+                    fieldNames,
                     keyFields,
                     converter,
                     partitioner,
-                    this.options);
+                    options);
         }
 
         private String[] listToStringArray(List<String> lists) {

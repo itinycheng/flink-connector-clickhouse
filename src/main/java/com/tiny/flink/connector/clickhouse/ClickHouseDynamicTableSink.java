@@ -32,7 +32,7 @@ public class ClickHouseDynamicTableSink implements DynamicTableSink {
 
     @Override
     public ChangelogMode getChangelogMode(ChangelogMode requestedMode) {
-        this.validatePrimaryKey(requestedMode);
+        validatePrimaryKey(requestedMode);
         return ChangelogMode.newBuilder()
                 .addContainedKind(RowKind.INSERT)
                 .addContainedKind(RowKind.UPDATE_AFTER)
@@ -43,27 +43,27 @@ public class ClickHouseDynamicTableSink implements DynamicTableSink {
     private void validatePrimaryKey(ChangelogMode requestedMode) {
         Preconditions.checkState(
                 ChangelogMode.insertOnly().equals(requestedMode)
-                        || this.tableSchema.getPrimaryKey().isPresent(),
-                "please declare primary key for sink table when query contains update/delete record.");
+                        || tableSchema.getPrimaryKey().isPresent(),
+                "Please declare primary key for sink table when query contains update/delete record.");
     }
 
     @Override
     public SinkRuntimeProvider getSinkRuntimeProvider(Context context) {
         AbstractClickHouseOutputFormat outputFormat =
                 new AbstractClickHouseOutputFormat.Builder()
-                        .withOptions(this.options)
-                        .withFieldNames(this.tableSchema.getFieldNames())
-                        .withFieldDataTypes(this.tableSchema.getFieldDataTypes())
-                        .withPrimaryKey(this.tableSchema.getPrimaryKey().orElse(null))
+                        .withOptions(options)
+                        .withFieldNames(tableSchema.getFieldNames())
+                        .withFieldDataTypes(tableSchema.getFieldDataTypes())
+                        .withPrimaryKey(tableSchema.getPrimaryKey().orElse(null))
                         .withRowDataTypeInfo(
-                                context.createTypeInformation(this.tableSchema.toRowDataType()))
+                                context.createTypeInformation(tableSchema.toRowDataType()))
                         .build();
         return OutputFormatProvider.of(outputFormat);
     }
 
     @Override
     public DynamicTableSink copy() {
-        return new ClickHouseDynamicTableSink(this.options, this.tableSchema);
+        return new ClickHouseDynamicTableSink(options, tableSchema);
     }
 
     @Override
