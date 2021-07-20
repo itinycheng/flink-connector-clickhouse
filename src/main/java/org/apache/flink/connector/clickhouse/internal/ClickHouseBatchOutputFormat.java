@@ -5,12 +5,12 @@
 
 package org.apache.flink.connector.clickhouse.internal;
 
+import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
+import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.util.Preconditions;
 
-import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
-import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +54,7 @@ public class ClickHouseBatchOutputFormat extends AbstractClickHouseOutputFormat 
                 scheduledFlush(flushIntervalMillis, "clickhouse-batch-output-format");
             }
         } catch (Exception exception) {
-            throw new IOException("Unable to establish connection with ClickHouse", exception);
+            throw new IOException("Unable to establish connection with ClickHouse.", exception);
         }
     }
 

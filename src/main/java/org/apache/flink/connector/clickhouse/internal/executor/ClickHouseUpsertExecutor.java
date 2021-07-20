@@ -6,11 +6,11 @@
 package org.apache.flink.connector.clickhouse.internal.executor;
 
 import org.apache.flink.api.common.functions.RuntimeContext;
-import org.apache.flink.table.data.RowData;
-
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
+import org.apache.flink.table.data.RowData;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.yandex.clickhouse.ClickHouseConnection;
@@ -136,5 +136,30 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
         throw new SQLException(
                 String.format(
                         "Attempt to execute batch failed, exhausted retry times = %d", maxRetries));
+    }
+
+    @Override
+    public String toString() {
+        return "ClickHouseUpsertExecutor{"
+                + "insertStmt="
+                + insertStmt
+                + ", updateStmt="
+                + updateStmt
+                + ", deleteStmt="
+                + deleteStmt
+                + ", insertSql='"
+                + insertSql
+                + '\''
+                + ", updateSql='"
+                + updateSql
+                + '\''
+                + ", deleteSql='"
+                + deleteSql
+                + '\''
+                + ", converter="
+                + converter
+                + ", maxRetries="
+                + maxRetries
+                + '}';
     }
 }

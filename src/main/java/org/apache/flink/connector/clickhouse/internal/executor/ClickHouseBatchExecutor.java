@@ -6,10 +6,9 @@
 package org.apache.flink.connector.clickhouse.internal.executor;
 
 import org.apache.flink.api.common.functions.RuntimeContext;
+import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
 import org.apache.flink.table.data.RowData;
-
-import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 
 import ru.yandex.clickhouse.ClickHouseConnection;
 import ru.yandex.clickhouse.ClickHousePreparedStatement;
@@ -51,14 +50,13 @@ public class ClickHouseBatchExecutor implements ClickHouseExecutor {
 
     @Override
     public synchronized void addToBatch(RowData record) throws SQLException {
-        // We should add records to batch, no matter what RowKind is
         switch (record.getRowKind()) {
             case INSERT:
             case UPDATE_AFTER:
-            case DELETE:
                 converter.toExternal(record, statement);
                 statement.addBatch();
                 break;
+            case DELETE:
             case UPDATE_BEFORE:
                 break;
             default:

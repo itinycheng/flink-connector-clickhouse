@@ -104,12 +104,12 @@ public class ClickHouseConnectionProvider implements Serializable {
                 if (matcher.find()) {
                     return Integer.parseInt(matcher.group("port"));
                 }
-                throw new SQLException("Cannot query ClickHouse http port");
+                throw new SQLException("Cannot query ClickHouse http port.");
             }
 
             return port;
         } catch (Throwable throwable) {
-            throw new SQLException("Cannot connect to ClickHouse server using HTTP", throwable);
+            throw new SQLException("Cannot connect to ClickHouse server using HTTP.", throwable);
         }
     }
 
@@ -145,7 +145,8 @@ public class ClickHouseConnectionProvider implements Serializable {
             }
         }
 
-        throw new SQLException("table `" + databaseName + "`.`" + tableName + "` does not exist");
+        throw new SQLException(
+                String.format("table `%s`.`%s` does not exist", databaseName, tableName));
     }
 
     private ClickHouseConnection createConnection(String url, String database) throws SQLException {

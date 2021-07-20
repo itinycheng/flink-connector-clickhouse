@@ -8,14 +8,13 @@ package org.apache.flink.connector.clickhouse;
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.ReadableConfig;
+import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.factories.DynamicTableSinkFactory;
 import org.apache.flink.table.factories.FactoryUtil;
 import org.apache.flink.table.factories.FactoryUtil.TableFactoryHelper;
 import org.apache.flink.table.utils.TableSchemaUtils;
-
-import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -35,77 +34,77 @@ public class ClickHouseDynamicTableFactory implements DynamicTableSinkFactory {
             ConfigOptions.key("url")
                     .stringType()
                     .noDefaultValue()
-                    .withDescription("the ClickHouse url in format `clickhouse://<host>:<port>`.");
+                    .withDescription("The ClickHouse url in format `clickhouse://<host>:<port>`.");
 
     public static final ConfigOption<String> USERNAME =
             ConfigOptions.key("username")
                     .stringType()
                     .noDefaultValue()
-                    .withDescription("the ClickHouse username.");
+                    .withDescription("The ClickHouse username.");
 
     public static final ConfigOption<String> PASSWORD =
             ConfigOptions.key("password")
                     .stringType()
                     .noDefaultValue()
-                    .withDescription("the ClickHouse password.");
+                    .withDescription("The ClickHouse password.");
 
     public static final ConfigOption<String> DATABASE_NAME =
             ConfigOptions.key("database-name")
                     .stringType()
                     .defaultValue("default")
-                    .withDescription("the ClickHouse database name. Default to `default`.");
+                    .withDescription("The ClickHouse database name. Default to `default`.");
 
     public static final ConfigOption<String> TABLE_NAME =
             ConfigOptions.key("table-name")
                     .stringType()
                     .noDefaultValue()
-                    .withDescription("the ClickHouse table name.");
+                    .withDescription("The ClickHouse table name.");
 
     public static final ConfigOption<Integer> SINK_BATCH_SIZE =
             ConfigOptions.key("sink.batch-size")
                     .intType()
                     .defaultValue(1000)
                     .withDescription(
-                            "the flush max size, over this number of records, will flush data. The default value is 1000.");
+                            "The max flush size, over this number of records, will flush data. The default value is 1000.");
 
     public static final ConfigOption<Duration> SINK_FLUSH_INTERVAL =
             ConfigOptions.key("sink.flush-interval")
                     .durationType()
                     .defaultValue(Duration.ofSeconds(1L))
                     .withDescription(
-                            "the flush interval mills, over this time, asynchronous threads will flush data. The default value is 1s.");
+                            "The flush interval mills, over this time, asynchronous threads will flush data. The default value is 1s.");
 
     public static final ConfigOption<Integer> SINK_MAX_RETRIES =
             ConfigOptions.key("sink.max-retries")
                     .intType()
                     .defaultValue(3)
-                    .withDescription("the max retry times if writing records to database failed.");
+                    .withDescription("The max retry times if writing records to database failed.");
 
     public static final ConfigOption<Boolean> SINK_WRITE_LOCAL =
             ConfigOptions.key("sink.write-local")
                     .booleanType()
                     .defaultValue(false)
                     .withDescription(
-                            "directly write to local tables in case of Distributed table.");
+                            "Directly write to local tables in case of distributed table.");
 
     public static final ConfigOption<String> SINK_PARTITION_STRATEGY =
             ConfigOptions.key("sink.partition-strategy")
                     .stringType()
                     .defaultValue("balanced")
-                    .withDescription("partition strategy. available: balanced, hash, shuffle.");
+                    .withDescription("Partition strategy, available: balanced, hash, shuffle.");
 
     public static final ConfigOption<String> SINK_PARTITION_KEY =
             ConfigOptions.key("sink.partition-key")
                     .stringType()
                     .noDefaultValue()
-                    .withDescription("partition key used for hash strategy.");
+                    .withDescription("Partition key used for hash strategy.");
 
     public static final ConfigOption<Boolean> SINK_IGNORE_DELETE =
             ConfigOptions.key("sink.ignore-delete")
                     .booleanType()
                     .defaultValue(true)
                     .withDescription(
-                            "whether to treat update statements as insert statements and ignore deletes. defaults to true.");
+                            "Whether to treat update statements as insert statements and ignore deletes. defaults to true.");
 
     public ClickHouseDynamicTableFactory() {}
 
@@ -153,7 +152,7 @@ public class ClickHouseDynamicTableFactory implements DynamicTableSinkFactory {
         String partitionStrategy = config.get(SINK_PARTITION_STRATEGY);
         if (!Arrays.asList(HASH, BALANCED, SHUFFLE).contains(partitionStrategy)) {
             throw new IllegalArgumentException(
-                    "Unknown sink.partition-strategy `" + partitionStrategy + "`");
+                    String.format("Unknown sink.partition-strategy `%s`", partitionStrategy));
         } else if (HASH.equals(partitionStrategy)
                 && !config.getOptional(SINK_PARTITION_KEY).isPresent()) {
             throw new IllegalArgumentException(
