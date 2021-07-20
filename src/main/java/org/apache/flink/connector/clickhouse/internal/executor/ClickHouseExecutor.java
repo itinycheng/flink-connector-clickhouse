@@ -6,12 +6,12 @@
 package org.apache.flink.connector.clickhouse.internal.executor;
 
 import org.apache.flink.api.common.functions.RuntimeContext;
-import org.apache.flink.table.data.RowData;
-
 import org.apache.flink.connector.clickhouse.internal.ClickHouseStatementFactory;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
+import org.apache.flink.table.data.RowData;
+
 import ru.yandex.clickhouse.ClickHouseConnection;
 
 import java.io.Serializable;
@@ -31,6 +31,12 @@ public interface ClickHouseExecutor extends Serializable {
     void executeBatch() throws SQLException;
 
     void closeStatement() throws SQLException;
+
+    static ClickHouseBatchExecutor createBatchExecutor(
+            String tableName, String[] fieldNames, ClickHouseRowConverter converter) {
+        String sql = ClickHouseStatementFactory.getInsertIntoStatement(tableName, fieldNames);
+        return new ClickHouseBatchExecutor(sql, converter);
+    }
 
     static ClickHouseUpsertExecutor createUpsertExecutor(
             String tableName,

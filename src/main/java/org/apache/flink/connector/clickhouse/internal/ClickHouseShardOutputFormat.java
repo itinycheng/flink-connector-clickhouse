@@ -5,15 +5,13 @@
 
 package org.apache.flink.connector.clickhouse.internal;
 
+import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
+import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
 import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
+import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.util.Preconditions;
-
-import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
-import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
-import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseBatchExecutor;
-import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +26,10 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** The shard output format of distributed table. */
+/**
+ * The shard output format of distributed table.<br>
+ * TODO: Use ClickHouse's sharding key to distribute data to different instances.
+ */
 public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat {
 
     private static final long serialVersionUID = 1L;
@@ -120,22 +121,25 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
     }
 
     private void initializeExecutors() throws SQLException {
-        String sql = ClickHouseStatementFactory.getInsertIntoStatement(remoteTable, fieldNames);
         for (ClickHouseConnection shardConnection : shardConnections) {
             ClickHouseExecutor executor;
             if (keyFields.length > 0) {
-                // TODO why use upsert mode
                 executor =
                         ClickHouseExecutor.createUpsertExecutor(
                                 remoteTable, fieldNames, keyFields, converter, options);
             } else {
-                executor = new ClickHouseBatchExecutor(sql, converter);
+                executor =
+                        ClickHouseExecutor.createBatchExecutor(remoteTable, fieldNames, converter);
             }
             executor.prepareStatement(shardConnection);
             shardExecutors.add(executor);
         }
     }
 
+    /**
+     * TODO: It's not appropriate to write records in this way, we should adapt it to ClickHouse's
+     * data shard strategy.
+     */
     @Override
     public void writeRecord(RowData record) throws IOException {
         checkFlushException();
@@ -148,12 +152,10 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
                 if (ignoreDelete) {
                     writeRecordToOneExecutor(record);
                 } else {
-                    // TODO Why write record to all executors
                     writeRecordToAllExecutors(record);
                 }
                 break;
             case DELETE:
-                // TODO Is delete statement exists, when was it generated.
                 if (!ignoreDelete) {
                     this.writeRecordToAllExecutors(record);
                 }

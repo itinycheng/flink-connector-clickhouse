@@ -5,15 +5,14 @@
 
 package org.apache.flink.connector.clickhouse;
 
+import org.apache.flink.connector.clickhouse.internal.AbstractClickHouseOutputFormat;
+import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.connector.sink.OutputFormatProvider;
 import org.apache.flink.types.RowKind;
 import org.apache.flink.util.Preconditions;
-
-import org.apache.flink.connector.clickhouse.internal.AbstractClickHouseOutputFormat;
-import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 
 /**
  * A {@link DynamicTableSink} that describes how to create a {@link ClickHouseDynamicTableSink} from
@@ -55,8 +54,6 @@ public class ClickHouseDynamicTableSink implements DynamicTableSink {
                         .withFieldNames(tableSchema.getFieldNames())
                         .withFieldDataTypes(tableSchema.getFieldDataTypes())
                         .withPrimaryKey(tableSchema.getPrimaryKey().orElse(null))
-                        .withRowDataTypeInfo(
-                                context.createTypeInformation(tableSchema.toRowDataType()))
                         .build();
         return OutputFormatProvider.of(outputFormat);
     }

@@ -6,10 +6,11 @@
 package org.apache.flink.connector.clickhouse.internal;
 
 import org.apache.flink.api.common.io.RichOutputFormat;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
 import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
+import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner;
 import org.apache.flink.runtime.util.ExecutorThreadFactory;
 import org.apache.flink.table.api.constraints.UniqueConstraint;
@@ -19,10 +20,6 @@ import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.util.Preconditions;
-
-import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
-import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseBatchExecutor;
-import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -147,8 +144,6 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
 
         private UniqueConstraint primaryKey;
 
-        private TypeInformation<RowData> rowDataTypeInformation;
-
         public Builder() {}
 
         public AbstractClickHouseOutputFormat.Builder withOptions(ClickHouseOptions options) {
@@ -164,12 +159,6 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
 
         public AbstractClickHouseOutputFormat.Builder withFieldNames(String[] fieldNames) {
             this.fieldNames = fieldNames;
-            return this;
-        }
-
-        public AbstractClickHouseOutputFormat.Builder withRowDataTypeInfo(
-                TypeInformation<RowData> rowDataTypeInfo) {
-            this.rowDataTypeInformation = rowDataTypeInfo;
             return this;
         }
 
@@ -208,10 +197,9 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
                                 converter,
                                 options);
             } else {
-                String sql =
-                        ClickHouseStatementFactory.getInsertIntoStatement(
-                                options.getTableName(), fieldNames);
-                executor = new ClickHouseBatchExecutor(sql, converter);
+                executor =
+                        ClickHouseExecutor.createBatchExecutor(
+                                options.getTableName(), fieldNames, converter);
             }
 
             return new ClickHouseBatchOutputFormat(
@@ -233,16 +221,17 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
                     int index = Arrays.asList(fieldNames).indexOf(options.getPartitionKey());
                     if (index == -1) {
                         throw new IllegalArgumentException(
-                                "Partition key `"
-                                        + options.getPartitionKey()
-                                        + "` not found in table schema");
+                                String.format(
+                                        "Partition key `%s` not found in table schema",
+                                        options.getPartitionKey()));
                     }
                     FieldGetter getter = RowData.createFieldGetter(logicalTypes[index], index);
                     partitioner = ClickHousePartitioner.createHash(getter);
                     break;
                 default:
                     throw new IllegalArgumentException(
-                            "Unknown sink.partition-strategy `" + partitionStrategy + "`");
+                            String.format(
+                                    "Unknown sink.partition-strategy `%s`", partitionStrategy));
             }
 
             String[] keyFields = new String[0];
