@@ -32,6 +32,20 @@ public interface ClickHouseExecutor extends Serializable {
 
     void closeStatement() throws SQLException;
 
+    static ClickHouseExecutor createClickHouseExecutor(
+            String tableName,
+            String[] fieldNames,
+            String[] keyFields,
+            ClickHouseRowConverter converter,
+            ClickHouseOptions options) {
+        if (keyFields.length > 0) {
+            return createUpsertExecutor(tableName, fieldNames, keyFields, converter, options);
+        } else {
+            return createBatchExecutor(tableName, fieldNames, converter);
+        }
+
+    }
+
     static ClickHouseBatchExecutor createBatchExecutor(
             String tableName, String[] fieldNames, ClickHouseRowConverter converter) {
         String sql = ClickHouseStatementFactory.getInsertIntoStatement(tableName, fieldNames);
