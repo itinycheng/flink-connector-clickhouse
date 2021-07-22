@@ -122,15 +122,13 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
     private void initializeExecutors() throws SQLException {
         for (ClickHouseConnection shardConnection : shardConnections) {
-            ClickHouseExecutor executor;
-            if (keyFields.length > 0) {
-                executor =
-                        ClickHouseExecutor.createUpsertExecutor(
-                                remoteTable, fieldNames, keyFields, converter, options);
-            } else {
-                executor =
-                        ClickHouseExecutor.createBatchExecutor(remoteTable, fieldNames, converter);
-            }
+            ClickHouseExecutor executor =
+                    ClickHouseExecutor.createClickHouseExecutor(
+                            remoteTable,
+                            fieldNames,
+                            keyFields,
+                            converter,
+                            options);
             executor.prepareStatement(shardConnection);
             shardExecutors.add(executor);
         }

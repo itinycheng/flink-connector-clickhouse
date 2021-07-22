@@ -6,6 +6,7 @@
 package org.apache.flink.connector.clickhouse.internal;
 
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
+import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
 import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import org.apache.flink.table.data.RowData;
@@ -28,24 +29,40 @@ public class ClickHouseBatchOutputFormat extends AbstractClickHouseOutputFormat 
 
     private final ClickHouseConnectionProvider connectionProvider;
 
-    private final ClickHouseExecutor executor;
+    private final String[] fieldNames;
+
+    private final String[] keyFields;
+
+    private final ClickHouseRowConverter converter;
 
     private final ClickHouseOptions options;
+
+    private transient ClickHouseExecutor executor;
 
     private transient int batchCount = 0;
 
     protected ClickHouseBatchOutputFormat(
             @Nonnull ClickHouseConnectionProvider connectionProvider,
-            @Nonnull ClickHouseExecutor executor,
+            @Nonnull String[] fieldNames,
+            @Nonnull String[] keyFields,
+            @Nonnull ClickHouseRowConverter converter,
             @Nonnull ClickHouseOptions options) {
         this.connectionProvider = Preconditions.checkNotNull(connectionProvider);
-        this.executor = Preconditions.checkNotNull(executor);
+        this.fieldNames = Preconditions.checkNotNull(fieldNames);
+        this.keyFields = Preconditions.checkNotNull(keyFields);
+        this.converter = Preconditions.checkNotNull(converter);
         this.options = Preconditions.checkNotNull(options);
     }
 
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         try {
+            executor = ClickHouseExecutor.createClickHouseExecutor(
+                    options.getTableName(),
+                    fieldNames,
+                    keyFields,
+                    converter,
+                    options);
             executor.prepareStatement(connectionProvider);
             executor.setRuntimeContext(getRuntimeContext());
 

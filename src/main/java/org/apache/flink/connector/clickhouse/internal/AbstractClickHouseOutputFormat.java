@@ -187,23 +187,16 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
 
         private ClickHouseBatchOutputFormat createBatchOutputFormat(
                 ClickHouseRowConverter converter) {
-            ClickHouseExecutor executor;
+            String[] keyFields = new String[0];
             if (primaryKey != null && !options.getIgnoreDelete()) {
-                executor =
-                        ClickHouseExecutor.createUpsertExecutor(
-                                options.getTableName(),
-                                fieldNames,
-                                listToStringArray(primaryKey.getColumns()),
-                                converter,
-                                options);
-            } else {
-                executor =
-                        ClickHouseExecutor.createBatchExecutor(
-                                options.getTableName(), fieldNames, converter);
+                keyFields = listToStringArray(primaryKey.getColumns());
             }
-
             return new ClickHouseBatchOutputFormat(
-                    new ClickHouseConnectionProvider(options), executor, options);
+                    new ClickHouseConnectionProvider(options),
+                    fieldNames,
+                    keyFields,
+                    converter,
+                    options);
         }
 
         private ClickHouseShardOutputFormat createShardOutputFormat(
