@@ -124,11 +124,7 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
         for (ClickHouseConnection shardConnection : shardConnections) {
             ClickHouseExecutor executor =
                     ClickHouseExecutor.createClickHouseExecutor(
-                            remoteTable,
-                            fieldNames,
-                            keyFields,
-                            converter,
-                            options);
+                            remoteTable, fieldNames, keyFields, converter, options);
             executor.prepareStatement(shardConnection);
             shardExecutors.add(executor);
         }

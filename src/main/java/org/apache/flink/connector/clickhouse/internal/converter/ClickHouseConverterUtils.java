@@ -81,8 +81,8 @@ public class ClickHouseConverterUtils {
                 Map<Object, Object> objectMap = new HashMap<>(keyArrayData.size());
                 for (int i = 0; i < keyArrayData.size(); i++) {
                     objectMap.put(
-                            keyGetter.getElementOrNull(keyArrayData, i),
-                            valueGetter.getElementOrNull(valueArrayData, i));
+                            toExternal(keyGetter.getElementOrNull(keyArrayData, i), keyType),
+                            toExternal(valueGetter.getElementOrNull(valueArrayData, i), valueType));
                 }
                 return objectMap;
             case MULTISET:
