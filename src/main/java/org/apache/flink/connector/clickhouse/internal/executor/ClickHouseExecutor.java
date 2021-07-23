@@ -43,7 +43,6 @@ public interface ClickHouseExecutor extends Serializable {
         } else {
             return createBatchExecutor(tableName, fieldNames, converter);
         }
-
     }
 
     static ClickHouseBatchExecutor createBatchExecutor(

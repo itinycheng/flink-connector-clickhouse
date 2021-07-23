@@ -57,12 +57,9 @@ public class ClickHouseBatchOutputFormat extends AbstractClickHouseOutputFormat 
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         try {
-            executor = ClickHouseExecutor.createClickHouseExecutor(
-                    options.getTableName(),
-                    fieldNames,
-                    keyFields,
-                    converter,
-                    options);
+            executor =
+                    ClickHouseExecutor.createClickHouseExecutor(
+                            options.getTableName(), fieldNames, keyFields, converter, options);
             executor.prepareStatement(connectionProvider);
             executor.setRuntimeContext(getRuntimeContext());
 

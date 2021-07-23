@@ -5,7 +5,7 @@
 		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.tiny</groupId>
+	<groupId>org.apache.flink</groupId>
 	<artifactId>flink-connector-clickhouse</artifactId>
 	<version>1.0-SNAPSHOT</version>
 
@@ -153,8 +153,8 @@
 							</artifactSet>
 							<relocations>
 								<relocation>
-									<pattern>com.alibaba.fastjson</pattern>
-									<shadedPattern>com.itiger.persona.shaded.com.alibaba.fastjson
+									<pattern>ru.yandex.clickhouse</pattern>
+									<shadedPattern>org.apache.flink.shaded.ru.yandex.clickhouse
 									</shadedPattern>
 								</relocation>
 							</relocations>
