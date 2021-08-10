@@ -19,7 +19,7 @@ public interface ClickHousePartitioner extends Serializable {
 
     String HASH = "hash";
 
-    int select(RowData var1, int var2);
+    int select(RowData record, int numShards);
 
     static ClickHousePartitioner createBalanced() {
         return new BalancedPartitioner();
