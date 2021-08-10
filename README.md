@@ -78,7 +78,7 @@ CREATE TABLE t_user (
     PRIMARY KEY (`user_id`) NOT ENFORCED
 ) WITH (
     'connector' = 'clickhouse',
-    'url' = 'clickhouse://{ip}:8123',
+    'url' = 'jdbc:clickhouse://{ip}:{port}',
     'database-name' = 'tutorial',
     'table-name' = 'users',
     'sink.batch-size' = '500',
@@ -88,7 +88,7 @@ CREATE TABLE t_user (
 
 -- write data into the clickhouse table from the table `T`
 INSERT INTO t_user
-SELECT select cast(`user_id` as BIGINT), `user_type`, `lang`, `country`, `gender`, `score`, ARRAY['CODER', 'SPORTSMAN'], CAST(MAP['BABA', cast(10 as BIGINT), 'NIO', cast(8 as BIGINT)] AS MAP<STRING, BIGINT>) FROM T;
+SELECT cast(`user_id` as BIGINT), `user_type`, `lang`, `country`, `gender`, `score`, ARRAY['CODER', 'SPORTSMAN'], CAST(MAP['BABA', cast(10 as BIGINT), 'NIO', cast(8 as BIGINT)] AS MAP<STRING, BIGINT>) FROM T;
 
 ```
 

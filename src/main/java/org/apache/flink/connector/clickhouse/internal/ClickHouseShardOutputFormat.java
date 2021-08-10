@@ -23,8 +23,6 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * The shard output format of distributed table.<br>
@@ -35,10 +33,6 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
     private static final long serialVersionUID = 1L;
 
     private static final Logger LOG = LoggerFactory.getLogger(ClickHouseShardOutputFormat.class);
-
-    private static final Pattern PATTERN =
-            Pattern.compile(
-                    "Distributed\\((?<cluster>[a-zA-Z_][0-9a-zA-Z_]*),\\s*(?<database>[a-zA-Z_][0-9a-zA-Z_]*),\\s*(?<table>[a-zA-Z_][0-9a-zA-Z_]*)");
 
     private final ClickHouseConnectionProvider connectionProvider;
 
@@ -56,11 +50,7 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
     private final String[] keyFields;
 
-    private transient String remoteTable;
-
     private transient int[] batchCounts;
-
-    private transient List<ClickHouseConnection> shardConnections;
 
     protected ClickHouseShardOutputFormat(
             @Nonnull ClickHouseConnectionProvider connectionProvider,
@@ -82,51 +72,23 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         try {
-            establishShardConnections();
-            initializeExecutors();
-
+            List<ClickHouseConnection> shardConnections =
+                    connectionProvider.getOrCreateShardConnections();
+            String shardTable = connectionProvider.getShardTable();
+            for (ClickHouseConnection shardConnection : shardConnections) {
+                ClickHouseExecutor executor =
+                        ClickHouseExecutor.createClickHouseExecutor(
+                                shardTable, fieldNames, keyFields, converter, options);
+                executor.prepareStatement(shardConnection);
+                shardExecutors.add(executor);
+            }
+            batchCounts = new int[shardConnections.size()];
             long flushIntervalMillis = options.getFlushInterval().toMillis();
             if (flushIntervalMillis > 0) {
                 scheduledFlush(flushIntervalMillis, "clickhouse-shard-output-format");
             }
         } catch (Exception exception) {
             throw new IOException("Unable to establish connection to ClickHouse", exception);
-        }
-    }
-
-    private void establishShardConnections() throws IOException {
-        try {
-            String engine =
-                    connectionProvider.queryTableEngine(
-                            options.getDatabaseName(), options.getTableName());
-            Matcher matcher = PATTERN.matcher(engine);
-            if (matcher.find()) {
-                String remoteCluster = matcher.group("cluster");
-                String remoteDatabase = matcher.group("database");
-                remoteTable = matcher.group("table");
-                shardConnections =
-                        connectionProvider.getShardConnections(remoteCluster, remoteDatabase);
-                batchCounts = new int[shardConnections.size()];
-            } else {
-                throw new IOException(
-                        "table `"
-                                + options.getDatabaseName()
-                                + "`.`"
-                                + options.getTableName()
-                                + "` is not a Distributed table");
-            }
-        } catch (SQLException exception) {
-            throw new IOException("Establish shard connections failed.", exception);
-        }
-    }
-
-    private void initializeExecutors() throws SQLException {
-        for (ClickHouseConnection shardConnection : shardConnections) {
-            ClickHouseExecutor executor =
-                    ClickHouseExecutor.createClickHouseExecutor(
-                            remoteTable, fieldNames, keyFields, converter, options);
-            executor.prepareStatement(shardConnection);
-            shardExecutors.add(executor);
         }
     }
 
@@ -140,18 +102,12 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
         switch (record.getRowKind()) {
             case INSERT:
-                writeRecordToOneExecutor(record);
-                break;
             case UPDATE_AFTER:
-                if (ignoreDelete) {
-                    writeRecordToOneExecutor(record);
-                } else {
-                    writeRecordToAllExecutors(record);
-                }
+                writeRecordToOneExecutor(record);
                 break;
             case DELETE:
                 if (!ignoreDelete) {
-                    this.writeRecordToAllExecutors(record);
+                    writeRecordToOneExecutor(record);
                 }
                 break;
             case UPDATE_BEFORE:
@@ -177,22 +133,8 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
         }
     }
 
-    private void writeRecordToAllExecutors(RowData record) throws IOException {
-        try {
-            for (int i = 0; i < shardExecutors.size(); ++i) {
-                shardExecutors.get(i).addToBatch(record);
-                batchCounts[i]++;
-                if (batchCounts[i] >= options.getBatchSize()) {
-                    flush(i);
-                }
-            }
-        } catch (Exception exception) {
-            throw new IOException("Writing record to all executor failed.", exception);
-        }
-    }
-
     @Override
-    public synchronized void flush() throws IOException {
+    public void flush() throws IOException {
         for (int i = 0; i < shardExecutors.size(); ++i) {
             flush(i);
         }

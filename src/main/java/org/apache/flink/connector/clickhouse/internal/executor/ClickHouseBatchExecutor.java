@@ -42,7 +42,7 @@ public class ClickHouseBatchExecutor implements ClickHouseExecutor {
     public void prepareStatement(ClickHouseConnectionProvider connectionProvider)
             throws SQLException {
         this.connectionProvider = connectionProvider;
-        prepareStatement(connectionProvider.getConnection());
+        prepareStatement(connectionProvider.getOrCreateConnection());
     }
 
     @Override
