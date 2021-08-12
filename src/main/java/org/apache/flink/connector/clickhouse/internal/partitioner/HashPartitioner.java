@@ -23,6 +23,6 @@ public class HashPartitioner implements ClickHousePartitioner {
 
     @Override
     public int select(RowData record, int numShards) {
-        return Objects.hashCode(getter.getFieldOrNull(record)) % numShards;
+        return Math.abs(Objects.hashCode(getter.getFieldOrNull(record)) % numShards);
     }
 }

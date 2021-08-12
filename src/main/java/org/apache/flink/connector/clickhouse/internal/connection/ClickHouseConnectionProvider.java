@@ -101,14 +101,14 @@ public class ClickHouseConnectionProvider implements Serializable {
     private List<ClickHouseConnection> createShardConnections(
             String remoteCluster, String remoteDatabase) throws SQLException {
         List<ClickHouseConnection> shardConnections = new ArrayList<>();
-        try (ClickHouseConnection conn = getOrCreateConnection();
-                PreparedStatement stmt = conn.prepareStatement(QUERY_CLUSTER_INFO_SQL)) {
+        ClickHouseConnection conn = getOrCreateConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(QUERY_CLUSTER_INFO_SQL)) {
             stmt.setString(1, remoteCluster);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     String host = rs.getString("host_address");
                     int port = getActualHttpPort(host, rs.getInt("port"));
-                    String url = "jdbc:clickhouse://" + host + ":" + port;
+                    String url = "clickhouse://" + host + ":" + port;
                     shardConnections.add(createConnection(url, remoteDatabase));
                 }
             }
@@ -138,8 +138,8 @@ public class ClickHouseConnectionProvider implements Serializable {
     }
 
     private String queryTableEngine(String databaseName, String tableName) throws SQLException {
-        try (ClickHouseConnection conn = getOrCreateConnection();
-                PreparedStatement stmt = conn.prepareStatement(QUERY_TABLE_ENGINE_SQL)) {
+        ClickHouseConnection conn = getOrCreateConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(QUERY_TABLE_ENGINE_SQL)) {
             stmt.setString(1, databaseName);
             stmt.setString(2, tableName);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -193,7 +193,7 @@ public class ClickHouseConnectionProvider implements Serializable {
 
     private String getJdbcUrl(String url, String database) throws SQLException {
         try {
-            return (new URIBuilder(url)).setPath("/" + database).build().toString();
+            return "jdbc:" + (new URIBuilder(url)).setPath("/" + database).build().toString();
         } catch (Exception exception) {
             throw new SQLException(exception);
         }

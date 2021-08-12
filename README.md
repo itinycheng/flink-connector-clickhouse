@@ -2,7 +2,7 @@
 
 [Flink](https://github.com/apache/flink) SQL connector for [ClickHouse](https://github.com/yandex/ClickHouse) database, this project Powered by [ClickHouse JDBC](https://github.com/ClickHouse/clickhouse-jdbc).
 
-The original code comes from AliYun, I have done some code optimizations and data type expansion on this basis. Currently the project only supports `Sink Table`, the `Source Table` will be implemented in the future.
+The original code comes from AliYun. On this basis, I have done some bug fixes, code optimizations and more data type support. Currently the project only supports `Sink Table`, the `Source Table` will be implemented in the future.
 
 ## Connector Options
 
@@ -78,7 +78,7 @@ CREATE TABLE t_user (
     PRIMARY KEY (`user_id`) NOT ENFORCED
 ) WITH (
     'connector' = 'clickhouse',
-    'url' = 'jdbc:clickhouse://{ip}:{port}',
+    'url' = 'clickhouse://{ip}:{port}',
     'database-name' = 'tutorial',
     'table-name' = 'users',
     'sink.batch-size' = '500',
