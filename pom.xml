@@ -12,14 +12,27 @@
 	<name>flink-connector-clickhouse</name>
 	<url>http://www.example.com</url>
 
+	<licenses>
+		<license>
+			<name>The Apache Software License, Version 2.0</name>
+			<url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
+	<scm>
+		<url>https://github.com/itinycheng/flink-connector-clickhouse</url>
+		<connection>scm:git:git@github.com:itinycheng/flink-connector-clickhouse.git</connection>
+		<developerConnection>scm:git:git@github.com:itinycheng/flink-connector-clickhouse.git
+		</developerConnection>
+		<tag>HEAD</tag>
+	</scm>
+
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
-		<maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
-		<maven-shade-plugin.version>3.2.4</maven-shade-plugin.version>
-		<maven-checkstyle-plugin.version>2.17</maven-checkstyle-plugin.version>
-		<spotless-maven-plugin.version>2.4.2</spotless-maven-plugin.version>
+
 		<checkstyle.version>8.14</checkstyle.version>
 		<junit.version>4.13.2</junit.version>
 		<clickhouse-jdbc.version>0.3.1</clickhouse-jdbc.version>
@@ -28,6 +41,12 @@
 		<flink.scope>provided</flink.scope>
 		<guava.version>29.0-jre</guava.version>
 		<jackson.version>2.12.3</jackson.version>
+
+		<maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+		<maven-shade-plugin.version>3.2.4</maven-shade-plugin.version>
+		<maven-checkstyle-plugin.version>2.17</maven-checkstyle-plugin.version>
+		<spotless-maven-plugin.version>2.4.2</spotless-maven-plugin.version>
+		<maven-release-plugin.version>2.5.3</maven-release-plugin.version>
 	</properties>
 
 	<dependencies>
@@ -170,6 +189,15 @@
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-release-plugin</artifactId>
+				<version>${maven-release-plugin.version}</version>
+				<configuration>
+					<tagNameFormat>release-@{project.version}</tagNameFormat>
+					<autoVersionSubmodules>true</autoVersionSubmodules>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
