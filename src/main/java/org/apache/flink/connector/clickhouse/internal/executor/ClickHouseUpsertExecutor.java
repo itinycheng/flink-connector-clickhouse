@@ -97,7 +97,7 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
     }
 
     @Override
-    public void executeBatch() throws SQLException {
+    public synchronized void executeBatch() throws SQLException {
         for (ClickHousePreparedStatement clickHousePreparedStatement :
                 Arrays.asList(insertStmt, updateStmt, deleteStmt)) {
             if (clickHousePreparedStatement != null) {
@@ -107,7 +107,7 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
     }
 
     @Override
-    public void closeStatement() throws SQLException {
+    public synchronized void closeStatement() throws SQLException {
         for (ClickHousePreparedStatement clickHousePreparedStatement :
                 Arrays.asList(insertStmt, updateStmt, deleteStmt)) {
             if (clickHousePreparedStatement != null) {

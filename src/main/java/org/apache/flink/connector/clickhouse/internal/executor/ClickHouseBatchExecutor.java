@@ -68,12 +68,12 @@ public class ClickHouseBatchExecutor implements ClickHouseExecutor {
     }
 
     @Override
-    public void executeBatch() throws SQLException {
+    public synchronized void executeBatch() throws SQLException {
         statement.executeBatch();
     }
 
     @Override
-    public void closeStatement() throws SQLException {
+    public synchronized void closeStatement() throws SQLException {
         if (statement != null) {
             statement.close();
             statement = null;
