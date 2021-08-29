@@ -73,7 +73,7 @@ public class ClickHouseBatchOutputFormat extends AbstractClickHouseOutputFormat 
     }
 
     @Override
-    public void writeRecord(RowData record) throws IOException {
+    public synchronized void writeRecord(RowData record) throws IOException {
         checkFlushException();
 
         try {
@@ -90,13 +90,13 @@ public class ClickHouseBatchOutputFormat extends AbstractClickHouseOutputFormat 
     @Override
     public synchronized void flush() throws IOException {
         if (batchCount > 0) {
-            attemptFlush(executor, options.getMaxRetries());
+            checkBeforeFlush(executor);
             batchCount = 0;
         }
     }
 
     @Override
-    public void closeOutputFormat() {
+    public synchronized void closeOutputFormat() {
         try {
             executor.closeStatement();
             connectionProvider.closeConnections();

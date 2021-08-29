@@ -75,30 +75,13 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
                         TimeUnit.MILLISECONDS);
     }
 
-    public void attemptFlush(final ClickHouseExecutor executor, final int retryAttempt)
-            throws IOException {
+    public void checkBeforeFlush(final ClickHouseExecutor executor) throws IOException {
         checkFlushException();
-
-        for (int i = 0; i < retryAttempt; i++) {
-            try {
-                executor.executeBatch();
-                return;
-            } catch (Exception e) {
-                LOG.error("ClickHouse executeBatch error, retry times = {}", i, e);
-                try {
-                    Thread.sleep(1000 * i);
-                } catch (InterruptedException ex) {
-                    Thread.currentThread().interrupt();
-                    throw new IOException(
-                            "Unable to flush, interrupted while doing another attempt.", e);
-                }
-            }
+        try {
+            executor.executeBatch();
+        } catch (Exception e) {
+            throw new IOException(e);
         }
-
-        throw new IOException(
-                String.format(
-                        "Attempt to Flush ClickHouse executor failed, exhausted retry times = %d",
-                        retryAttempt));
     }
 
     @Override
@@ -109,7 +92,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
             try {
                 flush();
             } catch (Exception exception) {
-                LOG.warn("Writing records to ClickHouse failed.", exception);
+                LOG.warn("Flushing records to ClickHouse failed.", exception);
             }
 
             if (scheduledFuture != null) {
@@ -124,7 +107,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
 
     protected void checkFlushException() {
         if (flushException != null) {
-            throw new RuntimeException("Writing records to ClickHouse failed.", flushException);
+            throw new RuntimeException("Flush exception found.", flushException);
         }
     }
 

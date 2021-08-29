@@ -12,13 +12,18 @@ import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowCon
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import org.apache.flink.table.data.RowData;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.yandex.clickhouse.ClickHouseConnection;
+import ru.yandex.clickhouse.ClickHousePreparedStatement;
 
 import java.io.Serializable;
 import java.sql.SQLException;
 
 /** Executor interface for submitting data to ClickHouse. */
 public interface ClickHouseExecutor extends Serializable {
+
+    Logger LOG = LoggerFactory.getLogger(ClickHouseExecutor.class);
 
     void prepareStatement(ClickHouseConnection connection) throws SQLException;
 
@@ -32,6 +37,28 @@ public interface ClickHouseExecutor extends Serializable {
 
     void closeStatement() throws SQLException;
 
+    default void attemptExecuteBatch(ClickHousePreparedStatement stmt, int maxRetries)
+            throws SQLException {
+        for (int i = 0; i < maxRetries; i++) {
+            try {
+                stmt.executeBatch();
+                return;
+            } catch (Exception exception) {
+                LOG.error("ClickHouse executeBatch error, retry times = {}", i, exception);
+                try {
+                    Thread.sleep(1000 * i);
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    throw new SQLException(
+                            "Unable to flush; interrupted while doing another attempt", ex);
+                }
+            }
+        }
+        throw new SQLException(
+                String.format(
+                        "Attempt to execute batch failed, exhausted retry times = %d", maxRetries));
+    }
+
     static ClickHouseExecutor createClickHouseExecutor(
             String tableName,
             String[] fieldNames,
@@ -41,14 +68,17 @@ public interface ClickHouseExecutor extends Serializable {
         if (keyFields.length > 0) {
             return createUpsertExecutor(tableName, fieldNames, keyFields, converter, options);
         } else {
-            return createBatchExecutor(tableName, fieldNames, converter);
+            return createBatchExecutor(tableName, fieldNames, converter, options);
         }
     }
 
     static ClickHouseBatchExecutor createBatchExecutor(
-            String tableName, String[] fieldNames, ClickHouseRowConverter converter) {
+            String tableName,
+            String[] fieldNames,
+            ClickHouseRowConverter converter,
+            ClickHouseOptions options) {
         String sql = ClickHouseStatementFactory.getInsertIntoStatement(tableName, fieldNames);
-        return new ClickHouseBatchExecutor(sql, converter);
+        return new ClickHouseBatchExecutor(sql, converter, options);
     }
 
     static ClickHouseUpsertExecutor createUpsertExecutor(
