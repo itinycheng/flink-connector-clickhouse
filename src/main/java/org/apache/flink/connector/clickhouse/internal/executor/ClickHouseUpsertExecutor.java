@@ -11,8 +11,6 @@ import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowCon
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import org.apache.flink.table.data.RowData;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import ru.yandex.clickhouse.ClickHouseConnection;
 import ru.yandex.clickhouse.ClickHousePreparedStatement;
 
@@ -23,8 +21,6 @@ import java.util.Arrays;
 public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
 
     private static final long serialVersionUID = 1L;
-
-    private static final Logger LOG = LoggerFactory.getLogger(ClickHouseUpsertExecutor.class);
 
     private transient ClickHousePreparedStatement insertStmt;
 
@@ -72,7 +68,7 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
     public void setRuntimeContext(RuntimeContext context) {}
 
     @Override
-    public synchronized void addToBatch(RowData record) throws SQLException {
+    public void addToBatch(RowData record) throws SQLException {
         switch (record.getRowKind()) {
             case INSERT:
                 converter.toExternal(record, insertStmt);
@@ -97,45 +93,23 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
     }
 
     @Override
-    public synchronized void executeBatch() throws SQLException {
+    public void executeBatch() throws SQLException {
         for (ClickHousePreparedStatement clickHousePreparedStatement :
                 Arrays.asList(insertStmt, updateStmt, deleteStmt)) {
             if (clickHousePreparedStatement != null) {
-                attemptExecuteBatch(clickHousePreparedStatement);
+                attemptExecuteBatch(clickHousePreparedStatement, maxRetries);
             }
         }
     }
 
     @Override
-    public synchronized void closeStatement() throws SQLException {
+    public void closeStatement() throws SQLException {
         for (ClickHousePreparedStatement clickHousePreparedStatement :
                 Arrays.asList(insertStmt, updateStmt, deleteStmt)) {
             if (clickHousePreparedStatement != null) {
                 clickHousePreparedStatement.close();
             }
         }
-    }
-
-    private void attemptExecuteBatch(ClickHousePreparedStatement stmt) throws SQLException {
-        for (int i = 0; i < maxRetries; i++) {
-            try {
-                stmt.executeBatch();
-                return;
-            } catch (SQLException exception) {
-                LOG.error("ClickHouse executeBatch error, retry times = {}", i, exception);
-                try {
-                    Thread.sleep(1000 * i);
-                } catch (InterruptedException ex) {
-                    Thread.currentThread().interrupt();
-                    throw new SQLException(
-                            "Unable to flush; interrupted while doing another attempt", exception);
-                }
-            }
-        }
-
-        throw new SQLException(
-                String.format(
-                        "Attempt to execute batch failed, exhausted retry times = %d", maxRetries));
     }
 
     @Override

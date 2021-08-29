@@ -97,7 +97,7 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
      * data shard strategy.
      */
     @Override
-    public void writeRecord(RowData record) throws IOException {
+    public synchronized void writeRecord(RowData record) throws IOException {
         checkFlushException();
 
         switch (record.getRowKind()) {
@@ -134,7 +134,7 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
     }
 
     @Override
-    public void flush() throws IOException {
+    public synchronized void flush() throws IOException {
         for (int i = 0; i < shardExecutors.size(); ++i) {
             flush(i);
         }
@@ -142,13 +142,13 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
     private synchronized void flush(int index) throws IOException {
         if (batchCounts[index] > 0) {
-            attemptFlush(shardExecutors.get(index), options.getMaxRetries());
+            checkBeforeFlush(shardExecutors.get(index));
             batchCounts[index] = 0;
         }
     }
 
     @Override
-    public void closeOutputFormat() {
+    public synchronized void closeOutputFormat() {
         try {
             for (ClickHouseExecutor shardExecutor : shardExecutors) {
                 shardExecutor.closeStatement();
