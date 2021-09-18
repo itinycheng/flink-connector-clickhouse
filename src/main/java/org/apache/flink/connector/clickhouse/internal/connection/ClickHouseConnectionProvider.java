@@ -6,6 +6,7 @@
 package org.apache.flink.connector.clickhouse.internal.connection;
 
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
+import org.apache.flink.connector.clickhouse.util.ClickHouseUtil;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -126,15 +127,15 @@ public class ClickHouseConnectionProvider implements Serializable {
 
         try {
             Class.forName(CLICKHOUSE_DRIVER_NAME);
+
+            return (ClickHouseConnection)
+                    DriverManager.getConnection(
+                            ClickHouseUtil.getJdbcUrl(url, database),
+                            options.getUsername().orElse(null),
+                            options.getPassword().orElse(null));
         } catch (ClassNotFoundException exception) {
             throw new SQLException(exception);
         }
-
-        return (ClickHouseConnection)
-                DriverManager.getConnection(
-                        getJdbcUrl(url, database),
-                        options.getUsername().orElse(null),
-                        options.getPassword().orElse(null));
     }
 
     private String queryTableEngine(String databaseName, String tableName) throws SQLException {
@@ -188,14 +189,6 @@ public class ClickHouseConnectionProvider implements Serializable {
             return port;
         } catch (Throwable throwable) {
             throw new SQLException("Cannot connect to ClickHouse server using HTTP.", throwable);
-        }
-    }
-
-    private String getJdbcUrl(String url, String database) throws SQLException {
-        try {
-            return "jdbc:" + (new URIBuilder(url)).setPath("/" + database).build().toString();
-        } catch (Exception exception) {
-            throw new SQLException(exception);
         }
     }
 }
