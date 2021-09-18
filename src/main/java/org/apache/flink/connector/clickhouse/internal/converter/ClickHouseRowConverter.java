@@ -59,7 +59,11 @@ public class ClickHouseRowConverter implements Serializable {
         GenericRowData genericRowData = new GenericRowData(rowType.getFieldCount());
         for (int pos = 0; pos < rowType.getFieldCount(); ++pos) {
             Object field = resultSet.getObject(pos + 1);
-            genericRowData.setField(pos, toInternalConverters[pos].deserialize(field));
+            if (field != null) {
+                genericRowData.setField(pos, toInternalConverters[pos].deserialize(field));
+            } else {
+                genericRowData.setField(pos, null);
+            }
         }
         return genericRowData;
     }
