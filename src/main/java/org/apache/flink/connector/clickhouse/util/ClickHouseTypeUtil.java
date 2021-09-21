@@ -68,9 +68,8 @@ public class ClickHouseTypeUtil {
             case FixedString:
             case IPv4:
             case IPv6:
-                return DataTypes.VARCHAR(clickHouseColumnInfo.getPrecision());
             case UUID:
-                return DataTypes.VARBINARY(clickHouseColumnInfo.getPrecision());
+                return DataTypes.VARCHAR(clickHouseColumnInfo.getPrecision());
             case Date:
                 return DataTypes.DATE();
             case DateTime:
