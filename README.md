@@ -23,33 +23,31 @@ The original code comes from AliYun. On this basis, I have done some bug fixes, 
 
 ## Data Type Mapping
 
-| Flink Type          | ClickHouse Type |
-| :------------------ | :-------------- |
-| CHAR                | String          |
-| VARCHAR             | String          |
-| STRING              | String          |
-| BOOLEAN             | UInt8           |
-| BYTES               | FixedString     |
-| DECIMAL             | Decimal         |
-| TINYINT             | Int8            |
-| SMALLINT            | Int16           |
-| INTEGER             | Int32           |
-| BIGINT              | Int64           |
-| FLOAT               | Float32         |
-| DOUBLE              | Float64         |
-| DATE                | Date            |
-| TIME                | DateTime        |
-| TIMESTAMP           | DateTime        |
-| TIMESTAMP_LTZ       | DateTime        |
-| INTERVAL_YEAR_MONTH | Int32           |
-| INTERVAL_DAY_TIME   | Int64           |
-| ARRAY               | Array           |
-| MAP                 | Map             |
-| ROW                 | Not supported   |
-| MULTISET            | Not supported   |
-| RAW                 | Not supported   |
-
-*Notice:* 
+| Flink Type          | ClickHouse Type (Sink)                                 | ClickHouse Type (Source) |
+| :------------------ | :----------------------------------------------------- | :----------------------- |
+| CHAR                | String                                                 |                          |
+| VARCHAR             | String / IP / UUID                                     |                          |
+| STRING              | String / Enum                                          |                          |
+| BOOLEAN             | UInt8                                                  |                          |
+| BYTES               | FixedString                                            |                          |
+| DECIMAL             | Decimal / Int128 / Int256 / UInt64 / UInt128 / UInt256 |                          |
+| TINYINT             | Int8                                                   |                          |
+| SMALLINT            | Int16 / UInt8                                          |                          |
+| INTEGER             | Int32 / UInt16 / Interval                              |                          |
+| BIGINT              | Int64 / UInt32                                         |                          |
+| FLOAT               | Float32                                                |                          |
+| DOUBLE              | Float64                                                |                          |
+| DATE                | Date                                                   |                          |
+| TIME                | DateTime                                               |                          |
+| TIMESTAMP           | DateTime                                               |                          |
+| TIMESTAMP_LTZ       | DateTime                                               |                          |
+| INTERVAL_YEAR_MONTH | Int32                                                  |                          |
+| INTERVAL_DAY_TIME   | Int64                                                  |                          |
+| ARRAY               | Array                                                  |                          |
+| MAP                 | Map                                                    |                          |
+| ROW                 | Not supported                                          |                          |
+| MULTISET            | Not supported                                          |                          |
+| RAW                 | Not supported                                          |                          |
 
 ## Maven Dependency
 
@@ -62,6 +60,8 @@ The original code comes from AliYun. On this basis, I have done some bug fixes, 
 ```
 
 ## How to use
+
+### Create and use sink table
 
 ```SQL
 
@@ -92,8 +92,27 @@ SELECT cast(`user_id` as BIGINT), `user_type`, `lang`, `country`, `gender`, `sco
 
 ```
 
+### Create and use ClickHouseCatalog
+
+```scala
+val tEnv = TableEnvironment.create(setting)
+
+val props = new util.HashMap[String, String]()
+props.put(ClickHouseConfig.DATABASE_NAME, "default")
+props.put(ClickHouseConfig.URL, "clickhouse://127.0.0.1:8123")
+props.put(ClickHouseConfig.USERNAME, "username")
+props.put(ClickHouseConfig.PASSWORD, "password")
+props.put(ClickHouseConfig.SINK_FLUSH_INTERVAL, "30s")
+val cHcatalog = new ClickHouseCatalog("clickhouse", props)
+tEnv.registerCatalog("clickhouse", cHcatalog)
+tEnv.useCatalog("clickhouse")
+
+tableEnv.executeSql("insert into `clickhouse`.`default`.`t_table` select...");
+```
+
 ## Roadmap
 
 - [x] Implement the Flink SQL Sink function.
-- [x] Supports array and Map types.
+- [x] Support array and Map types.
+- [x] Support ClickHouseCatalog.
 - [ ] Implement the Flink SQL Source function.
