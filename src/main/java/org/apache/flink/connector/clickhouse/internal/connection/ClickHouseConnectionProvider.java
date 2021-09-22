@@ -16,10 +16,11 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.yandex.clickhouse.BalancedClickhouseDataSource;
 import ru.yandex.clickhouse.ClickHouseConnection;
+import ru.yandex.clickhouse.settings.ClickHouseProperties;
 
 import java.io.Serializable;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -34,8 +35,6 @@ public class ClickHouseConnectionProvider implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private static final Logger LOG = LoggerFactory.getLogger(ClickHouseConnectionProvider.class);
-
-    private static final String CLICKHOUSE_DRIVER_NAME = "ru.yandex.clickhouse.ClickHouseDriver";
 
     private static final Pattern HTTP_PORT_PATTERN =
             Pattern.compile("You must use port (?<port>[0-9]+) for HTTP.");
@@ -123,19 +122,18 @@ public class ClickHouseConnectionProvider implements Serializable {
     }
 
     private ClickHouseConnection createConnection(String url, String database) throws SQLException {
-        LOG.info("connecting to {}", url);
+        LOG.info("connecting to {}, database {}", url, database);
 
-        try {
-            Class.forName(CLICKHOUSE_DRIVER_NAME);
-
-            return (ClickHouseConnection)
-                    DriverManager.getConnection(
-                            ClickHouseUtil.getJdbcUrl(url, database),
-                            options.getUsername().orElse(null),
-                            options.getPassword().orElse(null));
-        } catch (ClassNotFoundException exception) {
-            throw new SQLException(exception);
+        String jdbcUrl = ClickHouseUtil.getJdbcUrl(url, database);
+        ClickHouseProperties properties = new ClickHouseProperties();
+        properties.setUser(options.getUsername().orElse(null));
+        properties.setPassword(options.getPassword().orElse(null));
+        BalancedClickhouseDataSource dataSource =
+                new BalancedClickhouseDataSource(jdbcUrl, properties);
+        if (dataSource.getAllClickhouseUrls().size() > 1) {
+            dataSource.actualize();
         }
+        return dataSource.getConnection();
     }
 
     private String queryTableEngine(String databaseName, String tableName) throws SQLException {
