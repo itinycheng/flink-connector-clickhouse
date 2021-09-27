@@ -127,8 +127,8 @@ public class ClickHouseCatalog extends AbstractCatalog {
         try {
             Properties configuration = new Properties();
             configuration.putAll(properties);
-            configuration.put(ClickHouseQueryParam.USER.getKey(), username);
-            configuration.put(ClickHouseQueryParam.PASSWORD.getKey(), password);
+            configuration.setProperty(ClickHouseQueryParam.USER.getKey(), username);
+            configuration.setProperty(ClickHouseQueryParam.PASSWORD.getKey(), password);
             String jdbcUrl = ClickHouseUtil.getJdbcUrl(baseUrl, getDefaultDatabase());
             BalancedClickhouseDataSource dataSource =
                     new BalancedClickhouseDataSource(jdbcUrl, configuration);

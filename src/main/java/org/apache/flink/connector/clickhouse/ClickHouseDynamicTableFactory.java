@@ -6,9 +6,7 @@
 package org.apache.flink.connector.clickhouse;
 
 import org.apache.flink.configuration.ConfigOption;
-import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.ReadableConfig;
-import org.apache.flink.connector.clickhouse.config.ClickHouseConfig;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
@@ -17,95 +15,29 @@ import org.apache.flink.table.factories.FactoryUtil;
 import org.apache.flink.table.factories.FactoryUtil.TableFactoryHelper;
 import org.apache.flink.table.utils.TableSchemaUtils;
 
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfig.IDENTIFIER;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.DATABASE_NAME;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.PASSWORD;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_BATCH_SIZE;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_FLUSH_INTERVAL;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_IGNORE_DELETE;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_MAX_RETRIES;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_PARTITION_KEY;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_PARTITION_STRATEGY;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_WRITE_LOCAL;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.TABLE_NAME;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.URL;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.USERNAME;
 import static org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.BALANCED;
 import static org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.HASH;
 import static org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.SHUFFLE;
 
 /** A {@link DynamicTableSinkFactory} for discovering {@link ClickHouseDynamicTableSink}. */
 public class ClickHouseDynamicTableFactory implements DynamicTableSinkFactory {
-
-    public static final String IDENTIFIER = "clickhouse";
-
-    public static final ConfigOption<String> URL =
-            ConfigOptions.key(ClickHouseConfig.URL)
-                    .stringType()
-                    .noDefaultValue()
-                    .withDescription("The ClickHouse url in format `clickhouse://<host>:<port>`.");
-
-    public static final ConfigOption<String> USERNAME =
-            ConfigOptions.key(ClickHouseConfig.USERNAME)
-                    .stringType()
-                    .noDefaultValue()
-                    .withDescription("The ClickHouse username.");
-
-    public static final ConfigOption<String> PASSWORD =
-            ConfigOptions.key(ClickHouseConfig.PASSWORD)
-                    .stringType()
-                    .noDefaultValue()
-                    .withDescription("The ClickHouse password.");
-
-    public static final ConfigOption<String> DATABASE_NAME =
-            ConfigOptions.key(ClickHouseConfig.DATABASE_NAME)
-                    .stringType()
-                    .defaultValue("default")
-                    .withDescription("The ClickHouse database name. Default to `default`.");
-
-    public static final ConfigOption<String> TABLE_NAME =
-            ConfigOptions.key(ClickHouseConfig.TABLE_NAME)
-                    .stringType()
-                    .noDefaultValue()
-                    .withDescription("The ClickHouse table name.");
-
-    public static final ConfigOption<Integer> SINK_BATCH_SIZE =
-            ConfigOptions.key(ClickHouseConfig.SINK_BATCH_SIZE)
-                    .intType()
-                    .defaultValue(1000)
-                    .withDescription(
-                            "The max flush size, over this number of records, will flush data. The default value is 1000.");
-
-    public static final ConfigOption<Duration> SINK_FLUSH_INTERVAL =
-            ConfigOptions.key(ClickHouseConfig.SINK_FLUSH_INTERVAL)
-                    .durationType()
-                    .defaultValue(Duration.ofSeconds(1L))
-                    .withDescription(
-                            "The flush interval mills, over this time, asynchronous threads will flush data. The default value is 1s.");
-
-    public static final ConfigOption<Integer> SINK_MAX_RETRIES =
-            ConfigOptions.key(ClickHouseConfig.SINK_MAX_RETRIES)
-                    .intType()
-                    .defaultValue(3)
-                    .withDescription("The max retry times if writing records to database failed.");
-
-    public static final ConfigOption<Boolean> SINK_WRITE_LOCAL =
-            ConfigOptions.key(ClickHouseConfig.SINK_WRITE_LOCAL)
-                    .booleanType()
-                    .defaultValue(false)
-                    .withDescription(
-                            "Directly write to local tables in case of distributed table.");
-
-    public static final ConfigOption<String> SINK_PARTITION_STRATEGY =
-            ConfigOptions.key(ClickHouseConfig.SINK_PARTITION_STRATEGY)
-                    .stringType()
-                    .defaultValue("balanced")
-                    .withDescription("Partition strategy, available: balanced, hash, shuffle.");
-
-    public static final ConfigOption<String> SINK_PARTITION_KEY =
-            ConfigOptions.key(ClickHouseConfig.SINK_PARTITION_KEY)
-                    .stringType()
-                    .noDefaultValue()
-                    .withDescription("Partition key used for hash strategy.");
-
-    public static final ConfigOption<Boolean> SINK_IGNORE_DELETE =
-            ConfigOptions.key(ClickHouseConfig.SINK_IGNORE_DELETE)
-                    .booleanType()
-                    .defaultValue(true)
-                    .withDescription(
-                            "Whether to treat update statements as insert statements and ignore deletes. defaults to true.");
 
     public ClickHouseDynamicTableFactory() {}
 
