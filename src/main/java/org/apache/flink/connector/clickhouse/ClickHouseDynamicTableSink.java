@@ -65,6 +65,6 @@ public class ClickHouseDynamicTableSink implements DynamicTableSink {
 
     @Override
     public String asSummaryString() {
-        return "ClickHouse";
+        return "ClickHouse table sink";
     }
 }
