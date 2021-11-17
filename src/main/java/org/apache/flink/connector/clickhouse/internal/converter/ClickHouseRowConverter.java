@@ -11,6 +11,7 @@ import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.StringData;
 import org.apache.flink.table.data.TimestampData;
 import org.apache.flink.table.types.logical.DecimalType;
+import org.apache.flink.table.types.logical.LocalZonedTimestampType;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.table.types.logical.RowType.RowField;
@@ -113,6 +114,8 @@ public class ClickHouseRowConverter implements Serializable {
             case TIMESTAMP_WITH_TIME_ZONE:
             case TIMESTAMP_WITHOUT_TIME_ZONE:
                 return val -> TimestampData.fromTimestamp((Timestamp) val);
+            case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+                return val -> TimestampData.fromInstant(((Timestamp) val).toInstant());
             case CHAR:
             case VARCHAR:
                 return val -> StringData.fromString((String) val);
@@ -176,6 +179,15 @@ public class ClickHouseRowConverter implements Serializable {
                         statement.setTimestamp(
                                 index + 1,
                                 val.getTimestamp(index, timestampPrecision).toTimestamp());
+            case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+                final int localZonedTimestampPrecision =
+                        ((LocalZonedTimestampType) type).getPrecision();
+                return (val, index, statement) ->
+                        statement.setTimestamp(
+                                index + 1,
+                                Timestamp.from(
+                                        val.getTimestamp(index, localZonedTimestampPrecision)
+                                                .toInstant()));
             case DECIMAL:
                 final int decimalPrecision = ((DecimalType) type).getPrecision();
                 final int decimalScale = ((DecimalType) type).getScale();
