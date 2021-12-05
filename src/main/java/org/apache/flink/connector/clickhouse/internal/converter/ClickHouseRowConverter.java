@@ -167,11 +167,11 @@ public class ClickHouseRowConverter implements Serializable {
                         statement.setDate(
                                 index + 1, Date.valueOf(LocalDate.ofEpochDay(val.getInt(index))));
             case TIME_WITHOUT_TIME_ZONE:
-                return (val, index, statement) ->
-                        statement.setTime(
-                                index + 1,
-                                Time.valueOf(
-                                        LocalTime.ofNanoOfDay(val.getInt(index) * 1_000_000L)));
+                return (val, index, statement) -> {
+                    LocalTime localTime = LocalTime.ofNanoOfDay(val.getInt(index) * 1_000_000L);
+                    statement.setTimestamp(
+                            index + 1, ClickHouseConverterUtils.toFixedDateTimestamp(localTime));
+                };
             case TIMESTAMP_WITH_TIME_ZONE:
             case TIMESTAMP_WITHOUT_TIME_ZONE:
                 final int timestampPrecision = ((TimestampType) type).getPrecision();
