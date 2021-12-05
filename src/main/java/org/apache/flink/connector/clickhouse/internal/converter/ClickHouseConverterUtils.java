@@ -20,12 +20,15 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Map;
 
 /** convert between internal and external data types. */
 public class ClickHouseConverterUtils {
+
+    private static final LocalDate DATE_PREFIX_OF_TIME = LocalDate.ofEpochDay(1);
 
     public static Object toExternal(Object value, LogicalType type) {
         switch (type.getTypeRoot()) {
@@ -47,7 +50,8 @@ public class ClickHouseConverterUtils {
             case DATE:
                 return Date.valueOf(LocalDate.ofEpochDay((Integer) value));
             case TIME_WITHOUT_TIME_ZONE:
-                return Time.valueOf(LocalTime.ofNanoOfDay(((Integer) value) * 1_000_000L));
+                LocalTime localTime = LocalTime.ofNanoOfDay(((Integer) value) * 1_000_000L);
+                return toFixedDateTimestamp(localTime);
             case TIMESTAMP_WITH_TIME_ZONE:
             case TIMESTAMP_WITHOUT_TIME_ZONE:
                 return ((TimestampData) value).toTimestamp();
@@ -149,5 +153,10 @@ public class ClickHouseConverterUtils {
             default:
                 throw new UnsupportedOperationException("Unsupported type:" + type);
         }
+    }
+
+    public static Timestamp toFixedDateTimestamp(LocalTime localTime) {
+        LocalDateTime localDateTime = localTime.atDate(DATE_PREFIX_OF_TIME);
+        return Timestamp.valueOf(localDateTime);
     }
 }
