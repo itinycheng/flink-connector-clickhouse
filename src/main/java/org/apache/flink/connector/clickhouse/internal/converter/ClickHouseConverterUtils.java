@@ -55,6 +55,8 @@ public class ClickHouseConverterUtils {
             case TIMESTAMP_WITH_TIME_ZONE:
             case TIMESTAMP_WITHOUT_TIME_ZONE:
                 return ((TimestampData) value).toTimestamp();
+            case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+                return Timestamp.from(((TimestampData) value).toInstant());
             case DECIMAL:
                 return ((DecimalData) value).toBigDecimal();
             case ARRAY:
@@ -129,6 +131,8 @@ public class ClickHouseConverterUtils {
             case TIMESTAMP_WITH_TIME_ZONE:
             case TIMESTAMP_WITHOUT_TIME_ZONE:
                 return TimestampData.fromTimestamp((Timestamp) value);
+            case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+                return TimestampData.fromInstant(((Timestamp) value).toInstant());
             case CHAR:
             case VARCHAR:
                 return StringData.fromString((String) value);
