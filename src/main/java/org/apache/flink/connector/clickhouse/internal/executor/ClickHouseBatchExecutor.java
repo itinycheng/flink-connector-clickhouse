@@ -57,10 +57,10 @@ public class ClickHouseBatchExecutor implements ClickHouseExecutor {
     public void addToBatch(RowData record) throws SQLException {
         switch (record.getRowKind()) {
             case INSERT:
-            case UPDATE_AFTER:
                 converter.toExternal(record, statement);
                 statement.addBatch();
                 break;
+            case UPDATE_AFTER:
             case DELETE:
             case UPDATE_BEFORE:
                 break;
