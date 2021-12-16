@@ -6,7 +6,6 @@ import org.apache.flink.table.types.DataType;
 
 import ru.yandex.clickhouse.response.ClickHouseColumnInfo;
 
-import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -83,7 +82,7 @@ public class ClickHouseTypeUtil {
                         ClickHouseColumnInfo.parse(
                                 arrayBaseType,
                                 clickHouseColumnInfo.getColumnName() + ".array_base",
-                                TimeZone.getDefault());
+                                clickHouseColumnInfo.getTimeZone());
                 return DataTypes.ARRAY(toFlinkType(arrayBaseColumnInfo));
             case Map:
                 return DataTypes.MAP(

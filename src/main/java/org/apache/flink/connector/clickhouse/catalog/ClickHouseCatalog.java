@@ -1,6 +1,7 @@
 package org.apache.flink.connector.clickhouse.catalog;
 
 import org.apache.flink.connector.clickhouse.ClickHouseDynamicTableFactory;
+import org.apache.flink.connector.clickhouse.common.DistributedEngineFullSchema;
 import org.apache.flink.connector.clickhouse.util.ClickHouseTypeUtil;
 import org.apache.flink.connector.clickhouse.util.ClickHouseUtil;
 import org.apache.flink.table.api.TableSchema;
@@ -30,8 +31,8 @@ import org.apache.flink.table.catalog.stats.CatalogColumnStatistics;
 import org.apache.flink.table.catalog.stats.CatalogTableStatistics;
 import org.apache.flink.table.expressions.Expression;
 import org.apache.flink.table.factories.Factory;
+import org.apache.flink.table.types.DataType;
 import org.apache.flink.util.StringUtils;
-import org.apache.flink.util.function.FunctionUtils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +47,7 @@ import javax.annotation.Nullable;
 import java.lang.reflect.Method;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,8 +55,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.stream.Stream;
 
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfig.CATALOG_IGNORE_PRIMARY_KEY;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfig.DATABASE_NAME;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfig.PASSWORD;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfig.TABLE_NAME;
@@ -69,13 +71,13 @@ public class ClickHouseCatalog extends AbstractCatalog {
 
     public static final String DEFAULT_DATABASE = "default";
 
-    public static final String BUILTIN_DATABASE = "system";
-
     private final String baseUrl;
 
     private final String username;
 
     private final String password;
+
+    private final boolean ignorePrimaryKey;
 
     private final Map<String, String> properties;
 
@@ -119,6 +121,9 @@ public class ClickHouseCatalog extends AbstractCatalog {
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
         this.username = username;
         this.password = password;
+        this.ignorePrimaryKey =
+                properties.get(CATALOG_IGNORE_PRIMARY_KEY) == null
+                        || Boolean.parseBoolean(properties.get(CATALOG_IGNORE_PRIMARY_KEY));
         this.properties = Collections.unmodifiableMap(properties);
     }
 
@@ -251,7 +256,7 @@ public class ClickHouseCatalog extends AbstractCatalog {
     @Override
     public CatalogBaseTable getTable(ObjectPath tablePath)
             throws TableNotExistException, CatalogException {
-        // TODO add primary/partition key in the future?
+        // TODO add partition key in the future?
         if (!tableExists(tablePath)) {
             throw new TableNotExistException(getName(), tablePath);
         }
@@ -283,24 +288,61 @@ public class ClickHouseCatalog extends AbstractCatalog {
                     stmt.getMetaData().unwrap(ClickHouseResultSetMetaData.class);
             Method getColMethod = metaData.getClass().getDeclaredMethod("getCol", int.class);
             getColMethod.setAccessible(true);
-            return Stream.iterate(1, i -> i + 1)
-                    .limit(metaData.getColumnCount())
-                    .map(
-                            FunctionUtils.uncheckedFunction(
-                                    (index) -> getColMethod.invoke(metaData, index)))
-                    .map(o -> (ClickHouseColumnInfo) o)
-                    .reduce(
-                            TableSchema.builder(),
-                            (builder, columnInfo) ->
-                                    builder.field(
-                                            columnInfo.getColumnName(),
-                                            ClickHouseTypeUtil.toFlinkType(columnInfo)),
-                            (builder1, builder2) -> builder2)
-                    .build();
+
+            List<String> primaryKeys = getPrimaryKeys(databaseName, tableName);
+            TableSchema.Builder builder = TableSchema.builder();
+            for (int idx = 1; idx <= metaData.getColumnCount(); idx++) {
+                ClickHouseColumnInfo columnInfo =
+                        (ClickHouseColumnInfo) getColMethod.invoke(metaData, idx);
+                String columnName = columnInfo.getColumnName();
+                DataType columnType = ClickHouseTypeUtil.toFlinkType(columnInfo);
+                if (primaryKeys.contains(columnName)) {
+                    columnType = columnType.notNull();
+                }
+                builder.field(columnName, columnType);
+            }
+
+            if (!primaryKeys.isEmpty()) {
+                builder.primaryKey(primaryKeys.toArray(new String[0]));
+            }
+            return builder.build();
         } catch (Exception e) {
             throw new CatalogException(
                     String.format(
                             "Failed getting columns in catalog %s database %s table %s",
+                            getName(), databaseName, tableName),
+                    e);
+        }
+    }
+
+    private List<String> getPrimaryKeys(String databaseName, String tableName) throws SQLException {
+        if (ignorePrimaryKey) {
+            return Collections.emptyList();
+        }
+
+        DistributedEngineFullSchema engineFullSchema =
+                ClickHouseUtil.getAndParseEngineFullSchema(connection, databaseName, tableName);
+        if (engineFullSchema != null) {
+            databaseName = engineFullSchema.getDatabase();
+            tableName = engineFullSchema.getTable();
+        }
+
+        try (PreparedStatement stmt =
+                        connection.prepareStatement(
+                                String.format(
+                                        "SELECT name from `system`.columns where `database` = '%s' and `table` = '%s' and is_in_primary_key = 1",
+                                        databaseName, tableName));
+                ResultSet rs = stmt.executeQuery()) {
+            List<String> primaryKeys = new ArrayList<>();
+            while (rs.next()) {
+                primaryKeys.add(rs.getString(1));
+            }
+
+            return primaryKeys;
+        } catch (Exception e) {
+            throw new CatalogException(
+                    String.format(
+                            "Failed getting primary keys in catalog %s database %s table %s",
                             getName(), databaseName, tableName),
                     e);
         }
