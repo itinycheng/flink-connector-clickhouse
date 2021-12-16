@@ -90,4 +90,11 @@ public class ClickHouseConfigOptions {
                     .defaultValue(true)
                     .withDescription(
                             "Whether to treat update statements as insert statements and ignore deletes. defaults to true.");
+
+    public static final ConfigOption<Boolean> CATALOG_IGNORE_PRIMARY_KEY =
+            ConfigOptions.key(ClickHouseConfig.CATALOG_IGNORE_PRIMARY_KEY)
+                    .booleanType()
+                    .defaultValue(true)
+                    .withDescription(
+                            "Whether to ignore primary keys when using ClickHouseCatalog to create table. defaults to true.");
 }

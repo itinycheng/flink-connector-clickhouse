@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfig.IDENTIFIER;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.CATALOG_IGNORE_PRIMARY_KEY;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.DATABASE_NAME;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.PASSWORD;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_BATCH_SIZE;
@@ -78,6 +79,7 @@ public class ClickHouseDynamicTableFactory implements DynamicTableSinkFactory {
         optionalOptions.add(SINK_PARTITION_STRATEGY);
         optionalOptions.add(SINK_PARTITION_KEY);
         optionalOptions.add(SINK_IGNORE_DELETE);
+        optionalOptions.add(CATALOG_IGNORE_PRIMARY_KEY);
         return optionalOptions;
     }
 

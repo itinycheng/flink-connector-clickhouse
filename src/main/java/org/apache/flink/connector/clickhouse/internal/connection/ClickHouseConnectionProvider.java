@@ -5,6 +5,7 @@
 
 package org.apache.flink.connector.clickhouse.internal.connection;
 
+import org.apache.flink.connector.clickhouse.common.DistributedEngineFullSchema;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import org.apache.flink.connector.clickhouse.util.ClickHouseUtil;
 
@@ -39,10 +40,6 @@ public class ClickHouseConnectionProvider implements Serializable {
     private static final Pattern HTTP_PORT_PATTERN =
             Pattern.compile("You must use port (?<port>[0-9]+) for HTTP.");
 
-    private static final Pattern DISTRIBUTED_TABLE_ENGINE_PATTERN =
-            Pattern.compile(
-                    "Distributed\\((?<cluster>[a-zA-Z_][0-9a-zA-Z_]*),\\s*(?<database>[a-zA-Z_][0-9a-zA-Z_]*),\\s*(?<table>[a-zA-Z_][0-9a-zA-Z_]*)");
-
     /**
      * Query different shard info
      *
@@ -51,9 +48,6 @@ public class ClickHouseConnectionProvider implements Serializable {
      */
     private static final String QUERY_CLUSTER_INFO_SQL =
             "SELECT shard_num, host_address, port FROM system.clusters WHERE cluster = ? and replica_num = 1 ORDER BY shard_num ASC";
-
-    private static final String QUERY_TABLE_ENGINE_SQL =
-            "SELECT engine_full FROM system.tables WHERE database = ? AND name = ?";
 
     private final ClickHouseOptions options;
 
@@ -81,20 +75,24 @@ public class ClickHouseConnectionProvider implements Serializable {
     public synchronized List<ClickHouseConnection> getOrCreateShardConnections()
             throws SQLException {
         if (shardConnections == null) {
-            String engine = queryTableEngine(options.getDatabaseName(), options.getTableName());
-            Matcher matcher = DISTRIBUTED_TABLE_ENGINE_PATTERN.matcher(engine.replace("'", ""));
-            if (matcher.find()) {
-                String remoteCluster = matcher.group("cluster");
-                String remoteDatabase = matcher.group("database");
-                shardTable = matcher.group("table");
-                shardConnections = createShardConnections(remoteCluster, remoteDatabase);
-            } else {
+            ClickHouseConnection connection = getOrCreateConnection();
+            DistributedEngineFullSchema engineFullSchema =
+                    ClickHouseUtil.getAndParseEngineFullSchema(
+                            connection, options.getDatabaseName(), options.getTableName());
+
+            if (engineFullSchema == null) {
                 throw new SQLException(
                         String.format(
                                 "table `%s`.`%s` is not a Distributed table",
                                 options.getDatabaseName(), options.getTableName()));
             }
+
+            shardTable = engineFullSchema.getTable();
+            shardConnections =
+                    createShardConnections(
+                            engineFullSchema.getCluster(), engineFullSchema.getDatabase());
         }
+
         return shardConnections;
     }
 
@@ -134,22 +132,6 @@ public class ClickHouseConnectionProvider implements Serializable {
             dataSource.actualize();
         }
         return dataSource.getConnection();
-    }
-
-    private String queryTableEngine(String databaseName, String tableName) throws SQLException {
-        ClickHouseConnection conn = getOrCreateConnection();
-        try (PreparedStatement stmt = conn.prepareStatement(QUERY_TABLE_ENGINE_SQL)) {
-            stmt.setString(1, databaseName);
-            stmt.setString(2, tableName);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getString("engine_full");
-                }
-            }
-        }
-
-        throw new SQLException(
-                String.format("table `%s`.`%s` does not exist", databaseName, tableName));
     }
 
     public void closeConnections() throws SQLException {

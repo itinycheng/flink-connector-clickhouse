@@ -20,6 +20,7 @@ The original code comes from AliYun. On this basis, I have done some bug fixes, 
 | sink.partition-strategy | optional | balanced | String   | Partition strategy: balanced(round-robin), hash(partition key), shuffle(random).  |
 | sink.partition-key      | optional | none     | String   | Partition key used for hash strategy.                                             |
 | sink.ignore-delete      | optional | true     | Boolean  | Whether to ignore delete statements.                                              |
+| catalog.ignore-primary-key | optional | true  | Boolean  | Whether to ignore primary keys when using ClickHouseCatalog to create table. defaults to true. |
 
 ## Data Type Mapping
 
