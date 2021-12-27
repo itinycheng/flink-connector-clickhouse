@@ -171,7 +171,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
         private ClickHouseBatchOutputFormat createBatchOutputFormat(
                 ClickHouseRowConverter converter) {
             String[] keyFields = new String[0];
-            if (primaryKey != null && !options.getIgnoreDelete()) {
+            if (primaryKey != null) {
                 keyFields = listToStringArray(primaryKey.getColumns());
             }
             return new ClickHouseBatchOutputFormat(
@@ -211,7 +211,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
             }
 
             String[] keyFields = new String[0];
-            if (primaryKey != null && !options.getIgnoreDelete()) {
+            if (primaryKey != null) {
                 keyFields = listToStringArray(primaryKey.getColumns());
             }
             return new ClickHouseShardOutputFormat(
@@ -223,11 +223,11 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
                     options);
         }
 
-        private String[] listToStringArray(List<String> lists) {
-            if (lists == null) {
+        private String[] listToStringArray(List<String> list) {
+            if (list == null) {
                 return new String[0];
             } else {
-                return lists.toArray(new String[0]);
+                return list.toArray(new String[0]);
             }
         }
     }

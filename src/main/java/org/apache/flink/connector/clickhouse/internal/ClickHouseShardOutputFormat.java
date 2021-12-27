@@ -5,11 +5,13 @@
 
 package org.apache.flink.connector.clickhouse.internal;
 
+import org.apache.flink.connector.clickhouse.common.DistributedEngineFullSchema;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
 import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner;
+import org.apache.flink.connector.clickhouse.util.ClickHouseUtil;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.util.Preconditions;
 
@@ -52,6 +54,8 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
     private transient int[] batchCounts;
 
+    private transient DistributedEngineFullSchema shardTableSchema;
+
     protected ClickHouseShardOutputFormat(
             @Nonnull ClickHouseConnectionProvider connectionProvider,
             @Nonnull String[] fieldNames,
@@ -72,21 +76,38 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         try {
+            // Get the local table of distributed table.
+            shardTableSchema =
+                    ClickHouseUtil.getAndParseEngineFullSchema(
+                            connectionProvider.getOrCreateConnection(),
+                            options.getDatabaseName(),
+                            options.getTableName());
+            if (shardTableSchema == null) {
+                throw new RuntimeException(
+                        String.format(
+                                "table `%s`.`%s` is not a Distributed table",
+                                options.getDatabaseName(), options.getTableName()));
+            }
+
             List<ClickHouseConnection> shardConnections =
-                    connectionProvider.getOrCreateShardConnections();
-            String shardTable = connectionProvider.getShardTable();
+                    connectionProvider.getOrCreateShardConnections(
+                            shardTableSchema.getCluster(), shardTableSchema.getDatabase());
             for (ClickHouseConnection shardConnection : shardConnections) {
                 ClickHouseExecutor executor =
                         ClickHouseExecutor.createClickHouseExecutor(
-                                shardTable, fieldNames, keyFields, converter, options);
+                                shardTableSchema.getTable(),
+                                shardTableSchema.getCluster(),
+                                fieldNames,
+                                keyFields,
+                                converter,
+                                options);
                 executor.prepareStatement(shardConnection);
                 shardExecutors.add(executor);
             }
+
             batchCounts = new int[shardConnections.size()];
             long flushIntervalMillis = options.getFlushInterval().toMillis();
-            if (flushIntervalMillis > 0) {
-                scheduledFlush(flushIntervalMillis, "clickhouse-shard-output-format");
-            }
+            scheduledFlush(flushIntervalMillis, "clickhouse-shard-output-format");
         } catch (Exception exception) {
             throw new IOException("Unable to establish connection to ClickHouse", exception);
         }
