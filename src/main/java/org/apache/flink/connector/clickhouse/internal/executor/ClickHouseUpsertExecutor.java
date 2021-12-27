@@ -22,12 +22,6 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
 
     private static final long serialVersionUID = 1L;
 
-    private transient ClickHousePreparedStatement insertStmt;
-
-    private transient ClickHousePreparedStatement updateStmt;
-
-    private transient ClickHousePreparedStatement deleteStmt;
-
     private final String insertSql;
 
     private final String updateSql;
@@ -37,6 +31,14 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
     private final ClickHouseRowConverter converter;
 
     private final int maxRetries;
+
+    private transient ClickHousePreparedStatement insertStmt;
+
+    private transient ClickHousePreparedStatement updateStmt;
+
+    private transient ClickHousePreparedStatement deleteStmt;
+
+    private transient ClickHouseConnectionProvider connectionProvider;
 
     public ClickHouseUpsertExecutor(
             String insertSql,
@@ -59,9 +61,10 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
     }
 
     @Override
-    public void prepareStatement(ClickHouseConnectionProvider connectionProvider) {
-        throw new UnsupportedOperationException(
-                "Please use `prepareStatement(ClickHouseConnection connection)` instead.");
+    public void prepareStatement(ClickHouseConnectionProvider connectionProvider)
+            throws SQLException {
+        this.connectionProvider = connectionProvider;
+        prepareStatement(connectionProvider.getOrCreateConnection());
     }
 
     @Override
@@ -121,6 +124,8 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
                 + updateStmt
                 + ", deleteStmt="
                 + deleteStmt
+                + ", connectionProvider="
+                + connectionProvider
                 + ", insertSql='"
                 + insertSql
                 + '\''

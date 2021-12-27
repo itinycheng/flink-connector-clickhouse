@@ -59,7 +59,12 @@ public class ClickHouseBatchOutputFormat extends AbstractClickHouseOutputFormat 
         try {
             executor =
                     ClickHouseExecutor.createClickHouseExecutor(
-                            options.getTableName(), fieldNames, keyFields, converter, options);
+                            options.getTableName(),
+                            null,
+                            fieldNames,
+                            keyFields,
+                            converter,
+                            options);
             executor.prepareStatement(connectionProvider);
             executor.setRuntimeContext(getRuntimeContext());
 

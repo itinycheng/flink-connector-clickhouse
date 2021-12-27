@@ -5,7 +5,6 @@
 
 package org.apache.flink.connector.clickhouse.internal.connection;
 
-import org.apache.flink.connector.clickhouse.common.DistributedEngineFullSchema;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import org.apache.flink.connector.clickhouse.util.ClickHouseUtil;
 
@@ -55,14 +54,8 @@ public class ClickHouseConnectionProvider implements Serializable {
 
     private transient List<ClickHouseConnection> shardConnections;
 
-    private transient String shardTable;
-
     public ClickHouseConnectionProvider(ClickHouseOptions options) {
         this.options = options;
-    }
-
-    public String getShardTable() {
-        return shardTable;
     }
 
     public synchronized ClickHouseConnection getOrCreateConnection() throws SQLException {
@@ -72,25 +65,10 @@ public class ClickHouseConnectionProvider implements Serializable {
         return connection;
     }
 
-    public synchronized List<ClickHouseConnection> getOrCreateShardConnections()
-            throws SQLException {
+    public synchronized List<ClickHouseConnection> getOrCreateShardConnections(
+            String shardCluster, String shardDatabase) throws SQLException {
         if (shardConnections == null) {
-            ClickHouseConnection connection = getOrCreateConnection();
-            DistributedEngineFullSchema engineFullSchema =
-                    ClickHouseUtil.getAndParseEngineFullSchema(
-                            connection, options.getDatabaseName(), options.getTableName());
-
-            if (engineFullSchema == null) {
-                throw new SQLException(
-                        String.format(
-                                "table `%s`.`%s` is not a Distributed table",
-                                options.getDatabaseName(), options.getTableName()));
-            }
-
-            shardTable = engineFullSchema.getTable();
-            shardConnections =
-                    createShardConnections(
-                            engineFullSchema.getCluster(), engineFullSchema.getDatabase());
+            shardConnections = createShardConnections(shardCluster, shardDatabase);
         }
 
         return shardConnections;

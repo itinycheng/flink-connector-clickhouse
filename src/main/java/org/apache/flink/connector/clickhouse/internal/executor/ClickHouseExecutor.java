@@ -46,7 +46,7 @@ public interface ClickHouseExecutor extends Serializable {
             } catch (Exception exception) {
                 LOG.error("ClickHouse executeBatch error, retry times = {}", i, exception);
                 try {
-                    Thread.sleep(1000 * i);
+                    Thread.sleep(1000L * i);
                 } catch (InterruptedException ex) {
                     Thread.currentThread().interrupt();
                     throw new SQLException(
@@ -61,12 +61,14 @@ public interface ClickHouseExecutor extends Serializable {
 
     static ClickHouseExecutor createClickHouseExecutor(
             String tableName,
+            String clusterName,
             String[] fieldNames,
             String[] keyFields,
             ClickHouseRowConverter converter,
             ClickHouseOptions options) {
         if (keyFields.length > 0) {
-            return createUpsertExecutor(tableName, fieldNames, keyFields, converter, options);
+            return createUpsertExecutor(
+                    tableName, clusterName, fieldNames, keyFields, converter, options);
         } else {
             return createBatchExecutor(tableName, fieldNames, converter, options);
         }
@@ -83,6 +85,7 @@ public interface ClickHouseExecutor extends Serializable {
 
     static ClickHouseUpsertExecutor createUpsertExecutor(
             String tableName,
+            String clusterName,
             String[] fieldNames,
             String[] keyFields,
             ClickHouseRowConverter converter,
@@ -90,9 +93,9 @@ public interface ClickHouseExecutor extends Serializable {
         String insertSql = ClickHouseStatementFactory.getInsertIntoStatement(tableName, fieldNames);
         String updateSql =
                 ClickHouseStatementFactory.getUpdateStatement(
-                        tableName, fieldNames, keyFields, null);
+                        tableName, fieldNames, keyFields, clusterName);
         String deleteSql =
-                ClickHouseStatementFactory.getDeleteStatement(tableName, keyFields, null);
+                ClickHouseStatementFactory.getDeleteStatement(tableName, keyFields, clusterName);
         return new ClickHouseUpsertExecutor(insertSql, updateSql, deleteSql, converter, options);
     }
 }

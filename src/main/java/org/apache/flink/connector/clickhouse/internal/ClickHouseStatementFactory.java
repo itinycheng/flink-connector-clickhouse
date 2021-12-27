@@ -6,6 +6,7 @@
 package org.apache.flink.connector.clickhouse.internal;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /** Create an insert/update/delete ClickHouse statement. */
@@ -35,8 +36,10 @@ public class ClickHouseStatementFactory {
 
     public static String getUpdateStatement(
             String tableName, String[] fieldNames, String[] conditionFields, String clusterName) {
+        final List<String> conditionFieldList = Arrays.asList(conditionFields);
         String setClause =
                 Arrays.stream(fieldNames)
+                        .filter(f -> !conditionFieldList.contains(f))
                         .map((f) -> quoteIdentifier(f) + "=?")
                         .collect(Collectors.joining(", "));
         String conditionClause =
@@ -77,15 +80,6 @@ public class ClickHouseStatementFactory {
                 onClusterClause,
                 " DELETE WHERE ",
                 conditionClause);
-    }
-
-    public static String getRowExistsStatement(String tableName, String[] conditionFields) {
-        String fieldExpressions =
-                Arrays.stream(conditionFields)
-                        .map((f) -> quoteIdentifier(f) + "=?")
-                        .collect(Collectors.joining(" AND "));
-        return String.join(
-                EMPTY, "SELECT 1 FROM ", quoteIdentifier(tableName), " WHERE ", fieldExpressions);
     }
 
     public static String quoteIdentifier(String identifier) {
