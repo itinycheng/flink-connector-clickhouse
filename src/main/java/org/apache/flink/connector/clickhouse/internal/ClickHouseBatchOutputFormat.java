@@ -33,6 +33,8 @@ public class ClickHouseBatchOutputFormat extends AbstractClickHouseOutputFormat 
 
     private final String[] keyFields;
 
+    private final String[] partitionFields;
+
     private final ClickHouseRowConverter converter;
 
     private final ClickHouseOptions options;
@@ -45,11 +47,13 @@ public class ClickHouseBatchOutputFormat extends AbstractClickHouseOutputFormat 
             @Nonnull ClickHouseConnectionProvider connectionProvider,
             @Nonnull String[] fieldNames,
             @Nonnull String[] keyFields,
+            @Nonnull String[] partitionFields,
             @Nonnull ClickHouseRowConverter converter,
             @Nonnull ClickHouseOptions options) {
         this.connectionProvider = Preconditions.checkNotNull(connectionProvider);
         this.fieldNames = Preconditions.checkNotNull(fieldNames);
         this.keyFields = Preconditions.checkNotNull(keyFields);
+        this.partitionFields = Preconditions.checkNotNull(partitionFields);
         this.converter = Preconditions.checkNotNull(converter);
         this.options = Preconditions.checkNotNull(options);
     }
@@ -63,6 +67,7 @@ public class ClickHouseBatchOutputFormat extends AbstractClickHouseOutputFormat 
                             null,
                             fieldNames,
                             keyFields,
+                            partitionFields,
                             converter,
                             options);
             executor.prepareStatement(connectionProvider);

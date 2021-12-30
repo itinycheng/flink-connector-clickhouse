@@ -8,9 +8,11 @@ package org.apache.flink.connector.clickhouse;
 import org.apache.flink.connector.clickhouse.internal.AbstractClickHouseOutputFormat;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import org.apache.flink.table.api.TableSchema;
+import org.apache.flink.table.catalog.CatalogTable;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.connector.sink.OutputFormatProvider;
+import org.apache.flink.table.utils.TableSchemaUtils;
 import org.apache.flink.types.RowKind;
 import org.apache.flink.util.Preconditions;
 
@@ -20,13 +22,16 @@ import org.apache.flink.util.Preconditions;
  */
 public class ClickHouseDynamicTableSink implements DynamicTableSink {
 
+    private final CatalogTable catalogTable;
+
     private final TableSchema tableSchema;
 
     private final ClickHouseOptions options;
 
-    public ClickHouseDynamicTableSink(ClickHouseOptions options, TableSchema tableSchema) {
+    public ClickHouseDynamicTableSink(ClickHouseOptions options, CatalogTable table) {
         this.options = options;
-        this.tableSchema = tableSchema;
+        this.catalogTable = table;
+        this.tableSchema = TableSchemaUtils.getPhysicalSchema(table.getSchema());
     }
 
     @Override
@@ -54,13 +59,14 @@ public class ClickHouseDynamicTableSink implements DynamicTableSink {
                         .withFieldNames(tableSchema.getFieldNames())
                         .withFieldDataTypes(tableSchema.getFieldDataTypes())
                         .withPrimaryKey(tableSchema.getPrimaryKey().orElse(null))
+                        .withPartitionKey(catalogTable.getPartitionKeys())
                         .build();
         return OutputFormatProvider.of(outputFormat);
     }
 
     @Override
     public DynamicTableSink copy() {
-        return new ClickHouseDynamicTableSink(options, tableSchema);
+        return new ClickHouseDynamicTableSink(options, catalogTable);
     }
 
     @Override

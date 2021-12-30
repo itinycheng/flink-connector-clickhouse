@@ -64,11 +64,18 @@ public interface ClickHouseExecutor extends Serializable {
             String clusterName,
             String[] fieldNames,
             String[] keyFields,
+            String[] partitionFields,
             ClickHouseRowConverter converter,
             ClickHouseOptions options) {
         if (keyFields.length > 0) {
             return createUpsertExecutor(
-                    tableName, clusterName, fieldNames, keyFields, converter, options);
+                    tableName,
+                    clusterName,
+                    fieldNames,
+                    keyFields,
+                    partitionFields,
+                    converter,
+                    options);
         } else {
             return createBatchExecutor(tableName, fieldNames, converter, options);
         }
@@ -88,12 +95,13 @@ public interface ClickHouseExecutor extends Serializable {
             String clusterName,
             String[] fieldNames,
             String[] keyFields,
+            String[] partitionFields,
             ClickHouseRowConverter converter,
             ClickHouseOptions options) {
         String insertSql = ClickHouseStatementFactory.getInsertIntoStatement(tableName, fieldNames);
         String updateSql =
                 ClickHouseStatementFactory.getUpdateStatement(
-                        tableName, fieldNames, keyFields, clusterName);
+                        tableName, fieldNames, keyFields, partitionFields, clusterName);
         String deleteSql =
                 ClickHouseStatementFactory.getDeleteStatement(tableName, keyFields, clusterName);
         return new ClickHouseUpsertExecutor(insertSql, updateSql, deleteSql, converter, options);

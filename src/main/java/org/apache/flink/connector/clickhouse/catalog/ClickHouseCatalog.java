@@ -47,7 +47,6 @@ import javax.annotation.Nullable;
 import java.lang.reflect.Method;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -256,7 +255,6 @@ public class ClickHouseCatalog extends AbstractCatalog {
     @Override
     public CatalogBaseTable getTable(ObjectPath tablePath)
             throws TableNotExistException, CatalogException {
-        // TODO add partition key in the future?
         if (!tableExists(tablePath)) {
             throw new TableNotExistException(getName(), tablePath);
         }
@@ -268,8 +266,27 @@ public class ClickHouseCatalog extends AbstractCatalog {
         configuration.put(USERNAME, username);
         configuration.put(PASSWORD, password);
 
+        String databaseName = tablePath.getDatabaseName();
+        String tableName = tablePath.getObjectName();
+        try {
+            DistributedEngineFullSchema engineFullSchema =
+                    ClickHouseUtil.getAndParseEngineFullSchema(
+                            connection, tablePath.getDatabaseName(), tablePath.getObjectName());
+            if (engineFullSchema != null) {
+                databaseName = engineFullSchema.getDatabase();
+                tableName = engineFullSchema.getTable();
+            }
+        } catch (Exception e) {
+            throw new CatalogException(
+                    String.format(
+                            "Failed getting engine full of %s.%s.%s",
+                            getName(), databaseName, tableName),
+                    e);
+        }
+
         return new CatalogTableImpl(
-                createTableSchema(tablePath.getDatabaseName(), tablePath.getObjectName()),
+                createTableSchema(databaseName, tableName),
+                getPartitionKeys(databaseName, tableName),
                 configuration,
                 "");
     }
@@ -315,16 +332,9 @@ public class ClickHouseCatalog extends AbstractCatalog {
         }
     }
 
-    private List<String> getPrimaryKeys(String databaseName, String tableName) throws SQLException {
+    private List<String> getPrimaryKeys(String databaseName, String tableName) {
         if (ignorePrimaryKey) {
             return Collections.emptyList();
-        }
-
-        DistributedEngineFullSchema engineFullSchema =
-                ClickHouseUtil.getAndParseEngineFullSchema(connection, databaseName, tableName);
-        if (engineFullSchema != null) {
-            databaseName = engineFullSchema.getDatabase();
-            tableName = engineFullSchema.getTable();
         }
 
         try (PreparedStatement stmt =
@@ -343,6 +353,28 @@ public class ClickHouseCatalog extends AbstractCatalog {
             throw new CatalogException(
                     String.format(
                             "Failed getting primary keys in catalog %s database %s table %s",
+                            getName(), databaseName, tableName),
+                    e);
+        }
+    }
+
+    private List<String> getPartitionKeys(String databaseName, String tableName) {
+        try (PreparedStatement stmt =
+                        connection.prepareStatement(
+                                String.format(
+                                        "SELECT name from `system`.columns where `database` = '%s' and `table` = '%s' and is_in_partition_key = 1",
+                                        databaseName, tableName));
+                ResultSet rs = stmt.executeQuery()) {
+            List<String> partitionKeys = new ArrayList<>();
+            while (rs.next()) {
+                partitionKeys.add(rs.getString(1));
+            }
+
+            return partitionKeys;
+        } catch (Exception e) {
+            throw new CatalogException(
+                    String.format(
+                            "Failed getting partition keys of %s.%s.%s",
                             getName(), databaseName, tableName),
                     e);
         }
