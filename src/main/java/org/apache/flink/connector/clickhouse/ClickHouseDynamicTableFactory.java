@@ -8,12 +8,10 @@ package org.apache.flink.connector.clickhouse;
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
-import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.factories.DynamicTableSinkFactory;
 import org.apache.flink.table.factories.FactoryUtil;
 import org.apache.flink.table.factories.FactoryUtil.TableFactoryHelper;
-import org.apache.flink.table.utils.TableSchemaUtils;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -48,9 +46,7 @@ public class ClickHouseDynamicTableFactory implements DynamicTableSinkFactory {
         ReadableConfig config = helper.getOptions();
         helper.validate();
         this.validateConfigOptions(config);
-        TableSchema physicalSchema =
-                TableSchemaUtils.getPhysicalSchema(context.getCatalogTable().getSchema());
-        return new ClickHouseDynamicTableSink(getOptions(config), physicalSchema);
+        return new ClickHouseDynamicTableSink(getOptions(config), context.getCatalogTable());
     }
 
     @Override

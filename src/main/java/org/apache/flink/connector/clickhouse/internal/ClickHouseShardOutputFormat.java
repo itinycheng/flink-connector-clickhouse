@@ -52,6 +52,8 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
     private final String[] keyFields;
 
+    private final String[] partitionFields;
+
     private transient int[] batchCounts;
 
     private transient DistributedEngineFullSchema shardTableSchema;
@@ -60,17 +62,19 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
             @Nonnull ClickHouseConnectionProvider connectionProvider,
             @Nonnull String[] fieldNames,
             @Nonnull String[] keyFields,
+            @Nonnull String[] partitionFields,
             @Nonnull ClickHouseRowConverter converter,
             @Nonnull ClickHousePartitioner partitioner,
             @Nonnull ClickHouseOptions options) {
         this.connectionProvider = Preconditions.checkNotNull(connectionProvider);
         this.fieldNames = Preconditions.checkNotNull(fieldNames);
+        this.keyFields = keyFields;
+        this.partitionFields = partitionFields;
         this.converter = Preconditions.checkNotNull(converter);
         this.partitioner = Preconditions.checkNotNull(partitioner);
         this.options = Preconditions.checkNotNull(options);
         this.shardExecutors = new ArrayList<>();
         this.ignoreDelete = options.getIgnoreDelete();
-        this.keyFields = keyFields;
     }
 
     @Override
@@ -99,6 +103,7 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
                                 shardTableSchema.getCluster(),
                                 fieldNames,
                                 keyFields,
+                                partitionFields,
                                 converter,
                                 options);
                 executor.prepareStatement(shardConnection);

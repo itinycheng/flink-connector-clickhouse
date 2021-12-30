@@ -5,8 +5,9 @@
 
 package org.apache.flink.connector.clickhouse.internal;
 
+import org.apache.commons.lang3.ArrayUtils;
+
 import java.util.Arrays;
-import java.util.List;
 import java.util.stream.Collectors;
 
 /** Create an insert/update/delete ClickHouse statement. */
@@ -35,15 +36,19 @@ public class ClickHouseStatementFactory {
     }
 
     public static String getUpdateStatement(
-            String tableName, String[] fieldNames, String[] conditionFields, String clusterName) {
-        final List<String> conditionFieldList = Arrays.asList(conditionFields);
+            String tableName,
+            String[] fieldNames,
+            String[] keyFields,
+            String[] partitionFields,
+            String clusterName) {
         String setClause =
                 Arrays.stream(fieldNames)
-                        .filter(f -> !conditionFieldList.contains(f))
+                        .filter(f -> !ArrayUtils.contains(keyFields, f))
+                        .filter(f -> !ArrayUtils.contains(partitionFields, f))
                         .map((f) -> quoteIdentifier(f) + "=?")
                         .collect(Collectors.joining(", "));
         String conditionClause =
-                Arrays.stream(conditionFields)
+                Arrays.stream(keyFields)
                         .map((f) -> quoteIdentifier(f) + "=?")
                         .collect(Collectors.joining(" AND "));
         String onClusterClause = "";

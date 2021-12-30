@@ -127,6 +127,8 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
 
         private UniqueConstraint primaryKey;
 
+        private List<String> partitionKeys;
+
         public Builder() {}
 
         public AbstractClickHouseOutputFormat.Builder withOptions(ClickHouseOptions options) {
@@ -147,6 +149,11 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
 
         public AbstractClickHouseOutputFormat.Builder withPrimaryKey(UniqueConstraint primaryKey) {
             this.primaryKey = primaryKey;
+            return this;
+        }
+
+        public AbstractClickHouseOutputFormat.Builder withPartitionKey(List<String> partitionKeys) {
+            this.partitionKeys = partitionKeys;
             return this;
         }
 
@@ -174,10 +181,12 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
             if (primaryKey != null) {
                 keyFields = listToStringArray(primaryKey.getColumns());
             }
+
             return new ClickHouseBatchOutputFormat(
                     new ClickHouseConnectionProvider(options),
                     fieldNames,
                     keyFields,
+                    listToStringArray(partitionKeys),
                     converter,
                     options);
         }
@@ -214,10 +223,12 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
             if (primaryKey != null) {
                 keyFields = listToStringArray(primaryKey.getColumns());
             }
+
             return new ClickHouseShardOutputFormat(
                     new ClickHouseConnectionProvider(options),
                     fieldNames,
                     keyFields,
+                    listToStringArray(partitionKeys),
                     converter,
                     partitioner,
                     options);
