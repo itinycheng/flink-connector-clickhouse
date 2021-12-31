@@ -22,6 +22,10 @@ The original code comes from AliYun. On this basis, I have done some bug fixes, 
 | sink.ignore-delete      | optional | true     | Boolean  | Whether to ignore delete statements.                                              |
 | catalog.ignore-primary-key | optional | true  | Boolean  | Whether to ignore primary keys when using ClickHouseCatalog to create table. defaults to true. |
 
+**Upsert mode notice:**  
+1. Distributed table don't support the update/delete statements, if you want to use the update/delete statements, please be sure to write records to local table or set `sink.write-local` to true.  
+2. The data is updated and deleted by the primary key, please be aware of this when using it in the partition table.  
+
 ## Data Type Mapping
 
 | Flink Type          | ClickHouse Type (Sink)                                 | ClickHouse Type (Source) |

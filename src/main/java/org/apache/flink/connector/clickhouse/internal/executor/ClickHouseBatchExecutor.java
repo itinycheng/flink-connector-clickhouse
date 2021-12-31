@@ -21,7 +21,7 @@ public class ClickHouseBatchExecutor implements ClickHouseExecutor {
 
     private static final long serialVersionUID = 1L;
 
-    private final String sql;
+    private final String insertSql;
 
     private final ClickHouseRowConverter converter;
 
@@ -32,15 +32,15 @@ public class ClickHouseBatchExecutor implements ClickHouseExecutor {
     private transient ClickHouseConnectionProvider connectionProvider;
 
     public ClickHouseBatchExecutor(
-            String sql, ClickHouseRowConverter converter, ClickHouseOptions options) {
-        this.sql = sql;
+            String insertSql, ClickHouseRowConverter converter, ClickHouseOptions options) {
+        this.insertSql = insertSql;
         this.converter = converter;
         this.maxRetries = options.getMaxRetries();
     }
 
     @Override
     public void prepareStatement(ClickHouseConnection connection) throws SQLException {
-        statement = (ClickHousePreparedStatement) connection.prepareStatement(sql);
+        statement = (ClickHousePreparedStatement) connection.prepareStatement(insertSql);
     }
 
     @Override
@@ -88,13 +88,11 @@ public class ClickHouseBatchExecutor implements ClickHouseExecutor {
     @Override
     public String toString() {
         return "ClickHouseBatchExecutor{"
-                + "sql='"
-                + sql
+                + "insertSql='"
+                + insertSql
                 + '\''
-                + ", converter="
-                + converter
-                + ", statement="
-                + statement
+                + ", maxRetries="
+                + maxRetries
                 + ", connectionProvider="
                 + connectionProvider
                 + '}';

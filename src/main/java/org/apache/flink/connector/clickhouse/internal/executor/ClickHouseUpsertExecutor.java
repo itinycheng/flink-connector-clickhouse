@@ -16,6 +16,7 @@ import ru.yandex.clickhouse.ClickHousePreparedStatement;
 
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.function.Function;
 
 /** ClickHouse's upsert executor. */
 public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
@@ -28,7 +29,15 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
 
     private final String deleteSql;
 
-    private final ClickHouseRowConverter converter;
+    private final ClickHouseRowConverter insertConverter;
+
+    private final ClickHouseRowConverter updateConverter;
+
+    private final ClickHouseRowConverter deleteConverter;
+
+    private final Function<RowData, RowData> updateExtractor;
+
+    private final Function<RowData, RowData> deleteExtractor;
 
     private final int maxRetries;
 
@@ -44,12 +53,20 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
             String insertSql,
             String updateSql,
             String deleteSql,
-            ClickHouseRowConverter converter,
+            ClickHouseRowConverter insertConverter,
+            ClickHouseRowConverter updateConverter,
+            ClickHouseRowConverter deleteConverter,
+            Function<RowData, RowData> updateExtractor,
+            Function<RowData, RowData> deleteExtractor,
             ClickHouseOptions options) {
         this.insertSql = insertSql;
         this.updateSql = updateSql;
         this.deleteSql = deleteSql;
-        this.converter = converter;
+        this.insertConverter = insertConverter;
+        this.updateConverter = updateConverter;
+        this.deleteConverter = deleteConverter;
+        this.updateExtractor = updateExtractor;
+        this.deleteExtractor = deleteExtractor;
         this.maxRetries = options.getMaxRetries();
     }
 
@@ -74,15 +91,15 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
     public void addToBatch(RowData record) throws SQLException {
         switch (record.getRowKind()) {
             case INSERT:
-                converter.toExternal(record, insertStmt);
+                insertConverter.toExternal(record, insertStmt);
                 insertStmt.addBatch();
                 break;
             case UPDATE_AFTER:
-                converter.toExternal(record, updateStmt);
+                updateConverter.toExternal(updateExtractor.apply(record), updateStmt);
                 updateStmt.addBatch();
                 break;
             case DELETE:
-                converter.toExternal(record, deleteStmt);
+                deleteConverter.toExternal(deleteExtractor.apply(record), deleteStmt);
                 deleteStmt.addBatch();
                 break;
             case UPDATE_BEFORE:
@@ -118,15 +135,7 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
     @Override
     public String toString() {
         return "ClickHouseUpsertExecutor{"
-                + "insertStmt="
-                + insertStmt
-                + ", updateStmt="
-                + updateStmt
-                + ", deleteStmt="
-                + deleteStmt
-                + ", connectionProvider="
-                + connectionProvider
-                + ", insertSql='"
+                + "insertSql='"
                 + insertSql
                 + '\''
                 + ", updateSql='"
@@ -135,10 +144,10 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
                 + ", deleteSql='"
                 + deleteSql
                 + '\''
-                + ", converter="
-                + converter
                 + ", maxRetries="
                 + maxRetries
+                + ", connectionProvider="
+                + connectionProvider
                 + '}';
     }
 }

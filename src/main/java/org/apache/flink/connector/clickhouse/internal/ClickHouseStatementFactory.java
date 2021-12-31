@@ -8,7 +8,9 @@ package org.apache.flink.connector.clickhouse.internal;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.Arrays;
-import java.util.stream.Collectors;
+
+import static java.lang.String.format;
+import static java.util.stream.Collectors.joining;
 
 /** Create an insert/update/delete ClickHouse statement. */
 public class ClickHouseStatementFactory {
@@ -21,9 +23,8 @@ public class ClickHouseStatementFactory {
         String columns =
                 Arrays.stream(fieldNames)
                         .map(ClickHouseStatementFactory::quoteIdentifier)
-                        .collect(Collectors.joining(", "));
-        String placeholders =
-                Arrays.stream(fieldNames).map((f) -> "?").collect(Collectors.joining(", "));
+                        .collect(joining(", "));
+        String placeholders = Arrays.stream(fieldNames).map((f) -> "?").collect(joining(", "));
         return String.join(
                 EMPTY,
                 "INSERT INTO ",
@@ -37,20 +38,21 @@ public class ClickHouseStatementFactory {
 
     public static String getUpdateStatement(
             String tableName,
+            String databaseName,
+            String clusterName,
             String[] fieldNames,
             String[] keyFields,
-            String[] partitionFields,
-            String clusterName) {
+            String[] partitionFields) {
         String setClause =
                 Arrays.stream(fieldNames)
                         .filter(f -> !ArrayUtils.contains(keyFields, f))
                         .filter(f -> !ArrayUtils.contains(partitionFields, f))
                         .map((f) -> quoteIdentifier(f) + "=?")
-                        .collect(Collectors.joining(", "));
+                        .collect(joining(", "));
         String conditionClause =
                 Arrays.stream(keyFields)
                         .map((f) -> quoteIdentifier(f) + "=?")
-                        .collect(Collectors.joining(" AND "));
+                        .collect(joining(" AND "));
         String onClusterClause = "";
         if (clusterName != null) {
             onClusterClause = " ON CLUSTER " + quoteIdentifier(clusterName);
@@ -59,7 +61,7 @@ public class ClickHouseStatementFactory {
         return String.join(
                 EMPTY,
                 "ALTER TABLE ",
-                quoteIdentifier(tableName),
+                fromTableClause(tableName, databaseName),
                 onClusterClause,
                 " UPDATE ",
                 setClause,
@@ -68,11 +70,11 @@ public class ClickHouseStatementFactory {
     }
 
     public static String getDeleteStatement(
-            String tableName, String[] conditionFields, String clusterName) {
+            String tableName, String databaseName, String clusterName, String[] conditionFields) {
         String conditionClause =
                 Arrays.stream(conditionFields)
                         .map((f) -> quoteIdentifier(f) + "=?")
-                        .collect(Collectors.joining(" AND "));
+                        .collect(joining(" AND "));
         String onClusterClause = "";
         if (clusterName != null) {
             onClusterClause = " ON CLUSTER " + quoteIdentifier(clusterName);
@@ -81,13 +83,21 @@ public class ClickHouseStatementFactory {
         return String.join(
                 EMPTY,
                 "ALTER TABLE ",
-                quoteIdentifier(tableName),
+                fromTableClause(tableName, databaseName),
                 onClusterClause,
                 " DELETE WHERE ",
                 conditionClause);
     }
 
-    public static String quoteIdentifier(String identifier) {
+    private static String fromTableClause(String tableName, String databaseName) {
+        if (databaseName == null) {
+            return quoteIdentifier(tableName);
+        }
+
+        return format("%s.%s", quoteIdentifier(databaseName), quoteIdentifier(tableName));
+    }
+
+    private static String quoteIdentifier(String identifier) {
         return String.join(EMPTY, "`", identifier, "`");
     }
 }

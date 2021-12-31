@@ -1,4 +1,4 @@
-package org.apache.flink.connector.clickhouse.common;
+package org.apache.flink.connector.clickhouse.internal.common;
 
 import org.apache.flink.util.StringUtils;
 
