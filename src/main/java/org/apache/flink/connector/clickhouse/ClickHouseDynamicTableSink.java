@@ -12,21 +12,31 @@ import org.apache.flink.table.catalog.CatalogTable;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.connector.sink.OutputFormatProvider;
+import org.apache.flink.table.connector.sink.abilities.SupportsPartitioning;
 import org.apache.flink.table.utils.TableSchemaUtils;
 import org.apache.flink.types.RowKind;
 import org.apache.flink.util.Preconditions;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 /**
  * A {@link DynamicTableSink} that describes how to create a {@link ClickHouseDynamicTableSink} from
  * a logical description.
+ *
+ * <p>TODO: Partitioning strategy isn't well implemented.
  */
-public class ClickHouseDynamicTableSink implements DynamicTableSink {
+public class ClickHouseDynamicTableSink implements DynamicTableSink, SupportsPartitioning {
 
     private final CatalogTable catalogTable;
 
     private final TableSchema tableSchema;
 
     private final ClickHouseOptions options;
+
+    private boolean dynamicGrouping = false;
+
+    private LinkedHashMap<String, String> staticPartitionSpec = new LinkedHashMap<>();
 
     public ClickHouseDynamicTableSink(ClickHouseOptions options, CatalogTable table) {
         this.options = options;
@@ -65,8 +75,27 @@ public class ClickHouseDynamicTableSink implements DynamicTableSink {
     }
 
     @Override
+    public void applyStaticPartition(Map<String, String> partition) {
+        staticPartitionSpec = new LinkedHashMap<>();
+        for (String partitionCol : catalogTable.getPartitionKeys()) {
+            if (partition.containsKey(partitionCol)) {
+                staticPartitionSpec.put(partitionCol, partition.get(partitionCol));
+            }
+        }
+    }
+
+    @Override
+    public boolean requiresPartitionGrouping(boolean supportsGrouping) {
+        this.dynamicGrouping = supportsGrouping;
+        return supportsGrouping;
+    }
+
+    @Override
     public DynamicTableSink copy() {
-        return new ClickHouseDynamicTableSink(options, catalogTable);
+        ClickHouseDynamicTableSink sink = new ClickHouseDynamicTableSink(options, catalogTable);
+        sink.dynamicGrouping = dynamicGrouping;
+        sink.staticPartitionSpec = staticPartitionSpec;
+        return sink;
     }
 
     @Override

@@ -1,6 +1,6 @@
 package org.apache.flink.connector.clickhouse.util;
 
-import org.apache.flink.connector.clickhouse.common.DistributedEngineFullSchema;
+import org.apache.flink.connector.clickhouse.internal.common.DistributedEngineFullSchema;
 
 import org.apache.http.client.utils.URIBuilder;
 import ru.yandex.clickhouse.ClickHouseConnection;

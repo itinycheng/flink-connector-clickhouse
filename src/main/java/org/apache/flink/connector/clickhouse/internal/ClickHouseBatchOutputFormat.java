@@ -6,10 +6,10 @@
 package org.apache.flink.connector.clickhouse.internal;
 
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
-import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
 import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import org.apache.flink.table.data.RowData;
+import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.util.Preconditions;
 
 import org.slf4j.Logger;
@@ -35,7 +35,7 @@ public class ClickHouseBatchOutputFormat extends AbstractClickHouseOutputFormat 
 
     private final String[] partitionFields;
 
-    private final ClickHouseRowConverter converter;
+    private final LogicalType[] fieldTypes;
 
     private final ClickHouseOptions options;
 
@@ -48,35 +48,35 @@ public class ClickHouseBatchOutputFormat extends AbstractClickHouseOutputFormat 
             @Nonnull String[] fieldNames,
             @Nonnull String[] keyFields,
             @Nonnull String[] partitionFields,
-            @Nonnull ClickHouseRowConverter converter,
+            @Nonnull LogicalType[] fieldTypes,
             @Nonnull ClickHouseOptions options) {
         this.connectionProvider = Preconditions.checkNotNull(connectionProvider);
         this.fieldNames = Preconditions.checkNotNull(fieldNames);
         this.keyFields = Preconditions.checkNotNull(keyFields);
         this.partitionFields = Preconditions.checkNotNull(partitionFields);
-        this.converter = Preconditions.checkNotNull(converter);
+        this.fieldTypes = Preconditions.checkNotNull(fieldTypes);
         this.options = Preconditions.checkNotNull(options);
     }
 
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         try {
+            // TODO Distributed tables don't support update and delete statements.
             executor =
                     ClickHouseExecutor.createClickHouseExecutor(
                             options.getTableName(),
+                            options.getDatabaseName(),
                             null,
                             fieldNames,
                             keyFields,
                             partitionFields,
-                            converter,
+                            fieldTypes,
                             options);
             executor.prepareStatement(connectionProvider);
             executor.setRuntimeContext(getRuntimeContext());
 
             long flushIntervalMillis = options.getFlushInterval().toMillis();
-            if (flushIntervalMillis > 0) {
-                scheduledFlush(flushIntervalMillis, "clickhouse-batch-output-format");
-            }
+            scheduledFlush(flushIntervalMillis, "clickhouse-batch-output-format");
         } catch (Exception exception) {
             throw new IOException("Unable to establish connection with ClickHouse.", exception);
         }

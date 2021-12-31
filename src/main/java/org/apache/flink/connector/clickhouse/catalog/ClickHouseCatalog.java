@@ -1,7 +1,7 @@
 package org.apache.flink.connector.clickhouse.catalog;
 
 import org.apache.flink.connector.clickhouse.ClickHouseDynamicTableFactory;
-import org.apache.flink.connector.clickhouse.common.DistributedEngineFullSchema;
+import org.apache.flink.connector.clickhouse.internal.common.DistributedEngineFullSchema;
 import org.apache.flink.connector.clickhouse.util.ClickHouseTypeUtil;
 import org.apache.flink.connector.clickhouse.util.ClickHouseUtil;
 import org.apache.flink.table.api.TableSchema;

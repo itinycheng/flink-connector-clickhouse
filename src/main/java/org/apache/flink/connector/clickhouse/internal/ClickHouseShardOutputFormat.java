@@ -5,14 +5,14 @@
 
 package org.apache.flink.connector.clickhouse.internal;
 
-import org.apache.flink.connector.clickhouse.common.DistributedEngineFullSchema;
+import org.apache.flink.connector.clickhouse.internal.common.DistributedEngineFullSchema;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
-import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
 import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner;
 import org.apache.flink.connector.clickhouse.util.ClickHouseUtil;
 import org.apache.flink.table.data.RowData;
+import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.util.Preconditions;
 
 import org.slf4j.Logger;
@@ -40,7 +40,7 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
     private final String[] fieldNames;
 
-    private final ClickHouseRowConverter converter;
+    private final LogicalType[] logicalTypes;
 
     private final ClickHousePartitioner partitioner;
 
@@ -63,14 +63,14 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
             @Nonnull String[] fieldNames,
             @Nonnull String[] keyFields,
             @Nonnull String[] partitionFields,
-            @Nonnull ClickHouseRowConverter converter,
+            @Nonnull LogicalType[] logicalTypes,
             @Nonnull ClickHousePartitioner partitioner,
             @Nonnull ClickHouseOptions options) {
         this.connectionProvider = Preconditions.checkNotNull(connectionProvider);
         this.fieldNames = Preconditions.checkNotNull(fieldNames);
         this.keyFields = keyFields;
         this.partitionFields = partitionFields;
-        this.converter = Preconditions.checkNotNull(converter);
+        this.logicalTypes = Preconditions.checkNotNull(logicalTypes);
         this.partitioner = Preconditions.checkNotNull(partitioner);
         this.options = Preconditions.checkNotNull(options);
         this.shardExecutors = new ArrayList<>();
@@ -100,11 +100,12 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
                 ClickHouseExecutor executor =
                         ClickHouseExecutor.createClickHouseExecutor(
                                 shardTableSchema.getTable(),
+                                shardTableSchema.getDatabase(),
                                 shardTableSchema.getCluster(),
                                 fieldNames,
                                 keyFields,
                                 partitionFields,
-                                converter,
+                                logicalTypes,
                                 options);
                 executor.prepareStatement(shardConnection);
                 shardExecutors.add(executor);

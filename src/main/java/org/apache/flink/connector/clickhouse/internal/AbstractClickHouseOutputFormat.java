@@ -8,7 +8,6 @@ package org.apache.flink.connector.clickhouse.internal;
 import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
-import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
 import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner;
@@ -18,7 +17,6 @@ import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.RowData.FieldGetter;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.LogicalType;
-import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.util.Preconditions;
 
 import org.slf4j.Logger;
@@ -165,18 +163,17 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
                     Arrays.stream(fieldDataTypes)
                             .map(DataType::getLogicalType)
                             .toArray(LogicalType[]::new);
-            ClickHouseRowConverter converter = new ClickHouseRowConverter(RowType.of(logicalTypes));
             if (primaryKey != null) {
                 LOG.warn("If primary key is specified, connector will be in UPSERT mode.");
-                LOG.warn("You will have significant performance loss.");
+                LOG.warn(
+                        "The data will be updated / deleted by the primary key, you will have significant performance loss.");
             }
             return options.getWriteLocal()
-                    ? createShardOutputFormat(logicalTypes, converter)
-                    : createBatchOutputFormat(converter);
+                    ? createShardOutputFormat(logicalTypes)
+                    : createBatchOutputFormat(logicalTypes);
         }
 
-        private ClickHouseBatchOutputFormat createBatchOutputFormat(
-                ClickHouseRowConverter converter) {
+        private ClickHouseBatchOutputFormat createBatchOutputFormat(LogicalType[] logicalTypes) {
             String[] keyFields = new String[0];
             if (primaryKey != null) {
                 keyFields = listToStringArray(primaryKey.getColumns());
@@ -187,12 +184,11 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
                     fieldNames,
                     keyFields,
                     listToStringArray(partitionKeys),
-                    converter,
+                    logicalTypes,
                     options);
         }
 
-        private ClickHouseShardOutputFormat createShardOutputFormat(
-                LogicalType[] logicalTypes, ClickHouseRowConverter converter) {
+        private ClickHouseShardOutputFormat createShardOutputFormat(LogicalType[] logicalTypes) {
             String partitionStrategy = options.getPartitionStrategy();
             ClickHousePartitioner partitioner;
             switch (partitionStrategy) {
@@ -229,7 +225,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
                     fieldNames,
                     keyFields,
                     listToStringArray(partitionKeys),
-                    converter,
+                    logicalTypes,
                     partitioner,
                     options);
         }
