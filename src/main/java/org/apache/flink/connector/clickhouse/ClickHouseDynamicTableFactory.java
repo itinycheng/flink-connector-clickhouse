@@ -46,7 +46,10 @@ public class ClickHouseDynamicTableFactory implements DynamicTableSinkFactory {
         ReadableConfig config = helper.getOptions();
         helper.validate();
         this.validateConfigOptions(config);
-        return new ClickHouseDynamicTableSink(getOptions(config), context.getCatalogTable());
+        return new ClickHouseDynamicTableSink(
+                getOptions(config),
+                context.getCatalogTable(),
+                context.getCatalogTable().getResolvedSchema());
     }
 
     @Override

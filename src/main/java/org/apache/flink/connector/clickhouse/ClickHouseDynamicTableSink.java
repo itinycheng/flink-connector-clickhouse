@@ -7,13 +7,13 @@ package org.apache.flink.connector.clickhouse;
 
 import org.apache.flink.connector.clickhouse.internal.AbstractClickHouseOutputFormat;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
-import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.catalog.CatalogTable;
+import org.apache.flink.table.catalog.ResolvedSchema;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.connector.sink.OutputFormatProvider;
 import org.apache.flink.table.connector.sink.abilities.SupportsPartitioning;
-import org.apache.flink.table.utils.TableSchemaUtils;
+import org.apache.flink.table.types.DataType;
 import org.apache.flink.types.RowKind;
 import org.apache.flink.util.Preconditions;
 
@@ -30,7 +30,7 @@ public class ClickHouseDynamicTableSink implements DynamicTableSink, SupportsPar
 
     private final CatalogTable catalogTable;
 
-    private final TableSchema tableSchema;
+    private final ResolvedSchema tableSchema;
 
     private final ClickHouseOptions options;
 
@@ -38,10 +38,11 @@ public class ClickHouseDynamicTableSink implements DynamicTableSink, SupportsPar
 
     private LinkedHashMap<String, String> staticPartitionSpec = new LinkedHashMap<>();
 
-    public ClickHouseDynamicTableSink(ClickHouseOptions options, CatalogTable table) {
+    public ClickHouseDynamicTableSink(
+            ClickHouseOptions options, CatalogTable catalogTable, ResolvedSchema tableSchema) {
         this.options = options;
-        this.catalogTable = table;
-        this.tableSchema = TableSchemaUtils.getPhysicalSchema(table.getSchema());
+        this.catalogTable = catalogTable;
+        this.tableSchema = tableSchema;
     }
 
     @Override
@@ -66,8 +67,9 @@ public class ClickHouseDynamicTableSink implements DynamicTableSink, SupportsPar
         AbstractClickHouseOutputFormat outputFormat =
                 new AbstractClickHouseOutputFormat.Builder()
                         .withOptions(options)
-                        .withFieldNames(tableSchema.getFieldNames())
-                        .withFieldDataTypes(tableSchema.getFieldDataTypes())
+                        .withFieldNames(tableSchema.getColumnNames().toArray(new String[0]))
+                        .withFieldDataTypes(
+                                tableSchema.getColumnDataTypes().toArray(new DataType[0]))
                         .withPrimaryKey(tableSchema.getPrimaryKey().orElse(null))
                         .withPartitionKey(catalogTable.getPartitionKeys())
                         .build();
@@ -92,7 +94,8 @@ public class ClickHouseDynamicTableSink implements DynamicTableSink, SupportsPar
 
     @Override
     public DynamicTableSink copy() {
-        ClickHouseDynamicTableSink sink = new ClickHouseDynamicTableSink(options, catalogTable);
+        ClickHouseDynamicTableSink sink =
+                new ClickHouseDynamicTableSink(options, catalogTable, tableSchema);
         sink.dynamicGrouping = dynamicGrouping;
         sink.staticPartitionSpec = staticPartitionSpec;
         return sink;
