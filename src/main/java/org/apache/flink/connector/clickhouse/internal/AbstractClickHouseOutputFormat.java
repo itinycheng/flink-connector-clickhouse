@@ -12,7 +12,7 @@ import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseExecuto
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner;
 import org.apache.flink.runtime.util.ExecutorThreadFactory;
-import org.apache.flink.table.api.constraints.UniqueConstraint;
+import org.apache.flink.table.catalog.UniqueConstraint;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.RowData.FieldGetter;
 import org.apache.flink.table.types.DataType;
