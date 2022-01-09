@@ -8,6 +8,7 @@ package org.apache.flink.connector.clickhouse;
 import org.apache.flink.connector.clickhouse.internal.AbstractClickHouseOutputFormat;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import org.apache.flink.table.catalog.CatalogTable;
+import org.apache.flink.table.catalog.Column;
 import org.apache.flink.table.catalog.ResolvedSchema;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
@@ -64,12 +65,22 @@ public class ClickHouseDynamicTableSink implements DynamicTableSink, SupportsPar
 
     @Override
     public SinkRuntimeProvider getSinkRuntimeProvider(Context context) {
+        String[] fieldNames =
+                tableSchema.getColumns().stream()
+                        .filter(Column::isPhysical)
+                        .map(Column::getName)
+                        .toArray(String[]::new);
+        DataType[] fieldTypes =
+                tableSchema.getColumns().stream()
+                        .filter(Column::isPhysical)
+                        .map(Column::getDataType)
+                        .toArray(DataType[]::new);
+
         AbstractClickHouseOutputFormat outputFormat =
                 new AbstractClickHouseOutputFormat.Builder()
                         .withOptions(options)
-                        .withFieldNames(tableSchema.getColumnNames().toArray(new String[0]))
-                        .withFieldDataTypes(
-                                tableSchema.getColumnDataTypes().toArray(new DataType[0]))
+                        .withFieldNames(fieldNames)
+                        .withFieldDataTypes(fieldTypes)
                         .withPrimaryKey(tableSchema.getPrimaryKey().orElse(null))
                         .withPartitionKey(catalogTable.getPartitionKeys())
                         .build();
