@@ -8,19 +8,29 @@ package org.apache.flink.connector.clickhouse;
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
+import org.apache.flink.connector.clickhouse.internal.options.ClickHouseReadOptions;
+import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
+import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.factories.DynamicTableSinkFactory;
+import org.apache.flink.table.factories.DynamicTableSourceFactory;
 import org.apache.flink.table.factories.FactoryUtil;
 import org.apache.flink.table.factories.FactoryUtil.TableFactoryHelper;
+import org.apache.flink.table.utils.TableSchemaUtils;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Properties;
 import java.util.Set;
 
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfig.IDENTIFIER;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.CATALOG_IGNORE_PRIMARY_KEY;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.DATABASE_NAME;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.PASSWORD;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SCAN_PARTITION_COLUMN;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SCAN_PARTITION_LOWER_BOUND;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SCAN_PARTITION_NUM;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SCAN_PARTITION_UPPER_BOUND;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_BATCH_SIZE;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_FLUSH_INTERVAL;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_IGNORE_DELETE;
@@ -31,12 +41,15 @@ import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptio
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.TABLE_NAME;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.URL;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.USERNAME;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.USE_LOCAL;
 import static org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.BALANCED;
 import static org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.HASH;
 import static org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.SHUFFLE;
+import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.getClickHouseProperties;
 
 /** A {@link DynamicTableSinkFactory} for discovering {@link ClickHouseDynamicTableSink}. */
-public class ClickHouseDynamicTableFactory implements DynamicTableSinkFactory {
+public class ClickHouseDynamicTableFactory
+        implements DynamicTableSinkFactory, DynamicTableSourceFactory {
 
     public ClickHouseDynamicTableFactory() {}
 
@@ -45,11 +58,30 @@ public class ClickHouseDynamicTableFactory implements DynamicTableSinkFactory {
         TableFactoryHelper helper = FactoryUtil.createTableFactoryHelper(this, context);
         ReadableConfig config = helper.getOptions();
         helper.validate();
-        this.validateConfigOptions(config);
+        validateConfigOptions(config);
+
         return new ClickHouseDynamicTableSink(
                 getOptions(config),
                 context.getCatalogTable(),
                 context.getCatalogTable().getResolvedSchema());
+    }
+
+    @Override
+    public DynamicTableSource createDynamicTableSource(Context context) {
+        TableFactoryHelper helper = FactoryUtil.createTableFactoryHelper(this, context);
+        ReadableConfig config = helper.getOptions();
+        helper.validate();
+        validateConfigOptions(config);
+
+        Properties clickHouseProperties =
+                getClickHouseProperties(context.getCatalogTable().getOptions());
+        TableSchema physicalSchema =
+                TableSchemaUtils.getPhysicalSchema(context.getCatalogTable().getSchema());
+        return new ClickHouseDynamicTableSource(
+                getReadOptions(config),
+                clickHouseProperties,
+                context.getCatalogTable(),
+                physicalSchema);
     }
 
     @Override
@@ -71,6 +103,7 @@ public class ClickHouseDynamicTableFactory implements DynamicTableSinkFactory {
         optionalOptions.add(USERNAME);
         optionalOptions.add(PASSWORD);
         optionalOptions.add(DATABASE_NAME);
+        optionalOptions.add(USE_LOCAL);
         optionalOptions.add(SINK_BATCH_SIZE);
         optionalOptions.add(SINK_FLUSH_INTERVAL);
         optionalOptions.add(SINK_MAX_RETRIES);
@@ -79,6 +112,10 @@ public class ClickHouseDynamicTableFactory implements DynamicTableSinkFactory {
         optionalOptions.add(SINK_PARTITION_KEY);
         optionalOptions.add(SINK_IGNORE_DELETE);
         optionalOptions.add(CATALOG_IGNORE_PRIMARY_KEY);
+        optionalOptions.add(SCAN_PARTITION_COLUMN);
+        optionalOptions.add(SCAN_PARTITION_NUM);
+        optionalOptions.add(SCAN_PARTITION_LOWER_BOUND);
+        optionalOptions.add(SCAN_PARTITION_UPPER_BOUND);
         return optionalOptions;
     }
 
@@ -112,6 +149,21 @@ public class ClickHouseDynamicTableFactory implements DynamicTableSinkFactory {
                 .withPartitionStrategy(config.get(SINK_PARTITION_STRATEGY))
                 .withPartitionKey(config.get(SINK_PARTITION_KEY))
                 .withIgnoreDelete(config.get(SINK_IGNORE_DELETE))
+                .build();
+    }
+
+    private ClickHouseReadOptions getReadOptions(ReadableConfig config) {
+        return new ClickHouseReadOptions.Builder()
+                .withUrl(config.get(URL))
+                .withUsername(config.get(USERNAME))
+                .withPassword(config.get(PASSWORD))
+                .withDatabaseName(config.get(DATABASE_NAME))
+                .withTableName(config.get(TABLE_NAME))
+                .withUseLocal(config.get(USE_LOCAL))
+                .withPartitionColumn(config.get(SCAN_PARTITION_COLUMN))
+                .withPartitionNum(config.get(SCAN_PARTITION_NUM))
+                .withPartitionLowerBound(config.get(SCAN_PARTITION_LOWER_BOUND))
+                .withPartitionUpperBound(config.get(SCAN_PARTITION_UPPER_BOUND))
                 .build();
     }
 }

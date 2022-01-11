@@ -12,9 +12,6 @@ import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.util.Preconditions;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.annotation.Nonnull;
 
 import java.io.IOException;
@@ -24,8 +21,6 @@ import java.sql.SQLException;
 public class ClickHouseBatchOutputFormat extends AbstractClickHouseOutputFormat {
 
     private static final long serialVersionUID = 1L;
-
-    private static final Logger LOG = LoggerFactory.getLogger(ClickHouseBatchOutputFormat.class);
 
     private final ClickHouseConnectionProvider connectionProvider;
 
@@ -107,11 +102,7 @@ public class ClickHouseBatchOutputFormat extends AbstractClickHouseOutputFormat 
 
     @Override
     public synchronized void closeOutputFormat() {
-        try {
-            executor.closeStatement();
-            connectionProvider.closeConnections();
-        } catch (SQLException exception) {
-            LOG.warn("ClickHouse connection could not be closed.", exception);
-        }
+        executor.closeStatement();
+        connectionProvider.closeConnections();
     }
 }

@@ -7,12 +7,11 @@ package org.apache.flink.connector.clickhouse.internal.options;
 
 import javax.annotation.Nullable;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.util.Optional;
 
 /** ClickHouse properties. */
-public class ClickHouseOptions implements Serializable {
+public class ClickHouseOptions extends ClickHouseConnectionOptions {
 
     private static final long serialVersionUID = 1L;
 
@@ -53,6 +52,7 @@ public class ClickHouseOptions implements Serializable {
             String partitionStrategy,
             String partitionKey,
             boolean ignoreDelete) {
+        super(url, username, password, databaseName, tableName);
         this.url = url;
         this.username = username;
         this.password = password;

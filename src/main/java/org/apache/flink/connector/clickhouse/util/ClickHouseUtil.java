@@ -10,8 +10,12 @@ import javax.annotation.Nullable;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
+import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfig.PROPERTIES_PREFIX;
 
 /** clickhouse util. */
 public class ClickHouseUtil {
@@ -57,5 +61,19 @@ public class ClickHouseUtil {
 
         throw new SQLException(
                 String.format("table `%s`.`%s` does not exist", databaseName, tableName));
+    }
+
+    public static Properties getClickHouseProperties(Map<String, String> tableOptions) {
+        final Properties properties = new Properties();
+
+        tableOptions.keySet().stream()
+                .filter(key -> key.startsWith(PROPERTIES_PREFIX))
+                .forEach(
+                        key -> {
+                            final String value = tableOptions.get(key);
+                            final String subKey = key.substring((PROPERTIES_PREFIX).length());
+                            properties.setProperty(subKey, value);
+                        });
+        return properties;
     }
 }

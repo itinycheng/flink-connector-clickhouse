@@ -6,11 +6,14 @@
 package org.apache.flink.connector.clickhouse.internal.executor;
 
 import org.apache.flink.api.common.functions.RuntimeContext;
+import org.apache.flink.connector.clickhouse.internal.ClickHouseShardOutputFormat;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
 import org.apache.flink.table.data.RowData;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.yandex.clickhouse.ClickHouseConnection;
 import ru.yandex.clickhouse.ClickHousePreparedStatement;
 
@@ -20,6 +23,8 @@ import java.sql.SQLException;
 public class ClickHouseBatchExecutor implements ClickHouseExecutor {
 
     private static final long serialVersionUID = 1L;
+
+    private static final Logger LOG = LoggerFactory.getLogger(ClickHouseShardOutputFormat.class);
 
     private final String insertSql;
 
@@ -78,10 +83,15 @@ public class ClickHouseBatchExecutor implements ClickHouseExecutor {
     }
 
     @Override
-    public void closeStatement() throws SQLException {
+    public void closeStatement() {
         if (statement != null) {
-            statement.close();
-            statement = null;
+            try {
+                statement.close();
+            } catch (SQLException exception) {
+                LOG.warn("ClickHouse batch statement could not be closed.", exception);
+            } finally {
+                statement = null;
+            }
         }
     }
 

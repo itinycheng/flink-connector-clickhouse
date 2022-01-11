@@ -15,14 +15,11 @@ import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.util.Preconditions;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import ru.yandex.clickhouse.ClickHouseConnection;
 
 import javax.annotation.Nonnull;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,8 +30,6 @@ import java.util.List;
 public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat {
 
     private static final long serialVersionUID = 1L;
-
-    private static final Logger LOG = LoggerFactory.getLogger(ClickHouseShardOutputFormat.class);
 
     private final ClickHouseConnectionProvider connectionProvider;
 
@@ -55,8 +50,6 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
     private final String[] partitionFields;
 
     private transient int[] batchCounts;
-
-    private transient DistributedEngineFullSchema shardTableSchema;
 
     protected ClickHouseShardOutputFormat(
             @Nonnull ClickHouseConnectionProvider connectionProvider,
@@ -81,7 +74,7 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
     public void open(int taskNumber, int numTasks) throws IOException {
         try {
             // Get the local table of distributed table.
-            shardTableSchema =
+            DistributedEngineFullSchema shardTableSchema =
                     ClickHouseUtil.getAndParseEngineFullSchema(
                             connectionProvider.getOrCreateConnection(),
                             options.getDatabaseName(),
@@ -176,14 +169,9 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
     @Override
     public synchronized void closeOutputFormat() {
-        try {
-            for (ClickHouseExecutor shardExecutor : shardExecutors) {
-                shardExecutor.closeStatement();
-            }
-
-            connectionProvider.closeConnections();
-        } catch (SQLException exception) {
-            LOG.warn("ClickHouse connection could not be closed.", exception);
+        for (ClickHouseExecutor shardExecutor : shardExecutors) {
+            shardExecutor.closeStatement();
         }
+        connectionProvider.closeConnections();
     }
 }

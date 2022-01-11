@@ -5,7 +5,7 @@
 
 package org.apache.flink.connector.clickhouse.internal.connection;
 
-import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
+import org.apache.flink.connector.clickhouse.internal.options.ClickHouseConnectionOptions;
 import org.apache.flink.connector.clickhouse.util.ClickHouseUtil;
 
 import org.apache.http.HttpResponse;
@@ -26,6 +26,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -48,14 +49,22 @@ public class ClickHouseConnectionProvider implements Serializable {
     private static final String QUERY_CLUSTER_INFO_SQL =
             "SELECT shard_num, host_address, port FROM system.clusters WHERE cluster = ? and replica_num = 1 ORDER BY shard_num ASC";
 
-    private final ClickHouseOptions options;
+    private final ClickHouseConnectionOptions options;
+
+    private final Properties connectionProperties;
 
     private transient ClickHouseConnection connection;
 
     private transient List<ClickHouseConnection> shardConnections;
 
-    public ClickHouseConnectionProvider(ClickHouseOptions options) {
+    public ClickHouseConnectionProvider(ClickHouseConnectionOptions options) {
+        this(options, new Properties());
+    }
+
+    public ClickHouseConnectionProvider(
+            ClickHouseConnectionOptions options, Properties connectionProperties) {
         this.options = options;
+        this.connectionProperties = connectionProperties;
     }
 
     public synchronized ClickHouseConnection getOrCreateConnection() throws SQLException {
@@ -101,7 +110,7 @@ public class ClickHouseConnectionProvider implements Serializable {
         LOG.info("connecting to {}, database {}", url, database);
 
         String jdbcUrl = ClickHouseUtil.getJdbcUrl(url, database);
-        ClickHouseProperties properties = new ClickHouseProperties();
+        ClickHouseProperties properties = new ClickHouseProperties(connectionProperties);
         properties.setUser(options.getUsername().orElse(null));
         properties.setPassword(options.getPassword().orElse(null));
         BalancedClickhouseDataSource dataSource =
@@ -112,15 +121,27 @@ public class ClickHouseConnectionProvider implements Serializable {
         return dataSource.getConnection();
     }
 
-    public void closeConnections() throws SQLException {
+    public void closeConnections() {
         if (this.connection != null) {
-            connection.close();
+            try {
+                connection.close();
+            } catch (SQLException exception) {
+                LOG.warn("ClickHouse connection could not be closed.", exception);
+            } finally {
+                connection = null;
+            }
         }
 
         if (shardConnections != null) {
             for (ClickHouseConnection shardConnection : this.shardConnections) {
-                shardConnection.close();
+                try {
+                    shardConnection.close();
+                } catch (SQLException exception) {
+                    LOG.warn("ClickHouse shard connection could not be closed.", exception);
+                }
             }
+
+            shardConnections = null;
         }
     }
 
