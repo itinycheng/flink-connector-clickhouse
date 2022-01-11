@@ -19,6 +19,16 @@ public class ClickHouseStatementFactory {
 
     private ClickHouseStatementFactory() {}
 
+    public static String getSelectStatement(
+            String tableName, String databaseName, String[] fieldNames) {
+        String columns =
+                Arrays.stream(fieldNames)
+                        .map(ClickHouseStatementFactory::quoteIdentifier)
+                        .collect(joining(", "));
+        return String.join(
+                EMPTY, "SELECT ", columns, " FROM ", fromTableClause(tableName, databaseName));
+    }
+
     public static String getInsertIntoStatement(String tableName, String[] fieldNames) {
         String columns =
                 Arrays.stream(fieldNames)

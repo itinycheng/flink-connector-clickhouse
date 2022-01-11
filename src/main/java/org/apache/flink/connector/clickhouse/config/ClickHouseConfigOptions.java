@@ -45,6 +45,13 @@ public class ClickHouseConfigOptions {
                     .noDefaultValue()
                     .withDescription("The ClickHouse table name.");
 
+    public static final ConfigOption<Boolean> USE_LOCAL =
+            ConfigOptions.key(ClickHouseConfig.USE_LOCAL)
+                    .booleanType()
+                    .defaultValue(false)
+                    .withDescription(
+                            "Directly read/write to local tables in case of distributed table.");
+
     public static final ConfigOption<Integer> SINK_BATCH_SIZE =
             ConfigOptions.key(ClickHouseConfig.SINK_BATCH_SIZE)
                     .intType()
@@ -65,6 +72,7 @@ public class ClickHouseConfigOptions {
                     .defaultValue(3)
                     .withDescription("The max retry times if writing records to database failed.");
 
+    @Deprecated
     public static final ConfigOption<Boolean> SINK_WRITE_LOCAL =
             ConfigOptions.key(ClickHouseConfig.SINK_WRITE_LOCAL)
                     .booleanType()
@@ -97,4 +105,28 @@ public class ClickHouseConfigOptions {
                     .defaultValue(true)
                     .withDescription(
                             "Whether to ignore primary keys when using ClickHouseCatalog to create table. defaults to true.");
+
+    public static final ConfigOption<String> SCAN_PARTITION_COLUMN =
+            ConfigOptions.key(ClickHouseConfig.SCAN_PARTITION_COLUMN)
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("The column name used for partitioning the input.");
+
+    public static final ConfigOption<Integer> SCAN_PARTITION_NUM =
+            ConfigOptions.key(ClickHouseConfig.SCAN_PARTITION_NUM)
+                    .intType()
+                    .noDefaultValue()
+                    .withDescription("The number of partitions.");
+
+    public static final ConfigOption<Long> SCAN_PARTITION_LOWER_BOUND =
+            ConfigOptions.key(ClickHouseConfig.SCAN_PARTITION_LOWER_BOUND)
+                    .longType()
+                    .noDefaultValue()
+                    .withDescription("The smallest value of the first partition.");
+
+    public static final ConfigOption<Long> SCAN_PARTITION_UPPER_BOUND =
+            ConfigOptions.key(ClickHouseConfig.SCAN_PARTITION_UPPER_BOUND)
+                    .longType()
+                    .noDefaultValue()
+                    .withDescription("The largest value of the last partition.");
 }

@@ -44,7 +44,7 @@ public interface ClickHouseExecutor extends Serializable {
 
     void executeBatch() throws SQLException;
 
-    void closeStatement() throws SQLException;
+    void closeStatement();
 
     default void attemptExecuteBatch(ClickHousePreparedStatement stmt, int maxRetries)
             throws SQLException {
