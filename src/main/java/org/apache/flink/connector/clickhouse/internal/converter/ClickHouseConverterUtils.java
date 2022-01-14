@@ -20,15 +20,14 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.toFixedDateTimestamp;
+
 /** convert between internal and external data types. */
 public class ClickHouseConverterUtils {
-
-    private static final LocalDate DATE_PREFIX_OF_TIME = LocalDate.ofEpochDay(1);
 
     public static Object toExternal(Object value, LogicalType type) {
         switch (type.getTypeRoot()) {
@@ -142,11 +141,13 @@ public class ClickHouseConverterUtils {
                                 .findFirst()
                                 .orElseThrow(
                                         () -> new RuntimeException("Unknown array element type"));
-                Object[] externalArray = (Object[]) ((Array) value).getArray();
-                Object[] internalArray = new Object[externalArray.length];
-                for (int i = 0; i < externalArray.length; i++) {
+                Object externalArray = ((Array) value).getArray();
+                int externalArrayLength = java.lang.reflect.Array.getLength(externalArray);
+                Object[] internalArray = new Object[externalArrayLength];
+                for (int i = 0; i < externalArrayLength; i++) {
                     internalArray[i] =
-                            ClickHouseConverterUtils.toInternal(externalArray[i], elementType);
+                            ClickHouseConverterUtils.toInternal(
+                                    java.lang.reflect.Array.get(externalArray, i), elementType);
                 }
                 return new GenericArrayData(internalArray);
             case MAP:
@@ -157,10 +158,5 @@ public class ClickHouseConverterUtils {
             default:
                 throw new UnsupportedOperationException("Unsupported type:" + type);
         }
-    }
-
-    public static Timestamp toFixedDateTimestamp(LocalTime localTime) {
-        LocalDateTime localDateTime = localTime.atDate(DATE_PREFIX_OF_TIME);
-        return Timestamp.valueOf(localDateTime);
     }
 }

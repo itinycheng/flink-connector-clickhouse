@@ -3,6 +3,7 @@ package org.apache.flink.connector.clickhouse;
 import org.apache.flink.connector.clickhouse.internal.AbstractClickHouseInputFormat;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseReadOptions;
 import org.apache.flink.connector.clickhouse.split.ClickHouseBetweenParametersProvider;
+import org.apache.flink.connector.clickhouse.util.FilterPushDownHelper;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.catalog.CatalogTable;
 import org.apache.flink.table.connector.ChangelogMode;
@@ -34,7 +35,7 @@ public class ClickHouseDynamicTableSource
 
     private TableSchema physicalSchema;
 
-    private List<ResolvedExpression> filters;
+    private String filterClause;
 
     private long limit = -1L;
 
@@ -61,7 +62,12 @@ public class ClickHouseDynamicTableSource
                         .withOptions(readOptions)
                         .withConnectionProperties(connectionProperties)
                         .withFieldNames(physicalSchema.getFieldNames())
-                        .withFieldTypes(physicalSchema.getFieldDataTypes());
+                        .withFieldTypes(physicalSchema.getFieldDataTypes())
+                        .withRowDataTypeInfo(
+                                runtimeProviderContext.createTypeInformation(
+                                        physicalSchema.toRowDataType()))
+                        .withFilterClause(filterClause)
+                        .withLimit(limit);
 
         if (readOptions.getPartitionColumn() != null) {
             ClickHouseBetweenParametersProvider parametersProvider =
@@ -83,7 +89,7 @@ public class ClickHouseDynamicTableSource
         ClickHouseDynamicTableSource source =
                 new ClickHouseDynamicTableSource(
                         readOptions, connectionProperties, catalogTable, physicalSchema);
-        source.filters = filters;
+        source.filterClause = filterClause;
         source.limit = limit;
         return source;
     }
@@ -95,7 +101,7 @@ public class ClickHouseDynamicTableSource
 
     @Override
     public Result applyFilters(List<ResolvedExpression> filters) {
-        this.filters = new ArrayList<>(filters);
+        this.filterClause = FilterPushDownHelper.convert(filters);
         return Result.of(new ArrayList<>(filters), new ArrayList<>(filters));
     }
 
