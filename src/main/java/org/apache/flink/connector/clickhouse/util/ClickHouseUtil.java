@@ -10,6 +10,10 @@ import javax.annotation.Nullable;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Matcher;
@@ -19,6 +23,10 @@ import static org.apache.flink.connector.clickhouse.config.ClickHouseConfig.PROP
 
 /** clickhouse util. */
 public class ClickHouseUtil {
+
+    public static final String EMPTY = "";
+
+    private static final LocalDate DATE_PREFIX_OF_TIME = LocalDate.ofEpochDay(1);
 
     private static final Pattern DISTRIBUTED_TABLE_ENGINE_PATTERN =
             Pattern.compile(
@@ -75,5 +83,14 @@ public class ClickHouseUtil {
                             properties.setProperty(subKey, value);
                         });
         return properties;
+    }
+
+    public static Timestamp toFixedDateTimestamp(LocalTime localTime) {
+        LocalDateTime localDateTime = localTime.atDate(DATE_PREFIX_OF_TIME);
+        return Timestamp.valueOf(localDateTime);
+    }
+
+    public static String quoteIdentifier(String identifier) {
+        return String.join(EMPTY, "`", identifier, "`");
     }
 }

@@ -23,6 +23,12 @@ import java.util.Properties;
 public abstract class AbstractClickHouseInputFormat extends RichInputFormat<RowData, InputSplit>
         implements ResultTypeQueryable<RowData> {
 
+    private final TypeInformation<RowData> rowDataTypeInfo;
+
+    protected AbstractClickHouseInputFormat(TypeInformation<RowData> rowDataTypeInfo) {
+        this.rowDataTypeInfo = rowDataTypeInfo;
+    }
+
     @Override
     public void configure(Configuration parameters) {}
 
@@ -33,13 +39,13 @@ public abstract class AbstractClickHouseInputFormat extends RichInputFormat<RowD
 
     @Override
     public TypeInformation<RowData> getProducedType() {
-        return null;
+        return rowDataTypeInfo;
     }
 
     /** Builder. */
     public static class Builder {
 
-        private ClickHouseReadOptions options;
+        private ClickHouseReadOptions readOptions;
 
         private Properties connectionProperties;
 
@@ -47,12 +53,18 @@ public abstract class AbstractClickHouseInputFormat extends RichInputFormat<RowD
 
         private DataType[] fieldTypes;
 
+        private TypeInformation<RowData> rowDataTypeInfo;
+
         private Object[][] parameterValues;
 
         private String parameterClause;
 
-        public Builder withOptions(ClickHouseReadOptions options) {
-            this.options = options;
+        private String filterClause;
+
+        private long limit;
+
+        public Builder withOptions(ClickHouseReadOptions readOptions) {
+            this.readOptions = readOptions;
             return this;
         }
 
@@ -71,6 +83,11 @@ public abstract class AbstractClickHouseInputFormat extends RichInputFormat<RowD
             return this;
         }
 
+        public Builder withRowDataTypeInfo(TypeInformation<RowData> rowDataTypeInfo) {
+            this.rowDataTypeInfo = rowDataTypeInfo;
+            return this;
+        }
+
         public Builder withSplitParametersProvider(
                 ClickHouseParametersProvider parameterValuesProvider) {
             this.parameterValues = parameterValuesProvider.getParameterValues();
@@ -82,38 +99,56 @@ public abstract class AbstractClickHouseInputFormat extends RichInputFormat<RowD
             return this;
         }
 
+        public Builder withFilterClause(String filterClause) {
+            this.filterClause = filterClause;
+            return this;
+        }
+
+        public Builder withLimit(long limit) {
+            this.limit = limit;
+            return this;
+        }
+
         public AbstractClickHouseInputFormat build() {
-            Preconditions.checkNotNull(options);
+            Preconditions.checkNotNull(readOptions);
             Preconditions.checkNotNull(connectionProperties);
             Preconditions.checkNotNull(fieldNames);
+            Preconditions.checkNotNull(fieldTypes);
+            Preconditions.checkNotNull(rowDataTypeInfo);
+
             LogicalType[] logicalTypes =
                     Arrays.stream(fieldTypes)
                             .map(DataType::getLogicalType)
                             .toArray(LogicalType[]::new);
-
-            return options.isUseLocal()
+            return readOptions.isUseLocal()
                     ? createShardInputFormat(logicalTypes)
                     : createBatchOutputFormat(logicalTypes);
         }
 
         private AbstractClickHouseInputFormat createShardInputFormat(LogicalType[] logicalTypes) {
             return new ClickHouseBatchInputFormat(
-                    new ClickHouseConnectionProvider(options, connectionProperties),
+                    new ClickHouseConnectionProvider(readOptions, connectionProperties),
                     new ClickHouseRowConverter(RowType.of(logicalTypes)),
                     fieldNames,
                     null,
                     null,
-                    options);
+                    null,
+                    null,
+                    -1,
+                    readOptions);
         }
 
         private AbstractClickHouseInputFormat createBatchOutputFormat(LogicalType[] logicalTypes) {
             return new ClickHouseBatchInputFormat(
-                    new ClickHouseConnectionProvider(options, connectionProperties),
+                    new ClickHouseConnectionProvider(readOptions, connectionProperties),
                     new ClickHouseRowConverter(RowType.of(logicalTypes)),
                     fieldNames,
+                    rowDataTypeInfo,
                     parameterValues,
                     parameterClause,
-                    options);
+                    filterClause,
+                    limit,
+                    readOptions);
         }
     }
 }

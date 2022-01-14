@@ -6,6 +6,7 @@
 package org.apache.flink.connector.clickhouse.internal;
 
 import org.apache.flink.api.common.io.DefaultInputSplitAssigner;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseReadOptions;
@@ -38,7 +39,11 @@ public class ClickHouseBatchInputFormat extends AbstractClickHouseInputFormat {
 
     private final String parameterClause;
 
-    private final ClickHouseReadOptions options;
+    private final String filterClause;
+
+    private final long limit;
+
+    private final ClickHouseReadOptions readOptions;
 
     private transient PreparedStatement statement;
     private transient ResultSet resultSet;
@@ -48,15 +53,21 @@ public class ClickHouseBatchInputFormat extends AbstractClickHouseInputFormat {
             ClickHouseConnectionProvider connectionProvider,
             ClickHouseRowConverter rowConverter,
             String[] fieldNames,
+            TypeInformation<RowData> rowDataTypeInfo,
             Object[][] parameterValues,
             String parameterClause,
-            ClickHouseReadOptions options) {
+            String filterClause,
+            long limit,
+            ClickHouseReadOptions readOptions) {
+        super(rowDataTypeInfo);
         this.connectionProvider = connectionProvider;
         this.rowConverter = rowConverter;
         this.fieldNames = fieldNames;
         this.parameterValues = parameterValues;
         this.parameterClause = parameterClause;
-        this.options = options;
+        this.filterClause = filterClause;
+        this.limit = limit;
+        this.readOptions = readOptions;
     }
 
     @Override
@@ -72,11 +83,32 @@ public class ClickHouseBatchInputFormat extends AbstractClickHouseInputFormat {
     private String getQuery() {
         String queryTemplate =
                 ClickHouseStatementFactory.getSelectStatement(
-                        options.getTableName(), options.getDatabaseName(), fieldNames);
-        if (parameterClause != null) {
-            queryTemplate += " WHERE " + parameterClause;
+                        readOptions.getTableName(), readOptions.getDatabaseName(), fieldNames);
+
+        StringBuilder whereBuilder = new StringBuilder();
+        if (filterClause != null) {
+            if (filterClause.toLowerCase().contains(" or ")) {
+                whereBuilder.append("(").append(filterClause).append(")");
+            } else {
+                whereBuilder.append(filterClause);
+            }
         }
-        return queryTemplate;
+
+        if (parameterClause != null) {
+            if (whereBuilder.length() > 0) {
+                whereBuilder.append(" AND ");
+            }
+            whereBuilder.append(parameterClause);
+        }
+
+        String limitClause = "";
+        if (limit >= 0) {
+            limitClause = "LIMIT " + limit;
+        }
+
+        return whereBuilder.length() > 0
+                ? String.join(" ", queryTemplate, "WHERE", whereBuilder.toString(), limitClause)
+                : String.join(" ", queryTemplate, limitClause);
     }
 
     @Override

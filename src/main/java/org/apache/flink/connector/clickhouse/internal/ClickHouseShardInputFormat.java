@@ -14,6 +14,10 @@ import java.io.IOException;
 /** Output data to ClickHouse local table. */
 public class ClickHouseShardInputFormat extends AbstractClickHouseInputFormat {
 
+    public ClickHouseShardInputFormat() {
+        super(null);
+    }
+
     @Override
     public InputSplit[] createInputSplits(int minNumSplits) throws IOException {
         return new InputSplit[0];

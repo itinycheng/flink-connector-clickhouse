@@ -32,6 +32,8 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.toFixedDateTimestamp;
+
 /** Row converter，convert flink type to/from ClickHouse type. */
 public class ClickHouseRowConverter implements Serializable {
 
@@ -169,8 +171,7 @@ public class ClickHouseRowConverter implements Serializable {
             case TIME_WITHOUT_TIME_ZONE:
                 return (val, index, statement) -> {
                     LocalTime localTime = LocalTime.ofNanoOfDay(val.getInt(index) * 1_000_000L);
-                    statement.setTimestamp(
-                            index + 1, ClickHouseConverterUtils.toFixedDateTimestamp(localTime));
+                    statement.setTimestamp(index + 1, toFixedDateTimestamp(localTime));
                 };
             case TIMESTAMP_WITH_TIME_ZONE:
             case TIMESTAMP_WITHOUT_TIME_ZONE:
