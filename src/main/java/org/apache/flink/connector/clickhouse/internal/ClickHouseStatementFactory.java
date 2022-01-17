@@ -1,8 +1,3 @@
-//
-// Source code recreated from a .class file by IntelliJ IDEA
-// (powered by FernFlower decompiler)
-//
-
 package org.apache.flink.connector.clickhouse.internal;
 
 import org.apache.commons.lang3.ArrayUtils;

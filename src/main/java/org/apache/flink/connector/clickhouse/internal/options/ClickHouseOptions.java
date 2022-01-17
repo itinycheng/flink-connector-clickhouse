@@ -1,29 +1,13 @@
-//
-// Source code recreated from a .class file by IntelliJ IDEA
-// (powered by FernFlower decompiler)
-//
-
 package org.apache.flink.connector.clickhouse.internal.options;
 
 import javax.annotation.Nullable;
 
 import java.time.Duration;
-import java.util.Optional;
 
 /** ClickHouse properties. */
 public class ClickHouseOptions extends ClickHouseConnectionOptions {
 
     private static final long serialVersionUID = 1L;
-
-    private final String url;
-
-    private final String username;
-
-    private final String password;
-
-    private final String databaseName;
-
-    private final String tableName;
 
     private final int batchSize;
 
@@ -31,7 +15,7 @@ public class ClickHouseOptions extends ClickHouseConnectionOptions {
 
     private final int maxRetries;
 
-    private final boolean writeLocal;
+    private final boolean useLocal;
 
     private final String partitionStrategy;
 
@@ -48,43 +32,18 @@ public class ClickHouseOptions extends ClickHouseConnectionOptions {
             int batchSize,
             Duration flushInterval,
             int maxRetires,
-            boolean writeLocal,
+            boolean useLocal,
             String partitionStrategy,
             String partitionKey,
             boolean ignoreDelete) {
         super(url, username, password, databaseName, tableName);
-        this.url = url;
-        this.username = username;
-        this.password = password;
-        this.databaseName = databaseName;
-        this.tableName = tableName;
         this.batchSize = batchSize;
         this.flushInterval = flushInterval;
         this.maxRetries = maxRetires;
-        this.writeLocal = writeLocal;
+        this.useLocal = useLocal;
         this.partitionStrategy = partitionStrategy;
         this.partitionKey = partitionKey;
         this.ignoreDelete = ignoreDelete;
-    }
-
-    public String getUrl() {
-        return this.url;
-    }
-
-    public Optional<String> getUsername() {
-        return Optional.ofNullable(this.username);
-    }
-
-    public Optional<String> getPassword() {
-        return Optional.ofNullable(this.password);
-    }
-
-    public String getDatabaseName() {
-        return this.databaseName;
-    }
-
-    public String getTableName() {
-        return this.tableName;
     }
 
     public int getBatchSize() {
@@ -99,8 +58,8 @@ public class ClickHouseOptions extends ClickHouseConnectionOptions {
         return this.maxRetries;
     }
 
-    public boolean getWriteLocal() {
-        return this.writeLocal;
+    public boolean isUseLocal() {
+        return this.useLocal;
     }
 
     public String getPartitionStrategy() {
@@ -126,6 +85,7 @@ public class ClickHouseOptions extends ClickHouseConnectionOptions {
         private Duration flushInterval;
         private int maxRetries;
         private boolean writeLocal;
+        private boolean useLocal;
         private String partitionStrategy;
         private String partitionKey;
         private boolean ignoreDelete;
@@ -177,6 +137,11 @@ public class ClickHouseOptions extends ClickHouseConnectionOptions {
             return this;
         }
 
+        public ClickHouseOptions.Builder withUseLocal(Boolean useLocal) {
+            this.useLocal = useLocal;
+            return this;
+        }
+
         public ClickHouseOptions.Builder withPartitionStrategy(String partitionStrategy) {
             this.partitionStrategy = partitionStrategy;
             return this;
@@ -194,18 +159,18 @@ public class ClickHouseOptions extends ClickHouseConnectionOptions {
 
         public ClickHouseOptions build() {
             return new ClickHouseOptions(
-                    this.url,
-                    this.username,
-                    this.password,
-                    this.databaseName,
-                    this.tableName,
-                    this.batchSize,
-                    this.flushInterval,
-                    this.maxRetries,
-                    this.writeLocal,
-                    this.partitionStrategy,
-                    this.partitionKey,
-                    this.ignoreDelete);
+                    url,
+                    username,
+                    password,
+                    databaseName,
+                    tableName,
+                    batchSize,
+                    flushInterval,
+                    maxRetries,
+                    writeLocal || useLocal,
+                    partitionStrategy,
+                    partitionKey,
+                    ignoreDelete);
         }
     }
 }

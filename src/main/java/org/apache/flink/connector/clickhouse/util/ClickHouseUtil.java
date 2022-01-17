@@ -44,7 +44,7 @@ public class ClickHouseUtil {
         }
     }
 
-    public static DistributedEngineFullSchema getAndParseEngineFullSchema(
+    public static DistributedEngineFullSchema getAndParseDistributedEngineSchema(
             ClickHouseConnection connection, String databaseName, String tableName)
             throws SQLException {
         try (PreparedStatement stmt = connection.prepareStatement(QUERY_TABLE_ENGINE_SQL)) {

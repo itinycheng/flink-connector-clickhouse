@@ -1,8 +1,3 @@
-//
-// Source code recreated from a .class file by IntelliJ IDEA
-// (powered by FernFlower decompiler)
-//
-
 package org.apache.flink.connector.clickhouse.internal;
 
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
@@ -83,7 +78,7 @@ public class ClickHouseBatchOutputFormat extends AbstractClickHouseOutputFormat 
 
         try {
             executor.addToBatch(record);
-            ++batchCount;
+            batchCount++;
             if (batchCount >= options.getBatchSize()) {
                 flush();
             }

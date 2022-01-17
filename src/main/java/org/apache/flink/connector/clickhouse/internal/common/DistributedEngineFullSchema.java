@@ -2,10 +2,12 @@ package org.apache.flink.connector.clickhouse.internal.common;
 
 import org.apache.flink.util.StringUtils;
 
+import java.io.Serializable;
+
 import static org.apache.flink.util.Preconditions.checkArgument;
 
 /** Distributed table engine full schema. */
-public class DistributedEngineFullSchema {
+public class DistributedEngineFullSchema implements Serializable {
 
     private final String cluster;
 

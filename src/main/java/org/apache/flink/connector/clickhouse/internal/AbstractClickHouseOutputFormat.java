@@ -1,8 +1,3 @@
-//
-// Source code recreated from a .class file by IntelliJ IDEA
-// (powered by FernFlower decompiler)
-//
-
 package org.apache.flink.connector.clickhouse.internal;
 
 import org.apache.flink.api.common.io.RichOutputFormat;
@@ -168,7 +163,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
                 LOG.warn(
                         "The data will be updated / deleted by the primary key, you will have significant performance loss.");
             }
-            return options.getWriteLocal()
+            return options.isUseLocal()
                     ? createShardOutputFormat(logicalTypes)
                     : createBatchOutputFormat(logicalTypes);
         }

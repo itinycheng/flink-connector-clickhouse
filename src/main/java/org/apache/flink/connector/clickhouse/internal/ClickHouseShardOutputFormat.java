@@ -1,8 +1,3 @@
-//
-// Source code recreated from a .class file by IntelliJ IDEA
-// (powered by FernFlower decompiler)
-//
-
 package org.apache.flink.connector.clickhouse.internal;
 
 import org.apache.flink.connector.clickhouse.internal.common.DistributedEngineFullSchema;
@@ -75,7 +70,7 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
         try {
             // Get the local table of distributed table.
             DistributedEngineFullSchema shardTableSchema =
-                    ClickHouseUtil.getAndParseEngineFullSchema(
+                    ClickHouseUtil.getAndParseDistributedEngineSchema(
                             connectionProvider.getOrCreateConnection(),
                             options.getDatabaseName(),
                             options.getTableName());
@@ -87,7 +82,7 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
             }
 
             List<ClickHouseConnection> shardConnections =
-                    connectionProvider.getOrCreateShardConnections(
+                    connectionProvider.createShardConnections(
                             shardTableSchema.getCluster(), shardTableSchema.getDatabase());
             for (ClickHouseConnection shardConnection : shardConnections) {
                 ClickHouseExecutor executor =
@@ -155,7 +150,7 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
     @Override
     public synchronized void flush() throws IOException {
-        for (int i = 0; i < shardExecutors.size(); ++i) {
+        for (int i = 0; i < shardExecutors.size(); i++) {
             flush(i);
         }
     }

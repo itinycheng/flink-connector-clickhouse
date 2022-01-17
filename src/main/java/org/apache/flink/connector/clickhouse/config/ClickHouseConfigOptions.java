@@ -50,7 +50,7 @@ public class ClickHouseConfigOptions {
                     .booleanType()
                     .defaultValue(false)
                     .withDescription(
-                            "Directly read/write to local tables in case of distributed table.");
+                            "Directly read/write local tables in case of distributed table engine.");
 
     public static final ConfigOption<Integer> SINK_BATCH_SIZE =
             ConfigOptions.key(ClickHouseConfig.SINK_BATCH_SIZE)

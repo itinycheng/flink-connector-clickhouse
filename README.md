@@ -6,20 +6,25 @@ The original code comes from AliYun. On this basis, I have done some bug fixes, 
 
 ## Connector Options
 
-| Option                  | Required | Default  | Type     | Description                                                                       |
-| :---------------------- | :------- | :------- | :------- | :-------------------------------------------------------------------------------- |
-| url                     | required | none     | String   | The ClickHouse jdbc url in format `clickhouse://<host>:<port>`.                   |
-| username                | optional | none     | String   | The 'username' and 'password' must both be specified if any of them is specified. |
-| password                | optional | none     | String   | The ClickHouse password.                                                          |
-| database-name           | optional | default  | String   | The ClickHouse database name.                                                     |
-| table-name              | required | none     | String   | The ClickHouse table name.                                                        |
-| sink.batch-size         | optional | 1000     | Integer  | The max flush size, over this will flush data.                                   |
-| sink.flush-interval     | optional | 1s       | Duration | Over this flush interval mills, asynchronous threads will flush data.             |
-| sink.max-retries        | optional | 3        | Integer  | The max retry times when writing records to the database failed.                  |
-| sink.write-local        | optional | false    | Boolean  | Directly write data to local tables in case of distributed table.                 |
-| sink.partition-strategy | optional | balanced | String   | Partition strategy: balanced(round-robin), hash(partition key), shuffle(random).  |
-| sink.partition-key      | optional | none     | String   | Partition key used for hash strategy.                                             |
-| sink.ignore-delete      | optional | true     | Boolean  | Whether to ignore delete statements.                                              |
+| Option                     | Required | Default  | Type     | Description                                                                                    |
+|:---------------------------| :------- | :------- | :------- |:-----------------------------------------------------------------------------------------------|
+| url                        | required | none     | String   | The ClickHouse jdbc url in format `clickhouse://<host>:<port>`.                                |
+| username                   | optional | none     | String   | The 'username' and 'password' must both be specified if any of them is specified.              |
+| password                   | optional | none     | String   | The ClickHouse password.                                                                       |
+| database-name              | optional | default  | String   | The ClickHouse database name.                                                                  |
+| table-name                 | required | none     | String   | The ClickHouse table name.                                                                     |
+| use-local                  | required | none     | String   | Directly read/write local tables in case of distributed table engine.                          |
+| sink.batch-size            | optional | 1000     | Integer  | The max flush size, over this will flush data.                                                 |
+| sink.flush-interval        | optional | 1s       | Duration | Over this flush interval mills, asynchronous threads will flush data.                          |
+| sink.max-retries           | optional | 3        | Integer  | The max retry times when writing records to the database failed.                               |
+| sink.write-local           | optional | false    | Boolean  | Deprecated, use `use-local` instead.<br/> Directly write data to local tables.                 |
+| sink.partition-strategy    | optional | balanced | String   | Partition strategy: balanced(round-robin), hash(partition key), shuffle(random).               |
+| sink.partition-key         | optional | none     | String   | Partition key used for hash strategy.                                                          |
+| sink.ignore-delete         | optional | true     | Boolean  | Whether to ignore delete statements.                                                           |
+| scan.partition.column      | optional | true     | Boolean  | The column name used for partitioning the input, only accept long type.                        |
+| scan.partition.num         | optional | true     | Boolean  | The number of partitions.                                                                      |
+| scan.partition.lower-bound | optional | true     | Boolean  | The smallest value of the first partition.                                                     |
+| scan.partition.upper-bound | optional | true     | Boolean  | The largest value of the last partition.                                                       |
 | catalog.ignore-primary-key | optional | true  | Boolean  | Whether to ignore primary keys when using ClickHouseCatalog to create table. defaults to true. |
 
 **Upsert mode notice:**  
@@ -60,7 +65,7 @@ The original code comes from AliYun. On this basis, I have done some bug fixes, 
 <dependency>
     <groupId>org.apache.flink</groupId>
     <artifactId>flink-connector-clickhouse</artifactId>
-    <version>1.12.0-SNAPSHOT</version>
+    <version>1.13.2-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -120,4 +125,4 @@ tableEnv.executeSql("insert into `clickhouse`.`default`.`t_table` select...");
 - [x] Implement the Flink SQL Sink function.
 - [x] Support array and Map types.
 - [x] Support ClickHouseCatalog.
-- [ ] Implement the Flink SQL Source function.
+- [x] Implement the Flink SQL Source function.

@@ -52,7 +52,7 @@ public class ClickHouseRowConverter implements Serializable {
         this.toInternalConverters = new DeserializationConverter[rowType.getFieldCount()];
         this.toExternalConverters = new SerializationConverter[rowType.getFieldCount()];
 
-        for (int i = 0; i < rowType.getFieldCount(); ++i) {
+        for (int i = 0; i < rowType.getFieldCount(); i++) {
             this.toInternalConverters[i] = createToInternalConverter(rowType.getTypeAt(i));
             this.toExternalConverters[i] = createToExternalConverter(logicalTypes[i]);
         }
@@ -60,7 +60,7 @@ public class ClickHouseRowConverter implements Serializable {
 
     public RowData toInternal(ResultSet resultSet) throws SQLException {
         GenericRowData genericRowData = new GenericRowData(rowType.getFieldCount());
-        for (int pos = 0; pos < rowType.getFieldCount(); ++pos) {
+        for (int pos = 0; pos < rowType.getFieldCount(); pos++) {
             Object field = resultSet.getObject(pos + 1);
             if (field != null) {
                 genericRowData.setField(pos, toInternalConverters[pos].deserialize(field));
@@ -73,7 +73,7 @@ public class ClickHouseRowConverter implements Serializable {
 
     public void toExternal(RowData rowData, ClickHousePreparedStatement statement)
             throws SQLException {
-        for (int index = 0; index < rowData.getArity(); ++index) {
+        for (int index = 0; index < rowData.getArity(); index++) {
             if (!rowData.isNullAt(index)) {
                 toExternalConverters[index].serialize(rowData, index, statement);
             } else {
