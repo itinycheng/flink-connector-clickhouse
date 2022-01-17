@@ -1,8 +1,3 @@
-//
-// Source code recreated from a .class file by IntelliJ IDEA
-// (powered by FernFlower decompiler)
-//
-
 package org.apache.flink.connector.clickhouse.internal.connection;
 
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseConnectionOptions;
@@ -74,18 +69,36 @@ public class ClickHouseConnectionProvider implements Serializable {
         return connection;
     }
 
-    public synchronized List<ClickHouseConnection> getOrCreateShardConnections(
+    public synchronized List<ClickHouseConnection> createShardConnections(
             String shardCluster, String shardDatabase) throws SQLException {
-        if (shardConnections == null) {
-            shardConnections = createShardConnections(shardCluster, shardDatabase);
+        List<String> shardUrls = getShardUrls(shardCluster);
+        if (shardUrls.isEmpty()) {
+            throw new SQLException("Unable to query shards in system.clusters");
         }
 
-        return shardConnections;
+        List<ClickHouseConnection> connections = new ArrayList<>();
+        for (String shardUrl : shardUrls) {
+            ClickHouseConnection connection =
+                    createAndStoreShardConnection(shardUrl, shardDatabase);
+            connections.add(connection);
+        }
+
+        return connections;
     }
 
-    private List<ClickHouseConnection> createShardConnections(
-            String remoteCluster, String remoteDatabase) throws SQLException {
-        List<ClickHouseConnection> shardConnections = new ArrayList<>();
+    public synchronized ClickHouseConnection createAndStoreShardConnection(
+            String url, String database) throws SQLException {
+        if (shardConnections == null) {
+            shardConnections = new ArrayList<>();
+        }
+
+        ClickHouseConnection connection = createConnection(url, database);
+        shardConnections.add(connection);
+        return connection;
+    }
+
+    public List<String> getShardUrls(String remoteCluster) throws SQLException {
+        List<String> urls = new ArrayList<>();
         ClickHouseConnection conn = getOrCreateConnection();
         try (PreparedStatement stmt = conn.prepareStatement(QUERY_CLUSTER_INFO_SQL)) {
             stmt.setString(1, remoteCluster);
@@ -93,17 +106,12 @@ public class ClickHouseConnectionProvider implements Serializable {
                 while (rs.next()) {
                     String host = rs.getString("host_address");
                     int port = getActualHttpPort(host, rs.getInt("port"));
-                    String url = "clickhouse://" + host + ":" + port;
-                    shardConnections.add(createConnection(url, remoteDatabase));
+                    urls.add("clickhouse://" + host + ":" + port);
                 }
             }
         }
 
-        if (shardConnections.isEmpty()) {
-            throw new SQLException("unable to query shards in system.clusters");
-        }
-
-        return shardConnections;
+        return urls;
     }
 
     private ClickHouseConnection createConnection(String url, String database) throws SQLException {

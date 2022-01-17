@@ -270,7 +270,7 @@ public class ClickHouseCatalog extends AbstractCatalog {
         String tableName = tablePath.getObjectName();
         try {
             DistributedEngineFullSchema engineFullSchema =
-                    ClickHouseUtil.getAndParseEngineFullSchema(
+                    ClickHouseUtil.getAndParseDistributedEngineSchema(
                             connection, tablePath.getDatabaseName(), tablePath.getObjectName());
             if (engineFullSchema != null) {
                 databaseName = engineFullSchema.getDatabase();

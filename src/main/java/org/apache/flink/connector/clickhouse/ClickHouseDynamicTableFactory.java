@@ -1,8 +1,3 @@
-//
-// Source code recreated from a .class file by IntelliJ IDEA
-// (powered by FernFlower decompiler)
-//
-
 package org.apache.flink.connector.clickhouse;
 
 import org.apache.flink.configuration.ConfigOption;
@@ -61,7 +56,7 @@ public class ClickHouseDynamicTableFactory
         validateConfigOptions(config);
 
         return new ClickHouseDynamicTableSink(
-                getOptions(config),
+                getDmlOptions(config),
                 context.getCatalogTable(),
                 context.getCatalogTable().getResolvedSchema());
     }
@@ -132,10 +127,16 @@ public class ClickHouseDynamicTableFactory
                 ^ config.getOptional(PASSWORD).isPresent()) {
             throw new IllegalArgumentException(
                     "Either all or none of username and password should be provided");
+        } else if (config.getOptional(SCAN_PARTITION_COLUMN).isPresent()
+                ^ config.getOptional(SCAN_PARTITION_NUM).isPresent()
+                ^ config.getOptional(SCAN_PARTITION_LOWER_BOUND).isPresent()
+                ^ config.getOptional(SCAN_PARTITION_UPPER_BOUND).isPresent()) {
+            throw new IllegalArgumentException(
+                    "Either all or none of partition configs should be provided");
         }
     }
 
-    private ClickHouseOptions getOptions(ReadableConfig config) {
+    private ClickHouseOptions getDmlOptions(ReadableConfig config) {
         return new ClickHouseOptions.Builder()
                 .withUrl(config.get(URL))
                 .withUsername(config.get(USERNAME))
@@ -146,6 +147,7 @@ public class ClickHouseDynamicTableFactory
                 .withFlushInterval(config.get(SINK_FLUSH_INTERVAL))
                 .withMaxRetries(config.get(SINK_MAX_RETRIES))
                 .withWriteLocal(config.get(SINK_WRITE_LOCAL))
+                .withUseLocal(config.get(USE_LOCAL))
                 .withPartitionStrategy(config.get(SINK_PARTITION_STRATEGY))
                 .withPartitionKey(config.get(SINK_PARTITION_KEY))
                 .withIgnoreDelete(config.get(SINK_IGNORE_DELETE))

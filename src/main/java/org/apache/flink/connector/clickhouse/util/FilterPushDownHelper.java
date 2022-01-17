@@ -10,6 +10,8 @@ import org.apache.flink.table.functions.FunctionDefinition;
 import ru.yandex.clickhouse.util.ClickHouseValueFormatter;
 
 import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.List;
@@ -174,19 +176,22 @@ public class FilterPushDownHelper {
                 .getValueAs(expression.getOutputDataType().getLogicalType().getDefaultConversion())
                 .map(
                         o -> {
+                            TimeZone timeZone = getFlinkTimeZone();
                             String value;
                             if (o instanceof Time) {
                                 value =
                                         ClickHouseValueFormatter.formatTimestamp(
                                                 toFixedDateTimestamp(((Time) o).toLocalTime()),
-                                                getFlinkTimeZone());
+                                                timeZone);
                             } else if (o instanceof LocalTime) {
                                 value =
                                         ClickHouseValueFormatter.formatTimestamp(
-                                                toFixedDateTimestamp((LocalTime) o),
-                                                getFlinkTimeZone());
+                                                toFixedDateTimestamp((LocalTime) o), timeZone);
+                            } else if (o instanceof Instant) {
+                                value =
+                                        ClickHouseValueFormatter.formatTimestamp(
+                                                Timestamp.from((Instant) o), timeZone);
                             } else {
-                                TimeZone timeZone = getFlinkTimeZone();
                                 value =
                                         ClickHouseValueFormatter.formatObject(
                                                 o, timeZone, timeZone);
@@ -196,7 +201,6 @@ public class FilterPushDownHelper {
                                     ClickHouseValueFormatter.needsQuoting(o)
                                             ? String.join(EMPTY, "'", value, "'")
                                             : value;
-
                             return value;
                         });
     }

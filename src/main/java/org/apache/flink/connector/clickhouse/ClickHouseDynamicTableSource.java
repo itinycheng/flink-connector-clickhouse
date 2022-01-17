@@ -2,7 +2,6 @@ package org.apache.flink.connector.clickhouse;
 
 import org.apache.flink.connector.clickhouse.internal.AbstractClickHouseInputFormat;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseReadOptions;
-import org.apache.flink.connector.clickhouse.split.ClickHouseBetweenParametersProvider;
 import org.apache.flink.connector.clickhouse.util.FilterPushDownHelper;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.catalog.CatalogTable;
@@ -68,19 +67,6 @@ public class ClickHouseDynamicTableSource
                                         physicalSchema.toRowDataType()))
                         .withFilterClause(filterClause)
                         .withLimit(limit);
-
-        if (readOptions.getPartitionColumn() != null) {
-            ClickHouseBetweenParametersProvider parametersProvider =
-                    new ClickHouseBetweenParametersProvider(
-                                    readOptions.getPartitionLowerBound(),
-                                    readOptions.getPartitionUpperBound())
-                            .ofBatchNum(readOptions.getPartitionNum());
-            builder.withSplitParametersProvider(parametersProvider)
-                    .withSplitParametersClause(
-                            String.format(
-                                    ClickHouseBetweenParametersProvider.BETWEEN_CLAUSE,
-                                    readOptions.getPartitionColumn()));
-        }
         return InputFormatProvider.of(builder.build());
     }
 
