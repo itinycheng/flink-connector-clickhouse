@@ -2,7 +2,8 @@
 
 [Flink](https://github.com/apache/flink) SQL connector for [ClickHouse](https://github.com/yandex/ClickHouse) database, this project Powered by [ClickHouse JDBC](https://github.com/ClickHouse/clickhouse-jdbc).
 
-The original code comes from AliYun. On this basis, I have done some bug fixes, code optimizations and more data type support. Currently the project only supports `Sink Table`, the `Source Table` will be implemented in the future.
+Currently, the project supports `Source/Sink Table` and `Flink Catalog`.  
+Please create issues if you encounter bugs and any help about the project is greatly appreciated.
 
 ## Connector Options
 

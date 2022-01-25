@@ -4,7 +4,7 @@ import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
-import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
+import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner;
 import org.apache.flink.runtime.util.ExecutorThreadFactory;
 import org.apache.flink.table.catalog.UniqueConstraint;
@@ -114,7 +114,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
 
         private DataType[] fieldDataTypes;
 
-        private ClickHouseOptions options;
+        private ClickHouseDmlOptions options;
 
         private String[] fieldNames;
 
@@ -124,7 +124,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
 
         public Builder() {}
 
-        public AbstractClickHouseOutputFormat.Builder withOptions(ClickHouseOptions options) {
+        public AbstractClickHouseOutputFormat.Builder withOptions(ClickHouseDmlOptions options) {
             this.options = options;
             return this;
         }

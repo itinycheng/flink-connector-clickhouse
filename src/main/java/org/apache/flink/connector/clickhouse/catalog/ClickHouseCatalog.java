@@ -420,7 +420,7 @@ public class ClickHouseCatalog extends AbstractCatalog {
     @Override
     public List<CatalogPartitionSpec> listPartitions(ObjectPath tablePath)
             throws TableNotExistException, TableNotPartitionedException, CatalogException {
-        throw new UnsupportedOperationException();
+        return Collections.emptyList();
     }
 
     @Override
@@ -428,20 +428,20 @@ public class ClickHouseCatalog extends AbstractCatalog {
             ObjectPath tablePath, CatalogPartitionSpec partitionSpec)
             throws TableNotExistException, TableNotPartitionedException,
                     PartitionSpecInvalidException, CatalogException {
-        throw new UnsupportedOperationException();
+        return Collections.emptyList();
     }
 
     @Override
     public List<CatalogPartitionSpec> listPartitionsByFilter(
             ObjectPath tablePath, List<Expression> filters)
             throws TableNotExistException, TableNotPartitionedException, CatalogException {
-        throw new UnsupportedOperationException();
+        return Collections.emptyList();
     }
 
     @Override
     public CatalogPartition getPartition(ObjectPath tablePath, CatalogPartitionSpec partitionSpec)
             throws PartitionNotExistException, CatalogException {
-        throw new UnsupportedOperationException();
+        throw new PartitionNotExistException(getName(), tablePath, partitionSpec);
     }
 
     @Override
@@ -523,7 +523,7 @@ public class ClickHouseCatalog extends AbstractCatalog {
     @Override
     public CatalogTableStatistics getTableStatistics(ObjectPath tablePath)
             throws TableNotExistException, CatalogException {
-        throw new UnsupportedOperationException();
+        return CatalogTableStatistics.UNKNOWN;
     }
 
     @Override
@@ -536,7 +536,7 @@ public class ClickHouseCatalog extends AbstractCatalog {
     public CatalogTableStatistics getPartitionStatistics(
             ObjectPath tablePath, CatalogPartitionSpec partitionSpec)
             throws PartitionNotExistException, CatalogException {
-        throw new UnsupportedOperationException();
+        return CatalogTableStatistics.UNKNOWN;
     }
 
     @Override

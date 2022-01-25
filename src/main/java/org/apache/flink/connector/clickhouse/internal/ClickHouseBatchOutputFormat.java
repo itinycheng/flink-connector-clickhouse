@@ -2,7 +2,7 @@ package org.apache.flink.connector.clickhouse.internal;
 
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
-import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
+import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.util.Preconditions;
@@ -27,7 +27,7 @@ public class ClickHouseBatchOutputFormat extends AbstractClickHouseOutputFormat 
 
     private final LogicalType[] fieldTypes;
 
-    private final ClickHouseOptions options;
+    private final ClickHouseDmlOptions options;
 
     private transient ClickHouseExecutor executor;
 
@@ -39,7 +39,7 @@ public class ClickHouseBatchOutputFormat extends AbstractClickHouseOutputFormat 
             @Nonnull String[] keyFields,
             @Nonnull String[] partitionFields,
             @Nonnull LogicalType[] fieldTypes,
-            @Nonnull ClickHouseOptions options) {
+            @Nonnull ClickHouseDmlOptions options) {
         this.connectionProvider = Preconditions.checkNotNull(connectionProvider);
         this.fieldNames = Preconditions.checkNotNull(fieldNames);
         this.keyFields = Preconditions.checkNotNull(keyFields);

@@ -9,7 +9,7 @@ import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.connector.clickhouse.internal.ClickHouseShardOutputFormat;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
-import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
+import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.table.data.RowData;
 
 import org.slf4j.Logger;
@@ -37,7 +37,7 @@ public class ClickHouseBatchExecutor implements ClickHouseExecutor {
     private transient ClickHouseConnectionProvider connectionProvider;
 
     public ClickHouseBatchExecutor(
-            String insertSql, ClickHouseRowConverter converter, ClickHouseOptions options) {
+            String insertSql, ClickHouseRowConverter converter, ClickHouseDmlOptions options) {
         this.insertSql = insertSql;
         this.converter = converter;
         this.maxRetries = options.getMaxRetries();

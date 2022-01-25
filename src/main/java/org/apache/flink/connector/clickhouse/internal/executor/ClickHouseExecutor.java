@@ -9,7 +9,7 @@ import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.connector.clickhouse.internal.ClickHouseStatementFactory;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
-import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
+import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.logical.LogicalType;
@@ -76,7 +76,7 @@ public interface ClickHouseExecutor extends Serializable {
             String[] keyFields,
             String[] partitionFields,
             LogicalType[] fieldTypes,
-            ClickHouseOptions options) {
+            ClickHouseDmlOptions options) {
         if (keyFields.length > 0) {
             return createUpsertExecutor(
                     tableName,
@@ -96,7 +96,7 @@ public interface ClickHouseExecutor extends Serializable {
             String tableName,
             String[] fieldNames,
             LogicalType[] fieldTypes,
-            ClickHouseOptions options) {
+            ClickHouseDmlOptions options) {
         String insertSql = ClickHouseStatementFactory.getInsertIntoStatement(tableName, fieldNames);
         ClickHouseRowConverter converter = new ClickHouseRowConverter(RowType.of(fieldTypes));
         return new ClickHouseBatchExecutor(insertSql, converter, options);
@@ -110,7 +110,7 @@ public interface ClickHouseExecutor extends Serializable {
             String[] keyFields,
             String[] partitionFields,
             LogicalType[] fieldTypes,
-            ClickHouseOptions options) {
+            ClickHouseDmlOptions options) {
         String insertSql = ClickHouseStatementFactory.getInsertIntoStatement(tableName, fieldNames);
         String updateSql =
                 ClickHouseStatementFactory.getUpdateStatement(

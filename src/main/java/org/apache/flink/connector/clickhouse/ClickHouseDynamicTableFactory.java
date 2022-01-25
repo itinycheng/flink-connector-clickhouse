@@ -2,7 +2,7 @@ package org.apache.flink.connector.clickhouse;
 
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ReadableConfig;
-import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
+import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseReadOptions;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
@@ -136,8 +136,8 @@ public class ClickHouseDynamicTableFactory
         }
     }
 
-    private ClickHouseOptions getDmlOptions(ReadableConfig config) {
-        return new ClickHouseOptions.Builder()
+    private ClickHouseDmlOptions getDmlOptions(ReadableConfig config) {
+        return new ClickHouseDmlOptions.Builder()
                 .withUrl(config.get(URL))
                 .withUsername(config.get(USERNAME))
                 .withPassword(config.get(PASSWORD))
