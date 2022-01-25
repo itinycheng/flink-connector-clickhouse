@@ -1,7 +1,7 @@
 package org.apache.flink.connector.clickhouse;
 
 import org.apache.flink.connector.clickhouse.internal.AbstractClickHouseOutputFormat;
-import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
+import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.table.catalog.CatalogTable;
 import org.apache.flink.table.catalog.Column;
 import org.apache.flink.table.catalog.ResolvedSchema;
@@ -28,14 +28,14 @@ public class ClickHouseDynamicTableSink implements DynamicTableSink, SupportsPar
 
     private final ResolvedSchema tableSchema;
 
-    private final ClickHouseOptions options;
+    private final ClickHouseDmlOptions options;
 
     private boolean dynamicGrouping = false;
 
     private LinkedHashMap<String, String> staticPartitionSpec = new LinkedHashMap<>();
 
     public ClickHouseDynamicTableSink(
-            ClickHouseOptions options, CatalogTable catalogTable, ResolvedSchema tableSchema) {
+            ClickHouseDmlOptions options, CatalogTable catalogTable, ResolvedSchema tableSchema) {
         this.options = options;
         this.catalogTable = catalogTable;
         this.tableSchema = tableSchema;

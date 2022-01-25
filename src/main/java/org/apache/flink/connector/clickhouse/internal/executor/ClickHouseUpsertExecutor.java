@@ -9,7 +9,7 @@ import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.connector.clickhouse.internal.ClickHouseShardOutputFormat;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
-import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
+import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.table.data.RowData;
 
 import org.slf4j.Logger;
@@ -63,7 +63,7 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
             ClickHouseRowConverter deleteConverter,
             Function<RowData, RowData> updateExtractor,
             Function<RowData, RowData> deleteExtractor,
-            ClickHouseOptions options) {
+            ClickHouseDmlOptions options) {
         this.insertSql = insertSql;
         this.updateSql = updateSql;
         this.deleteSql = deleteSql;

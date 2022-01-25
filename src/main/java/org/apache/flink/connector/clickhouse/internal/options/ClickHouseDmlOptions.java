@@ -4,8 +4,8 @@ import javax.annotation.Nullable;
 
 import java.time.Duration;
 
-/** ClickHouse properties. */
-public class ClickHouseOptions extends ClickHouseConnectionOptions {
+/** ClickHouse data modify language options. */
+public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
 
     private static final long serialVersionUID = 1L;
 
@@ -23,7 +23,7 @@ public class ClickHouseOptions extends ClickHouseConnectionOptions {
 
     private final boolean ignoreDelete;
 
-    private ClickHouseOptions(
+    private ClickHouseDmlOptions(
             String url,
             @Nullable String username,
             @Nullable String password,
@@ -74,7 +74,7 @@ public class ClickHouseOptions extends ClickHouseConnectionOptions {
         return this.ignoreDelete;
     }
 
-    /** Builder for {@link ClickHouseOptions}. */
+    /** Builder for {@link ClickHouseDmlOptions}. */
     public static class Builder {
         private String url;
         private String username;
@@ -92,73 +92,73 @@ public class ClickHouseOptions extends ClickHouseConnectionOptions {
 
         public Builder() {}
 
-        public ClickHouseOptions.Builder withUrl(String url) {
+        public ClickHouseDmlOptions.Builder withUrl(String url) {
             this.url = url;
             return this;
         }
 
-        public ClickHouseOptions.Builder withUsername(String username) {
+        public ClickHouseDmlOptions.Builder withUsername(String username) {
             this.username = username;
             return this;
         }
 
-        public ClickHouseOptions.Builder withPassword(String password) {
+        public ClickHouseDmlOptions.Builder withPassword(String password) {
             this.password = password;
             return this;
         }
 
-        public ClickHouseOptions.Builder withDatabaseName(String databaseName) {
+        public ClickHouseDmlOptions.Builder withDatabaseName(String databaseName) {
             this.databaseName = databaseName;
             return this;
         }
 
-        public ClickHouseOptions.Builder withTableName(String tableName) {
+        public ClickHouseDmlOptions.Builder withTableName(String tableName) {
             this.tableName = tableName;
             return this;
         }
 
-        public ClickHouseOptions.Builder withBatchSize(int batchSize) {
+        public ClickHouseDmlOptions.Builder withBatchSize(int batchSize) {
             this.batchSize = batchSize;
             return this;
         }
 
-        public ClickHouseOptions.Builder withFlushInterval(Duration flushInterval) {
+        public ClickHouseDmlOptions.Builder withFlushInterval(Duration flushInterval) {
             this.flushInterval = flushInterval;
             return this;
         }
 
-        public ClickHouseOptions.Builder withMaxRetries(int maxRetries) {
+        public ClickHouseDmlOptions.Builder withMaxRetries(int maxRetries) {
             this.maxRetries = maxRetries;
             return this;
         }
 
-        public ClickHouseOptions.Builder withWriteLocal(Boolean writeLocal) {
+        public ClickHouseDmlOptions.Builder withWriteLocal(Boolean writeLocal) {
             this.writeLocal = writeLocal;
             return this;
         }
 
-        public ClickHouseOptions.Builder withUseLocal(Boolean useLocal) {
+        public ClickHouseDmlOptions.Builder withUseLocal(Boolean useLocal) {
             this.useLocal = useLocal;
             return this;
         }
 
-        public ClickHouseOptions.Builder withPartitionStrategy(String partitionStrategy) {
+        public ClickHouseDmlOptions.Builder withPartitionStrategy(String partitionStrategy) {
             this.partitionStrategy = partitionStrategy;
             return this;
         }
 
-        public ClickHouseOptions.Builder withPartitionKey(String partitionKey) {
+        public ClickHouseDmlOptions.Builder withPartitionKey(String partitionKey) {
             this.partitionKey = partitionKey;
             return this;
         }
 
-        public ClickHouseOptions.Builder withIgnoreDelete(boolean ignoreDelete) {
+        public ClickHouseDmlOptions.Builder withIgnoreDelete(boolean ignoreDelete) {
             this.ignoreDelete = ignoreDelete;
             return this;
         }
 
-        public ClickHouseOptions build() {
-            return new ClickHouseOptions(
+        public ClickHouseDmlOptions build() {
+            return new ClickHouseDmlOptions(
                     url,
                     username,
                     password,

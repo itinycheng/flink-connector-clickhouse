@@ -3,7 +3,7 @@ package org.apache.flink.connector.clickhouse.internal;
 import org.apache.flink.connector.clickhouse.internal.common.DistributedEngineFullSchema;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
-import org.apache.flink.connector.clickhouse.internal.options.ClickHouseOptions;
+import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner;
 import org.apache.flink.connector.clickhouse.util.ClickHouseUtil;
 import org.apache.flink.table.data.RowData;
@@ -34,7 +34,7 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
     private final ClickHousePartitioner partitioner;
 
-    private final ClickHouseOptions options;
+    private final ClickHouseDmlOptions options;
 
     private final List<ClickHouseExecutor> shardExecutors;
 
@@ -53,7 +53,7 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
             @Nonnull String[] partitionFields,
             @Nonnull LogicalType[] logicalTypes,
             @Nonnull ClickHousePartitioner partitioner,
-            @Nonnull ClickHouseOptions options) {
+            @Nonnull ClickHouseDmlOptions options) {
         this.connectionProvider = Preconditions.checkNotNull(connectionProvider);
         this.fieldNames = Preconditions.checkNotNull(fieldNames);
         this.keyFields = keyFields;
