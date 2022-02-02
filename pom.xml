@@ -37,10 +37,10 @@
 		<junit.version>4.13.2</junit.version>
 		<clickhouse-jdbc.version>0.3.1</clickhouse-jdbc.version>
 		<scala.binary.version>2.11</scala.binary.version>
-		<flink.version>1.13.2</flink.version>
+		<flink.version>1.14.3</flink.version>
 		<flink.scope>provided</flink.scope>
 		<guava.version>29.0-jre</guava.version>
-		<jackson.version>2.11.2</jackson.version>
+		<jackson.version>2.12.4</jackson.version>
 
 		<maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
 		<maven-shade-plugin.version>3.2.4</maven-shade-plugin.version>
@@ -86,7 +86,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-runtime_${scala.binary.version}</artifactId>
+			<artifactId>flink-runtime</artifactId>
 			<version>${flink.version}</version>
 			<scope>${flink.scope}</scope>
 		</dependency>
