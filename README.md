@@ -105,6 +105,7 @@ SELECT cast(`user_id` as BIGINT), `user_type`, `lang`, `country`, `gender`, `sco
 
 ### Create and use ClickHouseCatalog
 
+#### Scala
 ```scala
 val tEnv = TableEnvironment.create(setting)
 
@@ -118,8 +119,26 @@ val cHcatalog = new ClickHouseCatalog("clickhouse", props)
 tEnv.registerCatalog("clickhouse", cHcatalog)
 tEnv.useCatalog("clickhouse")
 
-tableEnv.executeSql("insert into `clickhouse`.`default`.`t_table` select...");
+tEnv.executeSql("insert into `clickhouse`.`default`.`t_table` select...");
 ```
+
+#### Java
+```java
+TableEnvironment tEnv = TableEnvironment.create(setting)
+
+Map<String, String> props = new HashMap<>();
+props.put(ClickHouseConfig.DATABASE_NAME, "default")
+props.put(ClickHouseConfig.URL, "clickhouse://127.0.0.1:8123")
+props.put(ClickHouseConfig.USERNAME, "username")
+props.put(ClickHouseConfig.PASSWORD, "password")
+props.put(ClickHouseConfig.SINK_FLUSH_INTERVAL, "30s");
+Catalog cHcatalog = new ClickHouseCatalog("clickhouse", props);
+tEnv.registerCatalog("clickhouse", cHcatalog);
+tEnv.useCatalog("clickhouse");
+
+tEnv.executeSql("insert into `clickhouse`.`default`.`t_table` select...");
+```
+
 
 ## Roadmap
 
