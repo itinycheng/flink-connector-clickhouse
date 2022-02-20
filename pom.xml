@@ -7,7 +7,7 @@
 
 	<groupId>org.apache.flink</groupId>
 	<artifactId>flink-connector-clickhouse</artifactId>
-	<version>1.13.2-SNAPSHOT</version>
+	<version>1.14.3-SNAPSHOT</version>
 
 	<name>flink-connector-clickhouse</name>
 	<url>http://www.example.com</url>
