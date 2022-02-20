@@ -66,7 +66,7 @@ Please create issues if you encounter bugs and any help about the project is gre
 <dependency>
     <groupId>org.apache.flink</groupId>
     <artifactId>flink-connector-clickhouse</artifactId>
-    <version>1.13.2-SNAPSHOT</version>
+    <version>1.14.3-SNAPSHOT</version>
 </dependency>
 ```
 
