@@ -29,36 +29,36 @@ Please create issues if you encounter bugs and any help about the project is gre
 | catalog.ignore-primary-key | optional | true  | Boolean  | Whether to ignore primary keys when using ClickHouseCatalog to create table. defaults to true. |
 
 **Upsert mode notice:**  
-1. Distributed table don't support the update/delete statements, if you want to use the update/delete statements, please be sure to write records to local table or set `sink.write-local` to true.  
+1. Distributed table don't support the update/delete statements, if you want to use the update/delete statements, please be sure to write records to local table or set `use-local` to true.  
 2. The data is updated and deleted by the primary key, please be aware of this when using it in the partition table.  
 
 ## Data Type Mapping
 
-| Flink Type          | ClickHouse Type (Sink)                                 | ClickHouse Type (Source) |
-| :------------------ | :----------------------------------------------------- | :----------------------- |
-| CHAR                | String                                                 |                          |
-| VARCHAR             | String / IP / UUID                                     |                          |
-| STRING              | String / Enum                                          |                          |
-| BOOLEAN             | UInt8                                                  |                          |
-| BYTES               | FixedString                                            |                          |
-| DECIMAL             | Decimal / Int128 / Int256 / UInt64 / UInt128 / UInt256 |                          |
-| TINYINT             | Int8                                                   |                          |
-| SMALLINT            | Int16 / UInt8                                          |                          |
-| INTEGER             | Int32 / UInt16 / Interval                              |                          |
-| BIGINT              | Int64 / UInt32                                         |                          |
-| FLOAT               | Float32                                                |                          |
-| DOUBLE              | Float64                                                |                          |
-| DATE                | Date                                                   |                          |
-| TIME                | DateTime                                               |                          |
-| TIMESTAMP           | DateTime                                               |                          |
-| TIMESTAMP_LTZ       | DateTime                                               |                          |
-| INTERVAL_YEAR_MONTH | Int32                                                  |                          |
-| INTERVAL_DAY_TIME   | Int64                                                  |                          |
-| ARRAY               | Array                                                  |                          |
-| MAP                 | Map                                                    |                          |
-| ROW                 | Not supported                                          |                          |
-| MULTISET            | Not supported                                          |                          |
-| RAW                 | Not supported                                          |                          |
+| Flink Type          | ClickHouse Type                                         |
+| :------------------ |:--------------------------------------------------------|
+| CHAR                | String                                                  |
+| VARCHAR             | String / IP / UUID                                      |
+| STRING              | String / Enum                                           |
+| BOOLEAN             | UInt8                                                   |
+| BYTES               | FixedString                                             |
+| DECIMAL             | Decimal / Int128 / Int256 / UInt64 / UInt128 / UInt256  |
+| TINYINT             | Int8                                                    |
+| SMALLINT            | Int16 / UInt8                                           |
+| INTEGER             | Int32 / UInt16 / Interval                               |
+| BIGINT              | Int64 / UInt32                                          |
+| FLOAT               | Float32                                                 |
+| DOUBLE              | Float64                                                 |
+| DATE                | Date                                                    |
+| TIME                | DateTime                                                |
+| TIMESTAMP           | DateTime                                                |
+| TIMESTAMP_LTZ       | DateTime                                                |
+| INTERVAL_YEAR_MONTH | Int32                                                   |
+| INTERVAL_DAY_TIME   | Int64                                                   |
+| ARRAY               | Array                                                   |
+| MAP                 | Map                                                     |
+| ROW                 | Not supported                                           |
+| MULTISET            | Not supported                                           |
+| RAW                 | Not supported                                           |
 
 ## Maven Dependency
 
@@ -72,7 +72,7 @@ Please create issues if you encounter bugs and any help about the project is gre
 
 ## How to use
 
-### Create and use sink table
+### Create and read/write table
 
 ```SQL
 
@@ -96,6 +96,9 @@ CREATE TABLE t_user (
     'sink.flush-interval' = '1000',
     'sink.max-retries' = '3'
 );
+
+-- read data from clickhouse 
+SELECT user_id, user_type from t_user;
 
 -- write data into the clickhouse table from the table `T`
 INSERT INTO t_user
@@ -139,6 +142,22 @@ tEnv.useCatalog("clickhouse");
 tEnv.executeSql("insert into `clickhouse`.`default`.`t_table` select...");
 ```
 
+#### SQL
+```sql
+> CREATE CATALOG clickhouse WITH (
+    'type' = 'clickhouse',
+    'url' = 'clickhouse://127.0.0.1:8123',
+    'username' = 'username',
+    'password' = 'password',
+    'database-name' = 'default',
+    'use-local' = 'false',
+    ...
+);
+
+> USE CATALOG clickhouse;
+> SELECT user_id, user_type FROM `default`.`t_user` limit 10;
+> INSERT INTO `default`.`t_user` SELECT ...;
+```
 
 ## Roadmap
 
