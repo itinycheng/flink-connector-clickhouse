@@ -29,6 +29,8 @@ import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.toFixedD
 /** convert between internal and external data types. */
 public class ClickHouseConverterUtils {
 
+    public static final int BOOL_TRUE = 1;
+
     public static Object toExternal(Object value, LogicalType type) {
         switch (type.getTypeRoot()) {
             case BOOLEAN:
@@ -103,6 +105,7 @@ public class ClickHouseConverterUtils {
             case NULL:
                 return null;
             case BOOLEAN:
+                return BOOL_TRUE == ((Number) value).intValue();
             case FLOAT:
             case DOUBLE:
             case INTERVAL_YEAR_MONTH:
@@ -146,12 +149,20 @@ public class ClickHouseConverterUtils {
                 Object[] internalArray = new Object[externalArrayLength];
                 for (int i = 0; i < externalArrayLength; i++) {
                     internalArray[i] =
-                            ClickHouseConverterUtils.toInternal(
-                                    java.lang.reflect.Array.get(externalArray, i), elementType);
+                            toInternal(java.lang.reflect.Array.get(externalArray, i), elementType);
                 }
                 return new GenericArrayData(internalArray);
             case MAP:
-                return new GenericMapData((Map<?, ?>) value);
+                LogicalType keyType = ((MapType) type).getKeyType();
+                LogicalType valueType = ((MapType) type).getValueType();
+                Map<?, ?> externalMap = (Map<?, ?>) value;
+                Map<Object, Object> internalMap = new HashMap<>(externalMap.size());
+                for (Map.Entry<?, ?> entry : externalMap.entrySet()) {
+                    internalMap.put(
+                            toInternal(entry.getKey(), keyType),
+                            toInternal(entry.getValue(), valueType));
+                }
+                return new GenericMapData(internalMap);
             case ROW:
             case MULTISET:
             case RAW:
