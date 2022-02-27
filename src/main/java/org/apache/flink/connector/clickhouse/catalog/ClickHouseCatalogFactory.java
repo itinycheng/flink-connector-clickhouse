@@ -10,10 +10,22 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfig.IDENTIFIER;
-import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.DEFAULT_DATABASE;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.CATALOG_IGNORE_PRIMARY_KEY;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.DATABASE_NAME;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.PASSWORD;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SCAN_PARTITION_COLUMN;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SCAN_PARTITION_LOWER_BOUND;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SCAN_PARTITION_NUM;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SCAN_PARTITION_UPPER_BOUND;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_BATCH_SIZE;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_FLUSH_INTERVAL;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_IGNORE_DELETE;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_MAX_RETRIES;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_PARTITION_KEY;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_PARTITION_STRATEGY;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.URL;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.USERNAME;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.USE_LOCAL;
 import static org.apache.flink.table.factories.FactoryUtil.PROPERTY_VERSION;
 
 /** Factory for {@link ClickHouseCatalog}. */
@@ -27,10 +39,9 @@ public class ClickHouseCatalogFactory implements CatalogFactory {
     @Override
     public Set<ConfigOption<?>> requiredOptions() {
         final Set<ConfigOption<?>> options = new HashSet<>();
-        options.add(DEFAULT_DATABASE);
+        options.add(URL);
         options.add(USERNAME);
         options.add(PASSWORD);
-        options.add(URL);
         return options;
     }
 
@@ -38,6 +49,21 @@ public class ClickHouseCatalogFactory implements CatalogFactory {
     public Set<ConfigOption<?>> optionalOptions() {
         final Set<ConfigOption<?>> options = new HashSet<>();
         options.add(PROPERTY_VERSION);
+        options.add(DATABASE_NAME);
+        options.add(USE_LOCAL);
+        options.add(CATALOG_IGNORE_PRIMARY_KEY);
+
+        options.add(SINK_BATCH_SIZE);
+        options.add(SINK_FLUSH_INTERVAL);
+        options.add(SINK_MAX_RETRIES);
+        options.add(SINK_PARTITION_STRATEGY);
+        options.add(SINK_PARTITION_KEY);
+        options.add(SINK_IGNORE_DELETE);
+
+        options.add(SCAN_PARTITION_COLUMN);
+        options.add(SCAN_PARTITION_NUM);
+        options.add(SCAN_PARTITION_LOWER_BOUND);
+        options.add(SCAN_PARTITION_UPPER_BOUND);
         return options;
     }
 
@@ -49,7 +75,7 @@ public class ClickHouseCatalogFactory implements CatalogFactory {
 
         return new ClickHouseCatalog(
                 context.getName(),
-                helper.getOptions().get(DEFAULT_DATABASE),
+                helper.getOptions().get(DATABASE_NAME),
                 helper.getOptions().get(URL),
                 helper.getOptions().get(USERNAME),
                 helper.getOptions().get(PASSWORD),
