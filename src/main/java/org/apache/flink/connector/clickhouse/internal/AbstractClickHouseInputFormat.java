@@ -211,19 +211,24 @@ public abstract class AbstractClickHouseInputFormat extends RichInputFormat<RowD
                                 readOptions.getDatabaseName(),
                                 readOptions.getTableName());
 
-                if (engineFullSchema != null) {
-                    List<String> shardUrls =
-                            connectionProvider.getShardUrls(engineFullSchema.getCluster());
-                    if (!shardUrls.isEmpty()) {
-                        int len = shardUrls.size();
-                        int[] dataIds = new int[len];
-                        shardMap = new HashMap<>(len);
-                        for (int i = 0; i < len; i++) {
-                            shardMap.put(i, shardUrls.get(i));
-                            dataIds[i] = i;
-                        }
-                        return dataIds;
+                if (engineFullSchema == null) {
+                    throw new RuntimeException(
+                            String.format(
+                                    "table `%s`.`%s` is not a Distributed table",
+                                    readOptions.getDatabaseName(), readOptions.getTableName()));
+                }
+
+                List<String> shardUrls =
+                        connectionProvider.getShardUrls(engineFullSchema.getCluster());
+                if (!shardUrls.isEmpty()) {
+                    int len = shardUrls.size();
+                    int[] dataIds = new int[len];
+                    shardMap = new HashMap<>(len);
+                    for (int i = 0; i < len; i++) {
+                        shardMap.put(i, shardUrls.get(i));
+                        dataIds[i] = i;
                     }
+                    return dataIds;
                 }
             } catch (Exception exception) {
                 throw new RuntimeException("Get shard table info failed.", exception);

@@ -2,6 +2,7 @@ package org.apache.flink.connector.clickhouse.internal;
 
 import org.apache.flink.annotation.Experimental;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.clickhouse.internal.common.DistributedEngineFullSchema;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
@@ -67,10 +68,14 @@ public class ClickHouseShardInputFormat extends AbstractClickHouseInputFormat {
     }
 
     @Override
-    public void openInputFormat() {
+    public void configure(Configuration parameters) {
+        super.configure(parameters);
         this.statements = new ArrayList<>();
         this.resultSets = new ArrayList<>();
     }
+
+    @Override
+    public void openInputFormat() {}
 
     @Override
     public void closeInputFormat() {
@@ -185,7 +190,6 @@ public class ClickHouseShardInputFormat extends AbstractClickHouseInputFormat {
 
     @Override
     public InputSplit[] createInputSplits(int minNumSplits) {
-        int splitNum = shardValues != null ? shardValues.length : minNumSplits;
-        return createGenericInputSplits(splitNum);
+        return createGenericInputSplits(shardValues.length);
     }
 }
