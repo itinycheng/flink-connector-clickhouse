@@ -126,7 +126,7 @@ public class ClickHouseBatchInputFormat extends AbstractClickHouseInputFormat {
 
     @Override
     public InputSplit[] createInputSplits(int minNumSplits) {
-        int splitNum = parameterValues != null ? parameterValues.length : minNumSplits;
+        int splitNum = parameterValues != null ? parameterValues.length : 1;
         return createGenericInputSplits(splitNum);
     }
 }
