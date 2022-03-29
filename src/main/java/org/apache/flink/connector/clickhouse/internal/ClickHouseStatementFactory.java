@@ -94,6 +94,18 @@ public class ClickHouseStatementFactory {
                 conditionClause);
     }
 
+    public static String getExistStatement(
+            String tableName, String databaseName, String[] conditionFields) {
+        String conditionClause =
+                Arrays.stream(conditionFields)
+                        .map((f) -> quoteIdentifier(f) + "=?")
+                        .collect(joining(" AND "));
+        return "SELECT 1 FROM "
+                + fromTableClause(tableName, databaseName)
+                + " WHERE "
+                + conditionClause;
+    }
+
     private static String fromTableClause(String tableName, String databaseName) {
         if (databaseName == null) {
             return quoteIdentifier(tableName);

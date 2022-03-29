@@ -124,8 +124,11 @@ public interface ClickHouseExecutor extends Serializable {
                 ClickHouseStatementFactory.getDeleteStatement(
                         tableName, databaseName, clusterName, keyFields);
 
+        String existSql =
+                ClickHouseStatementFactory.getExistStatement(tableName, databaseName, keyFields);
+
         // Re-sort the order of fields to fit the sql statement.
-        int[] delFields =
+        int[] pkFields =
                 Arrays.stream(keyFields)
                         .mapToInt(pk -> ArrayUtils.indexOf(fieldNames, pk))
                         .toArray();
@@ -134,22 +137,26 @@ public interface ClickHouseExecutor extends Serializable {
                         .filter(idx -> !ArrayUtils.contains(keyFields, fieldNames[idx]))
                         .filter(idx -> !ArrayUtils.contains(partitionFields, fieldNames[idx]))
                         .toArray();
-        int[] updFields = ArrayUtils.addAll(updatableFields, delFields);
+        int[] updFields = ArrayUtils.addAll(updatableFields, pkFields);
 
-        LogicalType[] delTypes =
-                Arrays.stream(delFields).mapToObj(f -> fieldTypes[f]).toArray(LogicalType[]::new);
+        LogicalType[] pkTypes =
+                Arrays.stream(pkFields).mapToObj(f -> fieldTypes[f]).toArray(LogicalType[]::new);
         LogicalType[] updTypes =
                 Arrays.stream(updFields).mapToObj(f -> fieldTypes[f]).toArray(LogicalType[]::new);
 
         return new ClickHouseUpsertExecutor(
+                keyFields,
                 insertSql,
                 updateSql,
                 deleteSql,
+                existSql,
                 new ClickHouseRowConverter(RowType.of(fieldTypes)),
                 new ClickHouseRowConverter(RowType.of(updTypes)),
-                new ClickHouseRowConverter(RowType.of(delTypes)),
+                new ClickHouseRowConverter(RowType.of(pkTypes)),
+                new ClickHouseRowConverter(RowType.of(pkTypes)),
                 createExtractor(fieldTypes, updFields),
-                createExtractor(fieldTypes, delFields),
+                createExtractor(fieldTypes, pkFields),
+                createExtractor(fieldTypes, pkFields),
                 options);
     }
 

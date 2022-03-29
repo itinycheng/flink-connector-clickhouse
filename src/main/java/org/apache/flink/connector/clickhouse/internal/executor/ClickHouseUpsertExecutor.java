@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import ru.yandex.clickhouse.ClickHouseConnection;
 import ru.yandex.clickhouse.ClickHousePreparedStatement;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.function.Function;
@@ -28,11 +29,15 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
 
     private static final Logger LOG = LoggerFactory.getLogger(ClickHouseShardOutputFormat.class);
 
+    private final String[] keyFields;
+
     private final String insertSql;
 
     private final String updateSql;
 
     private final String deleteSql;
+
+    private final String existSql;
 
     private final ClickHouseRowConverter insertConverter;
 
@@ -40,9 +45,13 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
 
     private final ClickHouseRowConverter deleteConverter;
 
+    private final ClickHouseRowConverter existConverter;
+
     private final Function<RowData, RowData> updateExtractor;
 
     private final Function<RowData, RowData> deleteExtractor;
+
+    private final Function<RowData, RowData> existExtractor;
 
     private final int maxRetries;
 
@@ -52,26 +61,36 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
 
     private transient ClickHousePreparedStatement deleteStmt;
 
+    private transient ClickHousePreparedStatement existStmt;
+
     private transient ClickHouseConnectionProvider connectionProvider;
 
     public ClickHouseUpsertExecutor(
+            String[] keyFields,
             String insertSql,
             String updateSql,
             String deleteSql,
+            String existSql,
             ClickHouseRowConverter insertConverter,
             ClickHouseRowConverter updateConverter,
             ClickHouseRowConverter deleteConverter,
+            ClickHouseRowConverter existConverter,
             Function<RowData, RowData> updateExtractor,
             Function<RowData, RowData> deleteExtractor,
+            Function<RowData, RowData> existExtractor,
             ClickHouseDmlOptions options) {
+        this.keyFields = keyFields;
         this.insertSql = insertSql;
         this.updateSql = updateSql;
         this.deleteSql = deleteSql;
+        this.existSql = existSql;
         this.insertConverter = insertConverter;
         this.updateConverter = updateConverter;
         this.deleteConverter = deleteConverter;
+        this.existConverter = existConverter;
         this.updateExtractor = updateExtractor;
         this.deleteExtractor = deleteExtractor;
+        this.existExtractor = existExtractor;
         this.maxRetries = options.getMaxRetries();
     }
 
@@ -80,6 +99,7 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
         this.insertStmt = (ClickHousePreparedStatement) connection.prepareStatement(this.insertSql);
         this.updateStmt = (ClickHousePreparedStatement) connection.prepareStatement(this.updateSql);
         this.deleteStmt = (ClickHousePreparedStatement) connection.prepareStatement(this.deleteSql);
+        this.existStmt = (ClickHousePreparedStatement) connection.prepareStatement(this.existSql);
     }
 
     @Override
@@ -96,12 +116,14 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
     public void addToBatch(RowData record) throws SQLException {
         switch (record.getRowKind()) {
             case INSERT:
-                insertConverter.toExternal(record, insertStmt);
-                insertStmt.addBatch();
-                break;
             case UPDATE_AFTER:
-                updateConverter.toExternal(updateExtractor.apply(record), updateStmt);
-                updateStmt.addBatch();
+                if (exist(record)) {
+                    updateConverter.toExternal(updateExtractor.apply(record), updateStmt);
+                    updateStmt.addBatch();
+                } else {
+                    insertConverter.toExternal(record, insertStmt);
+                    insertStmt.addBatch();
+                }
                 break;
             case DELETE:
                 deleteConverter.toExternal(deleteExtractor.apply(record), deleteStmt);
@@ -114,6 +136,13 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
                         String.format(
                                 "Unknown row kind, the supported row kinds is: INSERT, UPDATE_BEFORE, UPDATE_AFTER, DELETE, but get: %s.",
                                 record.getRowKind()));
+        }
+    }
+
+    private boolean exist(RowData record) throws SQLException {
+        existConverter.toExternal(existExtractor.apply(record), existStmt);
+        try (ResultSet resultSet = existStmt.executeQuery()) {
+            return resultSet.next();
         }
     }
 
