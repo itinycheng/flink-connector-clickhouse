@@ -29,8 +29,6 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
 
     private static final Logger LOG = LoggerFactory.getLogger(ClickHouseShardOutputFormat.class);
 
-    private final String[] keyFields;
-
     private final String insertSql;
 
     private final String updateSql;
@@ -66,7 +64,6 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
     private transient ClickHouseConnectionProvider connectionProvider;
 
     public ClickHouseUpsertExecutor(
-            String[] keyFields,
             String insertSql,
             String updateSql,
             String deleteSql,
@@ -79,7 +76,6 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
             Function<RowData, RowData> deleteExtractor,
             Function<RowData, RowData> existExtractor,
             ClickHouseDmlOptions options) {
-        this.keyFields = keyFields;
         this.insertSql = insertSql;
         this.updateSql = updateSql;
         this.deleteSql = deleteSql;

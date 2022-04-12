@@ -145,7 +145,6 @@ public interface ClickHouseExecutor extends Serializable {
                 Arrays.stream(updFields).mapToObj(f -> fieldTypes[f]).toArray(LogicalType[]::new);
 
         return new ClickHouseUpsertExecutor(
-                keyFields,
                 insertSql,
                 updateSql,
                 deleteSql,
