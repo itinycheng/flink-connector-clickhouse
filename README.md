@@ -1,20 +1,21 @@
 # Flink ClickHouse Connector
 
-[Flink](https://github.com/apache/flink) SQL connector for [ClickHouse](https://github.com/yandex/ClickHouse) database, this project Powered by [ClickHouse JDBC](https://github.com/ClickHouse/clickhouse-jdbc).
+[Flink](https://github.com/apache/flink) SQL connector for [ClickHouse](https://github.com/yandex/ClickHouse) database,
+this project Powered by [ClickHouse JDBC](https://github.com/ClickHouse/clickhouse-jdbc).
 
 Currently, the project supports `Source/Sink Table` and `Flink Catalog`.  
-Please create issues if you encounter bugs and any help about the project is greatly appreciated.
+Please create issues if you encounter bugs and any help for the project is greatly appreciated.
 
 ## Connector Options
 
 | Option                     | Required | Default  | Type     | Description                                                                                    |
-|:---------------------------| :------- | :------- | :------- |:-----------------------------------------------------------------------------------------------|
+|:---------------------------| :------- |:---------|:---------|:-----------------------------------------------------------------------------------------------|
 | url                        | required | none     | String   | The ClickHouse jdbc url in format `clickhouse://<host>:<port>`.                                |
 | username                   | optional | none     | String   | The 'username' and 'password' must both be specified if any of them is specified.              |
 | password                   | optional | none     | String   | The ClickHouse password.                                                                       |
 | database-name              | optional | default  | String   | The ClickHouse database name.                                                                  |
 | table-name                 | required | none     | String   | The ClickHouse table name.                                                                     |
-| use-local                  | required | none     | String   | Directly read/write local tables in case of distributed table engine.                          |
+| use-local                  | optional | false    | Boolean  | Directly read/write local tables in case of distributed table engine.                          |
 | sink.batch-size            | optional | 1000     | Integer  | The max flush size, over this will flush data.                                                 |
 | sink.flush-interval        | optional | 1s       | Duration | Over this flush interval mills, asynchronous threads will flush data.                          |
 | sink.max-retries           | optional | 3        | Integer  | The max retry times when writing records to the database failed.                               |
@@ -22,43 +23,46 @@ Please create issues if you encounter bugs and any help about the project is gre
 | sink.partition-strategy    | optional | balanced | String   | Partition strategy: balanced(round-robin), hash(partition key), shuffle(random).               |
 | sink.partition-key         | optional | none     | String   | Partition key used for hash strategy.                                                          |
 | sink.ignore-delete         | optional | true     | Boolean  | Whether to ignore delete statements.                                                           |
-| scan.partition.column      | optional | true     | Boolean  | The column name used for partitioning the input, only accept long type.                        |
-| scan.partition.num         | optional | true     | Boolean  | The number of partitions.                                                                      |
-| scan.partition.lower-bound | optional | true     | Boolean  | The smallest value of the first partition.                                                     |
-| scan.partition.upper-bound | optional | true     | Boolean  | The largest value of the last partition.                                                       |
-| catalog.ignore-primary-key | optional | true  | Boolean  | Whether to ignore primary keys when using ClickHouseCatalog to create table. defaults to true. |
+| sink.parallelism           | optional | none     | Integer  | Defines a custom parallelism for the sink.                                                     |
+| scan.partition.column      | optional | none     | String   | The column name used for partitioning the input.                                               |
+| scan.partition.num         | optional | none     | Integer  | The number of partitions.                                                                      |
+| scan.partition.lower-bound | optional | none     | Long     | The smallest value of the first partition.                                                     |
+| scan.partition.upper-bound | optional | none     | Long     | The largest value of the last partition.                                                       |
+| catalog.ignore-primary-key | optional | true     | Boolean  | Whether to ignore primary keys when using ClickHouseCatalog to create table. defaults to true. |
 
-**Upsert mode notice:**  
-1. Distributed table don't support the update/delete statements, if you want to use the update/delete statements, please be sure to write records to local table or set `sink.write-local` to true.  
-2. The data is updated and deleted by the primary key, please be aware of this when using it in the partition table.  
+**Upsert mode notice:**
+
+1. Distributed table don't support the update/delete statements, if you want to use the update/delete statements, please
+   be sure to write records to local table or set `use-local` to true.
+2. The data is updated and deleted by the primary key, please be aware of this when using it in the partition table.
 
 ## Data Type Mapping
 
-| Flink Type          | ClickHouse Type (Sink)                                 | ClickHouse Type (Source) |
-| :------------------ | :----------------------------------------------------- | :----------------------- |
-| CHAR                | String                                                 |                          |
-| VARCHAR             | String / IP / UUID                                     |                          |
-| STRING              | String / Enum                                          |                          |
-| BOOLEAN             | UInt8                                                  |                          |
-| BYTES               | FixedString                                            |                          |
-| DECIMAL             | Decimal / Int128 / Int256 / UInt64 / UInt128 / UInt256 |                          |
-| TINYINT             | Int8                                                   |                          |
-| SMALLINT            | Int16 / UInt8                                          |                          |
-| INTEGER             | Int32 / UInt16 / Interval                              |                          |
-| BIGINT              | Int64 / UInt32                                         |                          |
-| FLOAT               | Float32                                                |                          |
-| DOUBLE              | Float64                                                |                          |
-| DATE                | Date                                                   |                          |
-| TIME                | DateTime                                               |                          |
-| TIMESTAMP           | DateTime                                               |                          |
-| TIMESTAMP_LTZ       | DateTime                                               |                          |
-| INTERVAL_YEAR_MONTH | Int32                                                  |                          |
-| INTERVAL_DAY_TIME   | Int64                                                  |                          |
-| ARRAY               | Array                                                  |                          |
-| MAP                 | Map                                                    |                          |
-| ROW                 | Not supported                                          |                          |
-| MULTISET            | Not supported                                          |                          |
-| RAW                 | Not supported                                          |                          |
+| Flink Type          | ClickHouse Type                                         |
+| :------------------ |:--------------------------------------------------------|
+| CHAR                | String                                                  |
+| VARCHAR             | String / IP / UUID                                      |
+| STRING              | String / Enum                                           |
+| BOOLEAN             | UInt8                                                   |
+| BYTES               | FixedString                                             |
+| DECIMAL             | Decimal / Int128 / Int256 / UInt64 / UInt128 / UInt256  |
+| TINYINT             | Int8                                                    |
+| SMALLINT            | Int16 / UInt8                                           |
+| INTEGER             | Int32 / UInt16 / Interval                               |
+| BIGINT              | Int64 / UInt32                                          |
+| FLOAT               | Float32                                                 |
+| DOUBLE              | Float64                                                 |
+| DATE                | Date                                                    |
+| TIME                | DateTime                                                |
+| TIMESTAMP           | DateTime                                                |
+| TIMESTAMP_LTZ       | DateTime                                                |
+| INTERVAL_YEAR_MONTH | Int32                                                   |
+| INTERVAL_DAY_TIME   | Int64                                                   |
+| ARRAY               | Array                                                   |
+| MAP                 | Map                                                     |
+| ROW                 | Not supported                                           |
+| MULTISET            | Not supported                                           |
+| RAW                 | Not supported                                           |
 
 ## Maven Dependency
 
@@ -72,7 +76,7 @@ Please create issues if you encounter bugs and any help about the project is gre
 
 ## How to use
 
-### Create and use sink table
+### Create and read/write table
 
 ```SQL
 
@@ -97,6 +101,9 @@ CREATE TABLE t_user (
     'sink.max-retries' = '3'
 );
 
+-- read data from clickhouse 
+SELECT user_id, user_type from t_user;
+
 -- write data into the clickhouse table from the table `T`
 INSERT INTO t_user
 SELECT cast(`user_id` as BIGINT), `user_type`, `lang`, `country`, `gender`, `score`, ARRAY['CODER', 'SPORTSMAN'], CAST(MAP['BABA', cast(10 as BIGINT), 'NIO', cast(8 as BIGINT)] AS MAP<STRING, BIGINT>) FROM T;
@@ -106,6 +113,7 @@ SELECT cast(`user_id` as BIGINT), `user_type`, `lang`, `country`, `gender`, `sco
 ### Create and use ClickHouseCatalog
 
 #### Scala
+
 ```scala
 val tEnv = TableEnvironment.create(setting)
 
@@ -123,8 +131,9 @@ tEnv.executeSql("insert into `clickhouse`.`default`.`t_table` select...");
 ```
 
 #### Java
+
 ```java
-TableEnvironment tEnv = TableEnvironment.create(setting)
+TableEnvironment tEnv = TableEnvironment.create(setting);
 
 Map<String, String> props = new HashMap<>();
 props.put(ClickHouseConfig.DATABASE_NAME, "default")
@@ -139,6 +148,23 @@ tEnv.useCatalog("clickhouse");
 tEnv.executeSql("insert into `clickhouse`.`default`.`t_table` select...");
 ```
 
+#### SQL
+
+```sql
+> CREATE CATALOG clickhouse WITH (
+    'type' = 'clickhouse',
+    'url' = 'clickhouse://127.0.0.1:8123',
+    'username' = 'username',
+    'password' = 'password',
+    'database-name' = 'default',
+    'use-local' = 'false',
+    ...
+);
+
+> USE CATALOG clickhouse;
+> SELECT user_id, user_type FROM `default`.`t_user` limit 10;
+> INSERT INTO `default`.`t_user` SELECT ...;
+```
 
 ## Roadmap
 
