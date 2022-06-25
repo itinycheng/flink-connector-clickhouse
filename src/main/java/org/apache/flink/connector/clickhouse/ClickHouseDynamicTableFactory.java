@@ -30,6 +30,7 @@ import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptio
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_FLUSH_INTERVAL;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_IGNORE_DELETE;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_MAX_RETRIES;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_PARALLELISM;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_PARTITION_KEY;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_PARTITION_STRATEGY;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_WRITE_LOCAL;
@@ -106,6 +107,7 @@ public class ClickHouseDynamicTableFactory
         optionalOptions.add(SINK_PARTITION_STRATEGY);
         optionalOptions.add(SINK_PARTITION_KEY);
         optionalOptions.add(SINK_IGNORE_DELETE);
+        optionalOptions.add(SINK_PARALLELISM);
         optionalOptions.add(CATALOG_IGNORE_PRIMARY_KEY);
         optionalOptions.add(SCAN_PARTITION_COLUMN);
         optionalOptions.add(SCAN_PARTITION_NUM);
@@ -151,6 +153,7 @@ public class ClickHouseDynamicTableFactory
                 .withPartitionStrategy(config.get(SINK_PARTITION_STRATEGY))
                 .withPartitionKey(config.get(SINK_PARTITION_KEY))
                 .withIgnoreDelete(config.get(SINK_IGNORE_DELETE))
+                .withParallelism(config.get(SINK_PARALLELISM))
                 .build();
     }
 
