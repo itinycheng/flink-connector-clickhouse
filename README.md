@@ -4,7 +4,7 @@
 this project Powered by [ClickHouse JDBC](https://github.com/ClickHouse/clickhouse-jdbc).
 
 Currently, the project supports `Source/Sink Table` and `Flink Catalog`.  
-Please create issues if you encounter bugs and any help about the project is greatly appreciated.
+Please create issues if you encounter bugs and any help for the project is greatly appreciated.
 
 ## Connector Options
 
@@ -23,6 +23,7 @@ Please create issues if you encounter bugs and any help about the project is gre
 | sink.partition-strategy    | optional | balanced | String   | Partition strategy: balanced(round-robin), hash(partition key), shuffle(random).               |
 | sink.partition-key         | optional | none     | String   | Partition key used for hash strategy.                                                          |
 | sink.ignore-delete         | optional | true     | Boolean  | Whether to ignore delete statements.                                                           |
+| sink.parallelism           | optional | none     | Integer  | Defines a custom parallelism for the sink.                                                     |
 | scan.partition.column      | optional | none     | String   | The column name used for partitioning the input.                                               |
 | scan.partition.num         | optional | none     | Integer  | The number of partitions.                                                                      |
 | scan.partition.lower-bound | optional | none     | Long     | The smallest value of the first partition.                                                     |

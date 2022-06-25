@@ -23,6 +23,8 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
 
     private final boolean ignoreDelete;
 
+    private final Integer parallelism;
+
     private ClickHouseDmlOptions(
             String url,
             @Nullable String username,
@@ -35,7 +37,8 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
             boolean useLocal,
             String partitionStrategy,
             String partitionKey,
-            boolean ignoreDelete) {
+            boolean ignoreDelete,
+            Integer parallelism) {
         super(url, username, password, databaseName, tableName);
         this.batchSize = batchSize;
         this.flushInterval = flushInterval;
@@ -44,6 +47,7 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
         this.partitionStrategy = partitionStrategy;
         this.partitionKey = partitionKey;
         this.ignoreDelete = ignoreDelete;
+        this.parallelism = parallelism;
     }
 
     public int getBatchSize() {
@@ -74,6 +78,10 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
         return this.ignoreDelete;
     }
 
+    public Integer getParallelism() {
+        return parallelism;
+    }
+
     /** Builder for {@link ClickHouseDmlOptions}. */
     public static class Builder {
         private String url;
@@ -89,6 +97,7 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
         private String partitionStrategy;
         private String partitionKey;
         private boolean ignoreDelete;
+        private Integer parallelism;
 
         public Builder() {}
 
@@ -157,6 +166,11 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
             return this;
         }
 
+        public ClickHouseDmlOptions.Builder withParallelism(Integer parallelism) {
+            this.parallelism = parallelism;
+            return this;
+        }
+
         public ClickHouseDmlOptions build() {
             return new ClickHouseDmlOptions(
                     url,
@@ -170,7 +184,8 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
                     writeLocal || useLocal,
                     partitionStrategy,
                     partitionKey,
-                    ignoreDelete);
+                    ignoreDelete,
+                    parallelism);
         }
     }
 }

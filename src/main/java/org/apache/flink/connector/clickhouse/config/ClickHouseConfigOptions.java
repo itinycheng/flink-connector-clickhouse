@@ -3,6 +3,7 @@ package org.apache.flink.connector.clickhouse.config;
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.table.catalog.CommonCatalogOptions;
+import org.apache.flink.table.factories.FactoryUtil;
 
 import java.time.Duration;
 
@@ -98,6 +99,8 @@ public class ClickHouseConfigOptions {
                     .defaultValue(true)
                     .withDescription(
                             "Whether to treat update statements as insert statements and ignore deletes. defaults to true.");
+
+    public static final ConfigOption<Integer> SINK_PARALLELISM = FactoryUtil.SINK_PARALLELISM;
 
     public static final ConfigOption<Boolean> CATALOG_IGNORE_PRIMARY_KEY =
             ConfigOptions.key(ClickHouseConfig.CATALOG_IGNORE_PRIMARY_KEY)

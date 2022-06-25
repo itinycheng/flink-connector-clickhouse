@@ -79,7 +79,7 @@ public class ClickHouseDynamicTableSink implements DynamicTableSink, SupportsPar
                         .withPrimaryKey(tableSchema.getPrimaryKey().orElse(null))
                         .withPartitionKey(catalogTable.getPartitionKeys())
                         .build();
-        return OutputFormatProvider.of(outputFormat);
+        return OutputFormatProvider.of(outputFormat, options.getParallelism());
     }
 
     @Override
