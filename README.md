@@ -71,7 +71,7 @@ Please create issues if you encounter bugs and any help for the project is great
 <dependency>
 	<groupId>org.apache.flink</groupId>
 	<artifactId>flink-connector-clickhouse</artifactId>
-	<version>1.14.3-SNAPSHOT</version>
+	<version>1.15.1-SNAPSHOT</version>
 </dependency>
 ```
 

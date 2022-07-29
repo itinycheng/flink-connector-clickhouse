@@ -3,9 +3,9 @@ package org.apache.flink.connector.clickhouse;
 import org.apache.flink.connector.clickhouse.internal.AbstractClickHouseInputFormat;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseReadOptions;
 import org.apache.flink.connector.clickhouse.util.FilterPushDownHelper;
-import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.catalog.CatalogTable;
 import org.apache.flink.table.connector.ChangelogMode;
+import org.apache.flink.table.connector.Projection;
 import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.connector.source.InputFormatProvider;
 import org.apache.flink.table.connector.source.ScanTableSource;
@@ -13,7 +13,7 @@ import org.apache.flink.table.connector.source.abilities.SupportsFilterPushDown;
 import org.apache.flink.table.connector.source.abilities.SupportsLimitPushDown;
 import org.apache.flink.table.connector.source.abilities.SupportsProjectionPushDown;
 import org.apache.flink.table.expressions.ResolvedExpression;
-import org.apache.flink.table.utils.TableSchemaUtils;
+import org.apache.flink.table.types.DataType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +32,7 @@ public class ClickHouseDynamicTableSource
 
     private final CatalogTable catalogTable;
 
-    private TableSchema physicalSchema;
+    private DataType physicalRowDataType;
 
     private String filterClause;
 
@@ -42,11 +42,11 @@ public class ClickHouseDynamicTableSource
             ClickHouseReadOptions readOptions,
             Properties properties,
             CatalogTable catalogTable,
-            TableSchema physicalSchema) {
+            DataType physicalRowDataType) {
         this.readOptions = readOptions;
         this.connectionProperties = properties;
         this.catalogTable = catalogTable;
-        this.physicalSchema = physicalSchema;
+        this.physicalRowDataType = physicalRowDataType;
     }
 
     @Override
@@ -60,11 +60,13 @@ public class ClickHouseDynamicTableSource
                 new AbstractClickHouseInputFormat.Builder()
                         .withOptions(readOptions)
                         .withConnectionProperties(connectionProperties)
-                        .withFieldNames(physicalSchema.getFieldNames())
-                        .withFieldTypes(physicalSchema.getFieldDataTypes())
+                        .withFieldNames(
+                                DataType.getFieldNames(physicalRowDataType).toArray(new String[0]))
+                        .withFieldTypes(
+                                DataType.getFieldDataTypes(physicalRowDataType)
+                                        .toArray(new DataType[0]))
                         .withRowDataTypeInfo(
-                                runtimeProviderContext.createTypeInformation(
-                                        physicalSchema.toRowDataType()))
+                                runtimeProviderContext.createTypeInformation(physicalRowDataType))
                         .withFilterClause(filterClause)
                         .withLimit(limit);
         return InputFormatProvider.of(builder.build());
@@ -74,7 +76,7 @@ public class ClickHouseDynamicTableSource
     public DynamicTableSource copy() {
         ClickHouseDynamicTableSource source =
                 new ClickHouseDynamicTableSource(
-                        readOptions, connectionProperties, catalogTable, physicalSchema);
+                        readOptions, connectionProperties, catalogTable, physicalRowDataType);
         source.filterClause = filterClause;
         source.limit = limit;
         return source;
@@ -102,7 +104,7 @@ public class ClickHouseDynamicTableSource
     }
 
     @Override
-    public void applyProjection(int[][] projectedFields) {
-        this.physicalSchema = TableSchemaUtils.projectSchema(physicalSchema, projectedFields);
+    public void applyProjection(int[][] projectedFields, DataType producedDataType) {
+        this.physicalRowDataType = Projection.of(projectedFields).project(physicalRowDataType);
     }
 }
