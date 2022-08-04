@@ -3,7 +3,6 @@ package org.apache.flink.connector.clickhouse;
 import org.apache.flink.connector.clickhouse.internal.AbstractClickHouseInputFormat;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseReadOptions;
 import org.apache.flink.connector.clickhouse.util.FilterPushDownHelper;
-import org.apache.flink.table.catalog.CatalogTable;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.Projection;
 import org.apache.flink.table.connector.source.DynamicTableSource;
@@ -30,8 +29,6 @@ public class ClickHouseDynamicTableSource
 
     private final Properties connectionProperties;
 
-    private final CatalogTable catalogTable;
-
     private DataType physicalRowDataType;
 
     private String filterClause;
@@ -41,11 +38,9 @@ public class ClickHouseDynamicTableSource
     public ClickHouseDynamicTableSource(
             ClickHouseReadOptions readOptions,
             Properties properties,
-            CatalogTable catalogTable,
             DataType physicalRowDataType) {
         this.readOptions = readOptions;
         this.connectionProperties = properties;
-        this.catalogTable = catalogTable;
         this.physicalRowDataType = physicalRowDataType;
     }
 
@@ -76,7 +71,7 @@ public class ClickHouseDynamicTableSource
     public DynamicTableSource copy() {
         ClickHouseDynamicTableSource source =
                 new ClickHouseDynamicTableSource(
-                        readOptions, connectionProperties, catalogTable, physicalRowDataType);
+                        readOptions, connectionProperties, physicalRowDataType);
         source.filterClause = filterClause;
         source.limit = limit;
         return source;

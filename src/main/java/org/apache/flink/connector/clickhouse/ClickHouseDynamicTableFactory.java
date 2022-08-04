@@ -70,10 +70,7 @@ public class ClickHouseDynamicTableFactory
         Properties clickHouseProperties =
                 getClickHouseProperties(context.getCatalogTable().getOptions());
         return new ClickHouseDynamicTableSource(
-                getReadOptions(config),
-                clickHouseProperties,
-                context.getCatalogTable(),
-                context.getPhysicalRowDataType());
+                getReadOptions(config), clickHouseProperties, context.getPhysicalRowDataType());
     }
 
     @Override
