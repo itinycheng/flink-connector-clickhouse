@@ -41,6 +41,8 @@
 		<flink.scope>provided</flink.scope>
 		<guava.version>30.1.1-jre</guava.version>
 		<jackson.version>2.12.4</jackson.version>
+		<commons-lang3.version>3.12.0</commons-lang3.version>
+		<shade.base>org.apache.flink.shaded.clickhouse</shade.base>
 
 		<maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
 		<maven-shade-plugin.version>3.2.4</maven-shade-plugin.version>
@@ -75,6 +77,11 @@
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
 			<version>${jackson.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<version>${commons-lang3.version}</version>
 		</dependency>
 
 		<!-- flink jars -->
@@ -181,6 +188,22 @@
 								</excludes>
 							</artifactSet>
 							<relocations>
+								<relocation>
+									<pattern>com.fasterxml</pattern>
+									<shadedPattern>${shade.base}.com.fasterxml</shadedPattern>
+								</relocation>
+								<relocation>
+									<pattern>org.apache.commons</pattern>
+									<shadedPattern>${shade.base}.org.apache.commons</shadedPattern>
+								</relocation>
+								<relocation>
+									<pattern>org.apache.http</pattern>
+									<shadedPattern>${shade.base}.org.apache.http</shadedPattern>
+								</relocation>
+								<relocation>
+									<pattern>net.jpountz</pattern>
+									<shadedPattern>${shade.base}.net.jpountz</shadedPattern>
+								</relocation>
 							</relocations>
 							<filters>
 								<filter>
