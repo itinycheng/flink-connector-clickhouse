@@ -31,7 +31,6 @@ import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptio
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_PARALLELISM;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_PARTITION_KEY;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_PARTITION_STRATEGY;
-import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_WRITE_LOCAL;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.TABLE_NAME;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.URL;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.USERNAME;
@@ -96,7 +95,6 @@ public class ClickHouseDynamicTableFactory
         optionalOptions.add(SINK_BATCH_SIZE);
         optionalOptions.add(SINK_FLUSH_INTERVAL);
         optionalOptions.add(SINK_MAX_RETRIES);
-        optionalOptions.add(SINK_WRITE_LOCAL);
         optionalOptions.add(SINK_PARTITION_STRATEGY);
         optionalOptions.add(SINK_PARTITION_KEY);
         optionalOptions.add(SINK_IGNORE_DELETE);
@@ -141,7 +139,6 @@ public class ClickHouseDynamicTableFactory
                 .withBatchSize(config.get(SINK_BATCH_SIZE))
                 .withFlushInterval(config.get(SINK_FLUSH_INTERVAL))
                 .withMaxRetries(config.get(SINK_MAX_RETRIES))
-                .withWriteLocal(config.get(SINK_WRITE_LOCAL))
                 .withUseLocal(config.get(USE_LOCAL))
                 .withPartitionStrategy(config.get(SINK_PARTITION_STRATEGY))
                 .withPartitionKey(config.get(SINK_PARTITION_KEY))
