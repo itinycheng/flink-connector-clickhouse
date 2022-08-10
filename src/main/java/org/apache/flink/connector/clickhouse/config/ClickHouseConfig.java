@@ -25,8 +25,6 @@ public class ClickHouseConfig {
 
     public static final String SINK_MAX_RETRIES = "sink.max-retries";
 
-    @Deprecated public static final String SINK_WRITE_LOCAL = "sink.write-local";
-
     public static final String SINK_PARTITION_STRATEGY = "sink.partition-strategy";
 
     public static final String SINK_PARTITION_KEY = "sink.partition-key";

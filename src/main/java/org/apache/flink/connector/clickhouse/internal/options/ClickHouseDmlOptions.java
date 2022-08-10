@@ -92,7 +92,6 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
         private int batchSize;
         private Duration flushInterval;
         private int maxRetries;
-        private boolean writeLocal;
         private boolean useLocal;
         private String partitionStrategy;
         private String partitionKey;
@@ -141,11 +140,6 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
             return this;
         }
 
-        public ClickHouseDmlOptions.Builder withWriteLocal(Boolean writeLocal) {
-            this.writeLocal = writeLocal;
-            return this;
-        }
-
         public ClickHouseDmlOptions.Builder withUseLocal(Boolean useLocal) {
             this.useLocal = useLocal;
             return this;
@@ -181,7 +175,7 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
                     batchSize,
                     flushInterval,
                     maxRetries,
-                    writeLocal || useLocal,
+                    useLocal,
                     partitionStrategy,
                     partitionKey,
                     ignoreDelete,

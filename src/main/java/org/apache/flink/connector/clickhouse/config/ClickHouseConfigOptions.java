@@ -73,14 +73,6 @@ public class ClickHouseConfigOptions {
                     .defaultValue(3)
                     .withDescription("The max retry times if writing records to database failed.");
 
-    @Deprecated
-    public static final ConfigOption<Boolean> SINK_WRITE_LOCAL =
-            ConfigOptions.key(ClickHouseConfig.SINK_WRITE_LOCAL)
-                    .booleanType()
-                    .defaultValue(false)
-                    .withDescription(
-                            "Directly write to local tables in case of distributed table.");
-
     public static final ConfigOption<String> SINK_PARTITION_STRATEGY =
             ConfigOptions.key(ClickHouseConfig.SINK_PARTITION_STRATEGY)
                     .stringType()
