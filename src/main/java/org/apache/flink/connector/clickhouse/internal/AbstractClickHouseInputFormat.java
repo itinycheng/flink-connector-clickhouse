@@ -121,7 +121,7 @@ public abstract class AbstractClickHouseInputFormat extends RichInputFormat<RowD
 
         private Properties connectionProperties;
 
-        private DistributedEngineFullSchema engineFullSchema;
+        private int[] shardIds;
 
         private Map<Integer, String> shardMap;
 
@@ -183,65 +183,61 @@ public abstract class AbstractClickHouseInputFormat extends RichInputFormat<RowD
             Preconditions.checkNotNull(fieldTypes);
             Preconditions.checkNotNull(rowDataTypeInfo);
 
-            int[] shardIds = null;
-            if (readOptions.isUseLocal()) {
-                shardIds = initShardInfo();
-            }
-            if (readOptions.isUseLocal() || readOptions.getPartitionColumn() != null) {
-                initPartitionInfo(shardIds);
-            }
-
-            LogicalType[] logicalTypes =
-                    Arrays.stream(fieldTypes)
-                            .map(DataType::getLogicalType)
-                            .toArray(LogicalType[]::new);
-            return readOptions.isUseLocal()
-                    ? createShardInputFormat(logicalTypes)
-                    : createBatchOutputFormat(logicalTypes);
-        }
-
-        private int[] initShardInfo() {
             ClickHouseConnectionProvider connectionProvider = null;
             try {
                 connectionProvider =
                         new ClickHouseConnectionProvider(readOptions, connectionProperties);
-                engineFullSchema =
+                DistributedEngineFullSchema engineFullSchema =
                         getAndParseDistributedEngineSchema(
                                 connectionProvider.getOrCreateConnection(),
                                 readOptions.getDatabaseName(),
                                 readOptions.getTableName());
+                boolean isDistributed = engineFullSchema != null;
 
-                if (engineFullSchema == null) {
-                    throw new RuntimeException(
-                            String.format(
-                                    "table `%s`.`%s` is not a Distributed table",
-                                    readOptions.getDatabaseName(), readOptions.getTableName()));
+                if (isDistributed && readOptions.isUseLocal()) {
+                    initShardInfo(connectionProvider, engineFullSchema);
+                    initPartitionInfo();
+                } else if (readOptions.getPartitionColumn() != null) {
+                    initPartitionInfo();
                 }
 
-                List<String> shardUrls =
-                        connectionProvider.getShardUrls(engineFullSchema.getCluster());
-                if (!shardUrls.isEmpty()) {
-                    int len = shardUrls.size();
-                    int[] dataIds = new int[len];
-                    shardMap = new HashMap<>(len);
-                    for (int i = 0; i < len; i++) {
-                        shardMap.put(i, shardUrls.get(i));
-                        dataIds[i] = i;
-                    }
-                    return dataIds;
-                }
-            } catch (Exception exception) {
-                throw new RuntimeException("Get shard table info failed.", exception);
+                LogicalType[] logicalTypes =
+                        Arrays.stream(fieldTypes)
+                                .map(DataType::getLogicalType)
+                                .toArray(LogicalType[]::new);
+                return isDistributed && readOptions.isUseLocal()
+                        ? createShardInputFormat(logicalTypes, engineFullSchema)
+                        : createBatchOutputFormat(logicalTypes);
+            } catch (Exception e) {
+                throw new RuntimeException("Build ClickHouse input format failed.", e);
             } finally {
                 if (connectionProvider != null) {
                     connectionProvider.closeConnections();
                 }
             }
-
-            return null;
         }
 
-        private void initPartitionInfo(int[] shardIds) {
+        private void initShardInfo(
+                ClickHouseConnectionProvider connectionProvider,
+                DistributedEngineFullSchema engineFullSchema) {
+            try {
+                List<String> shardUrls =
+                        connectionProvider.getShardUrls(engineFullSchema.getCluster());
+                if (!shardUrls.isEmpty()) {
+                    int len = shardUrls.size();
+                    shardIds = new int[len];
+                    shardMap = new HashMap<>(len);
+                    for (int i = 0; i < len; i++) {
+                        shardIds[i] = i;
+                        shardMap.put(i, shardUrls.get(i));
+                    }
+                }
+            } catch (Exception exception) {
+                throw new RuntimeException("Get shard table info failed.", exception);
+            }
+        }
+
+        private void initPartitionInfo() {
             try {
                 ClickHouseParametersProvider parametersProvider =
                         new ClickHouseParametersProvider.Builder()
@@ -266,7 +262,8 @@ public abstract class AbstractClickHouseInputFormat extends RichInputFormat<RowD
             }
         }
 
-        private AbstractClickHouseInputFormat createShardInputFormat(LogicalType[] logicalTypes) {
+        private AbstractClickHouseInputFormat createShardInputFormat(
+                LogicalType[] logicalTypes, DistributedEngineFullSchema engineFullSchema) {
             return new ClickHouseShardInputFormat(
                     new ClickHouseConnectionProvider(readOptions, connectionProperties),
                     new ClickHouseRowConverter(RowType.of(logicalTypes)),

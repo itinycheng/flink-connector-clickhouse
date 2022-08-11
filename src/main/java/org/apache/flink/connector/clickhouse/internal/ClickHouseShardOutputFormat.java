@@ -5,7 +5,6 @@ import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConne
 import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner;
-import org.apache.flink.connector.clickhouse.util.ClickHouseUtil;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.util.Preconditions;
@@ -34,6 +33,8 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
     private final ClickHousePartitioner partitioner;
 
+    private final DistributedEngineFullSchema shardTableSchema;
+
     private final ClickHouseDmlOptions options;
 
     private final List<ClickHouseExecutor> shardExecutors;
@@ -48,6 +49,7 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
     protected ClickHouseShardOutputFormat(
             @Nonnull ClickHouseConnectionProvider connectionProvider,
+            @Nonnull DistributedEngineFullSchema shardTableSchema,
             @Nonnull String[] fieldNames,
             @Nonnull String[] keyFields,
             @Nonnull String[] partitionFields,
@@ -55,6 +57,7 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
             @Nonnull ClickHousePartitioner partitioner,
             @Nonnull ClickHouseDmlOptions options) {
         this.connectionProvider = Preconditions.checkNotNull(connectionProvider);
+        this.shardTableSchema = Preconditions.checkNotNull(shardTableSchema);
         this.fieldNames = Preconditions.checkNotNull(fieldNames);
         this.keyFields = keyFields;
         this.partitionFields = partitionFields;
@@ -68,19 +71,6 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         try {
-            // Get the local table of distributed table.
-            DistributedEngineFullSchema shardTableSchema =
-                    ClickHouseUtil.getAndParseDistributedEngineSchema(
-                            connectionProvider.getOrCreateConnection(),
-                            options.getDatabaseName(),
-                            options.getTableName());
-            if (shardTableSchema == null) {
-                throw new RuntimeException(
-                        String.format(
-                                "table `%s`.`%s` is not a Distributed table",
-                                options.getDatabaseName(), options.getTableName()));
-            }
-
             List<ClickHouseConnection> shardConnections =
                     connectionProvider.createShardConnections(
                             shardTableSchema.getCluster(), shardTableSchema.getDatabase());
