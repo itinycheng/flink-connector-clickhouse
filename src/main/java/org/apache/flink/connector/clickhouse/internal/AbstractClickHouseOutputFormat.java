@@ -2,10 +2,12 @@ package org.apache.flink.connector.clickhouse.internal;
 
 import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.connector.clickhouse.internal.common.DistributedEngineFullSchema;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner;
+import org.apache.flink.connector.clickhouse.util.ClickHouseUtil;
 import org.apache.flink.table.catalog.UniqueConstraint;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.RowData.FieldGetter;
@@ -154,18 +156,37 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
             Preconditions.checkNotNull(options);
             Preconditions.checkNotNull(fieldNames);
             Preconditions.checkNotNull(fieldDataTypes);
-            LogicalType[] logicalTypes =
-                    Arrays.stream(fieldDataTypes)
-                            .map(DataType::getLogicalType)
-                            .toArray(LogicalType[]::new);
             if (primaryKey != null) {
                 LOG.warn("If primary key is specified, connector will be in UPSERT mode.");
                 LOG.warn(
                         "The data will be updated / deleted by the primary key, you will have significant performance loss.");
             }
-            return options.isUseLocal()
-                    ? createShardOutputFormat(logicalTypes)
-                    : createBatchOutputFormat(logicalTypes);
+
+            ClickHouseConnectionProvider connectionProvider = null;
+            try {
+                connectionProvider = new ClickHouseConnectionProvider(options);
+                DistributedEngineFullSchema engineFullSchema =
+                        ClickHouseUtil.getAndParseDistributedEngineSchema(
+                                connectionProvider.getOrCreateConnection(),
+                                options.getDatabaseName(),
+                                options.getTableName());
+
+                LogicalType[] logicalTypes =
+                        Arrays.stream(fieldDataTypes)
+                                .map(DataType::getLogicalType)
+                                .toArray(LogicalType[]::new);
+
+                boolean isDistributed = engineFullSchema != null;
+                return isDistributed && options.isUseLocal()
+                        ? createShardOutputFormat(logicalTypes, engineFullSchema)
+                        : createBatchOutputFormat(logicalTypes);
+            } catch (Exception exception) {
+                throw new RuntimeException("Build ClickHouse output format failed.", exception);
+            } finally {
+                if (connectionProvider != null) {
+                    connectionProvider.closeConnections();
+                }
+            }
         }
 
         private ClickHouseBatchOutputFormat createBatchOutputFormat(LogicalType[] logicalTypes) {
@@ -183,7 +204,8 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
                     options);
         }
 
-        private ClickHouseShardOutputFormat createShardOutputFormat(LogicalType[] logicalTypes) {
+        private ClickHouseShardOutputFormat createShardOutputFormat(
+                LogicalType[] logicalTypes, DistributedEngineFullSchema engineFullSchema) {
             String partitionStrategy = options.getPartitionStrategy();
             ClickHousePartitioner partitioner;
             switch (partitionStrategy) {
@@ -217,6 +239,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
 
             return new ClickHouseShardOutputFormat(
                     new ClickHouseConnectionProvider(options),
+                    engineFullSchema,
                     fieldNames,
                     keyFields,
                     listToStringArray(partitionKeys),

@@ -86,16 +86,13 @@ public abstract class ClickHouseParametersProvider {
         }
 
         public ClickHouseParametersProvider build() {
-            ClickHouseParametersProvider parametersProvider = null;
+            ClickHouseParametersProvider parametersProvider;
             if (minVal == null || maxVal == null) {
-                if (useLocal) {
-                    parametersProvider = new ClickHouseShardTableParametersProvider(shardIds);
-                } else {
-                    throw new RuntimeException("No suitable ClickHouseParametersProvider found.");
-                }
-            }
-
-            if (parametersProvider == null) {
+                parametersProvider =
+                        useLocal && shardIds != null
+                                ? new ClickHouseShardTableParametersProvider(shardIds)
+                                : new ClickHouseNonParametersProvider();
+            } else {
                 parametersProvider =
                         useLocal && shardIds != null
                                 ? new ClickHouseShardBetweenParametersProvider(
