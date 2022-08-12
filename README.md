@@ -1,7 +1,8 @@
 # Flink ClickHouse Connector
 
-[Flink](https://github.com/apache/flink) SQL connector for [ClickHouse](https://github.com/yandex/ClickHouse) database,
-this project Powered by [ClickHouse JDBC](https://github.com/ClickHouse/clickhouse-jdbc).
+[Flink](https://github.com/apache/flink) SQL connector
+for [ClickHouse](https://github.com/yandex/ClickHouse) database, this project Powered
+by [ClickHouse JDBC](https://github.com/ClickHouse/clickhouse-jdbc).
 
 Currently, the project supports `Source/Sink Table` and `Flink Catalog`.  
 Please create issues if you encounter bugs and any help for the project is greatly appreciated.
@@ -19,7 +20,7 @@ Please create issues if you encounter bugs and any help for the project is great
 | sink.batch-size            | optional | 1000     | Integer  | The max flush size, over this will flush data.                                                 |
 | sink.flush-interval        | optional | 1s       | Duration | Over this flush interval mills, asynchronous threads will flush data.                          |
 | sink.max-retries           | optional | 3        | Integer  | The max retry times when writing records to the database failed.                               |
-| sink.write-local           | optional | false    | Boolean  | Deprecated, use `use-local` instead.<br/> Directly write data to local tables.                 |
+| ~~sink.write-local~~       | optional | false    | Boolean  | Removed from version 1.15, use `use-local` instead.                                            |
 | sink.partition-strategy    | optional | balanced | String   | Partition strategy: balanced(round-robin), hash(partition key), shuffle(random).               |
 | sink.partition-key         | optional | none     | String   | Partition key used for hash strategy.                                                          |
 | sink.ignore-delete         | optional | true     | Boolean  | Whether to ignore delete statements.                                                           |
@@ -32,9 +33,11 @@ Please create issues if you encounter bugs and any help for the project is great
 
 **Upsert mode notice:**
 
-1. Distributed table don't support the update/delete statements, if you want to use the update/delete statements, please
-   be sure to write records to local table or set `use-local` to true.
-2. The data is updated and deleted by the primary key, please be aware of this when using it in the partition table.
+1. Distributed table don't support the update/delete statements, if you want to use the
+   update/delete statements, please be sure to write records to local table or set `use-local` to
+   true.
+2. The data is updated and deleted by the primary key, please be aware of this when using it in the
+   partition table.
 
 ## Data Type Mapping
 
@@ -66,12 +69,33 @@ Please create issues if you encounter bugs and any help for the project is great
 
 ## Maven Dependency
 
+The project isn't published to the maven central repository, we need to deploy/install to our own
+repository before use it, step as follows:
+
+```bash
+# clone the project
+git clone https://github.com/itinycheng/flink-connector-clickhouse.git
+
+# enter the project directory
+cd flink-connector-clickhouse/
+
+# display remote branches
+git branch -r
+
+# checkout the branch you need
+git checkout $branch_name
+
+# install or deploy the project to our own repository
+mvn clean install -DskipTests
+mvn clean deploy -DskipTests
+```
+
 ```xml
 
 <dependency>
-	<groupId>org.apache.flink</groupId>
-	<artifactId>flink-connector-clickhouse</artifactId>
-	<version>1.15.1-SNAPSHOT</version>
+    <groupId>org.apache.flink</groupId>
+    <artifactId>flink-connector-clickhouse</artifactId>
+    <version>1.15.1-SNAPSHOT</version>
 </dependency>
 ```
 
