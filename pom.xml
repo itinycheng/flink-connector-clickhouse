@@ -179,6 +179,7 @@
 							<goal>shade</goal>
 						</goals>
 						<configuration>
+							<shadeTestJar>false</shadeTestJar>
 							<artifactSet>
 								<excludes>
 									<!-- These jars must exist on the server side -->
