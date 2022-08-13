@@ -13,7 +13,7 @@ public class ClickHouseBatchBetweenParametersProvider extends ClickHouseBetweenP
     public ClickHouseBatchBetweenParametersProvider ofBatchNum(Integer batchNum) {
         checkArgument(batchNum != null && batchNum > 0, "Batch number must be positive");
 
-        long maxElemCount = (maxVal - minVal) + 1;
+        long maxElemCount = defaultMaxIfLTZero((maxVal - minVal) + 1);
         if (batchNum > maxElemCount) {
             batchNum = (int) maxElemCount;
         }

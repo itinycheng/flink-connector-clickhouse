@@ -29,6 +29,7 @@ public class ClickHouseShardBetweenParametersProvider extends ClickHouseBetweenP
         checkArgument(batchNum != null && batchNum > 0, "batchNum must be positive");
 
         long maxElemCount = Math.max(maxVal - minVal, 1) * shardNum + 1;
+        maxElemCount = defaultMaxIfLTZero(maxElemCount);
         if (batchNum > maxElemCount) {
             batchNum = (int) maxElemCount;
         }
