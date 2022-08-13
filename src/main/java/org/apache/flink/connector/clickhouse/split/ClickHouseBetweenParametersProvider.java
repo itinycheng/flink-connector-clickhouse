@@ -25,8 +25,12 @@ public abstract class ClickHouseBetweenParametersProvider extends ClickHousePara
         return BETWEEN_CLAUSE;
     }
 
+    protected long defaultMaxIfLTZero(long value) {
+        return value < 0 ? Long.MAX_VALUE : value;
+    }
+
     protected Serializable[][] divideParameterValues(int batchNum) {
-        long maxElemCount = (maxVal - minVal) + 1;
+        long maxElemCount = defaultMaxIfLTZero((maxVal - minVal) + 1);
         long batchSize = new Double(Math.ceil((double) maxElemCount / batchNum)).longValue();
         long bigBatchNum = maxElemCount - (batchSize - 1) * batchNum;
 
@@ -36,6 +40,7 @@ public abstract class ClickHouseBetweenParametersProvider extends ClickHousePara
         long start = minVal;
         for (int i = 0; i < batchNum; i++) {
             long end = start + batchSize - 1 - (i >= bigBatchNum ? 1 : 0);
+            end = defaultMaxIfLTZero(end);
             parameters[i] = new Long[] {start, end};
             start = end + 1;
         }
