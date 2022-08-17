@@ -8,7 +8,6 @@ import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseExecuto
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner;
 import org.apache.flink.connector.clickhouse.util.ClickHouseUtil;
-import org.apache.flink.table.catalog.UniqueConstraint;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.RowData.FieldGetter;
 import org.apache.flink.table.types.DataType;
@@ -22,7 +21,6 @@ import org.slf4j.LoggerFactory;
 import java.io.Flushable;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -120,9 +118,9 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
 
         private String[] fieldNames;
 
-        private UniqueConstraint primaryKey;
+        private String[] primaryKeys;
 
-        private List<String> partitionKeys;
+        private String[] partitionKeys;
 
         public Builder() {}
 
@@ -142,12 +140,12 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
             return this;
         }
 
-        public AbstractClickHouseOutputFormat.Builder withPrimaryKey(UniqueConstraint primaryKey) {
-            this.primaryKey = primaryKey;
+        public AbstractClickHouseOutputFormat.Builder withPrimaryKey(String[] primaryKeys) {
+            this.primaryKeys = primaryKeys;
             return this;
         }
 
-        public AbstractClickHouseOutputFormat.Builder withPartitionKey(List<String> partitionKeys) {
+        public AbstractClickHouseOutputFormat.Builder withPartitionKey(String[] partitionKeys) {
             this.partitionKeys = partitionKeys;
             return this;
         }
@@ -156,7 +154,9 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
             Preconditions.checkNotNull(options);
             Preconditions.checkNotNull(fieldNames);
             Preconditions.checkNotNull(fieldDataTypes);
-            if (primaryKey != null) {
+            Preconditions.checkNotNull(primaryKeys);
+            Preconditions.checkNotNull(partitionKeys);
+            if (primaryKeys.length > 0) {
                 LOG.warn("If primary key is specified, connector will be in UPSERT mode.");
                 LOG.warn(
                         "The data will be updated / deleted by the primary key, you will have significant performance loss.");
@@ -190,16 +190,11 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
         }
 
         private ClickHouseBatchOutputFormat createBatchOutputFormat(LogicalType[] logicalTypes) {
-            String[] keyFields = new String[0];
-            if (primaryKey != null) {
-                keyFields = listToStringArray(primaryKey.getColumns());
-            }
-
             return new ClickHouseBatchOutputFormat(
                     new ClickHouseConnectionProvider(options),
                     fieldNames,
-                    keyFields,
-                    listToStringArray(partitionKeys),
+                    primaryKeys,
+                    partitionKeys,
                     logicalTypes,
                     options);
         }
@@ -232,28 +227,15 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
                                     "Unknown sink.partition-strategy `%s`", partitionStrategy));
             }
 
-            String[] keyFields = new String[0];
-            if (primaryKey != null) {
-                keyFields = listToStringArray(primaryKey.getColumns());
-            }
-
             return new ClickHouseShardOutputFormat(
                     new ClickHouseConnectionProvider(options),
                     engineFullSchema,
                     fieldNames,
-                    keyFields,
-                    listToStringArray(partitionKeys),
+                    primaryKeys,
+                    partitionKeys,
                     logicalTypes,
                     partitioner,
                     options);
-        }
-
-        private String[] listToStringArray(List<String> list) {
-            if (list == null) {
-                return new String[0];
-            } else {
-                return list.toArray(new String[0]);
-            }
         }
     }
 }

@@ -207,7 +207,7 @@ public abstract class AbstractClickHouseInputFormat extends RichInputFormat<RowD
                                 .toArray(LogicalType[]::new);
                 return isDistributed && readOptions.isUseLocal()
                         ? createShardInputFormat(logicalTypes, engineFullSchema)
-                        : createBatchOutputFormat(logicalTypes);
+                        : createBatchInputFormat(logicalTypes);
             } catch (Exception e) {
                 throw new RuntimeException("Build ClickHouse input format failed.", e);
             } finally {
@@ -279,7 +279,7 @@ public abstract class AbstractClickHouseInputFormat extends RichInputFormat<RowD
                     limit);
         }
 
-        private AbstractClickHouseInputFormat createBatchOutputFormat(LogicalType[] logicalTypes) {
+        private AbstractClickHouseInputFormat createBatchInputFormat(LogicalType[] logicalTypes) {
             return new ClickHouseBatchInputFormat(
                     new ClickHouseConnectionProvider(readOptions, connectionProperties),
                     new ClickHouseRowConverter(RowType.of(logicalTypes)),

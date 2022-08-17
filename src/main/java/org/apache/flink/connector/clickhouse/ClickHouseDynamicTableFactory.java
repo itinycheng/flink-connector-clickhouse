@@ -4,6 +4,8 @@ import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseReadOptions;
+import org.apache.flink.table.catalog.ResolvedCatalogTable;
+import org.apache.flink.table.catalog.UniqueConstraint;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.factories.DynamicTableSinkFactory;
@@ -53,10 +55,19 @@ public class ClickHouseDynamicTableFactory
         helper.validate();
         validateConfigOptions(config);
 
+        ResolvedCatalogTable catalogTable = context.getCatalogTable();
+        String[] primaryKeys =
+                catalogTable
+                        .getResolvedSchema()
+                        .getPrimaryKey()
+                        .map(UniqueConstraint::getColumns)
+                        .map(keys -> keys.toArray(new String[0]))
+                        .orElse(new String[0]);
         return new ClickHouseDynamicTableSink(
                 getDmlOptions(config),
-                context.getCatalogTable(),
-                context.getCatalogTable().getResolvedSchema());
+                primaryKeys,
+                catalogTable.getPartitionKeys().toArray(new String[0]),
+                context.getPhysicalRowDataType());
     }
 
     @Override
