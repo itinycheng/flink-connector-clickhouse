@@ -2,9 +2,6 @@ package org.apache.flink.connector.clickhouse;
 
 import org.apache.flink.connector.clickhouse.internal.AbstractClickHouseOutputFormat;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
-import org.apache.flink.table.catalog.CatalogTable;
-import org.apache.flink.table.catalog.Column;
-import org.apache.flink.table.catalog.ResolvedSchema;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.connector.sink.OutputFormatProvider;
@@ -12,6 +9,8 @@ import org.apache.flink.table.connector.sink.abilities.SupportsPartitioning;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.types.RowKind;
 import org.apache.flink.util.Preconditions;
+
+import javax.annotation.Nonnull;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -24,9 +23,11 @@ import java.util.Map;
  */
 public class ClickHouseDynamicTableSink implements DynamicTableSink, SupportsPartitioning {
 
-    private final CatalogTable catalogTable;
+    private final String[] primaryKeys;
 
-    private final ResolvedSchema tableSchema;
+    private final String[] partitionKeys;
+
+    private final DataType physicalRowDataType;
 
     private final ClickHouseDmlOptions options;
 
@@ -35,10 +36,14 @@ public class ClickHouseDynamicTableSink implements DynamicTableSink, SupportsPar
     private LinkedHashMap<String, String> staticPartitionSpec = new LinkedHashMap<>();
 
     public ClickHouseDynamicTableSink(
-            ClickHouseDmlOptions options, CatalogTable catalogTable, ResolvedSchema tableSchema) {
+            @Nonnull ClickHouseDmlOptions options,
+            @Nonnull String[] primaryKeys,
+            @Nonnull String[] partitionKeys,
+            @Nonnull DataType physicalRowDataType) {
         this.options = options;
-        this.catalogTable = catalogTable;
-        this.tableSchema = tableSchema;
+        this.primaryKeys = primaryKeys;
+        this.partitionKeys = partitionKeys;
+        this.physicalRowDataType = physicalRowDataType;
     }
 
     @Override
@@ -53,31 +58,22 @@ public class ClickHouseDynamicTableSink implements DynamicTableSink, SupportsPar
 
     private void validatePrimaryKey(ChangelogMode requestedMode) {
         Preconditions.checkState(
-                ChangelogMode.insertOnly().equals(requestedMode)
-                        || tableSchema.getPrimaryKey().isPresent(),
+                ChangelogMode.insertOnly().equals(requestedMode) || primaryKeys.length > 0,
                 "Please declare primary key for sink table when query contains update/delete record.");
     }
 
     @Override
     public SinkRuntimeProvider getSinkRuntimeProvider(Context context) {
-        String[] fieldNames =
-                tableSchema.getColumns().stream()
-                        .filter(Column::isPhysical)
-                        .map(Column::getName)
-                        .toArray(String[]::new);
-        DataType[] fieldTypes =
-                tableSchema.getColumns().stream()
-                        .filter(Column::isPhysical)
-                        .map(Column::getDataType)
-                        .toArray(DataType[]::new);
-
         AbstractClickHouseOutputFormat outputFormat =
                 new AbstractClickHouseOutputFormat.Builder()
                         .withOptions(options)
-                        .withFieldNames(fieldNames)
-                        .withFieldDataTypes(fieldTypes)
-                        .withPrimaryKey(tableSchema.getPrimaryKey().orElse(null))
-                        .withPartitionKey(catalogTable.getPartitionKeys())
+                        .withFieldNames(
+                                DataType.getFieldNames(physicalRowDataType).toArray(new String[0]))
+                        .withFieldDataTypes(
+                                DataType.getFieldDataTypes(physicalRowDataType)
+                                        .toArray(new DataType[0]))
+                        .withPrimaryKey(primaryKeys)
+                        .withPartitionKey(partitionKeys)
                         .build();
         return OutputFormatProvider.of(outputFormat, options.getParallelism());
     }
@@ -85,7 +81,7 @@ public class ClickHouseDynamicTableSink implements DynamicTableSink, SupportsPar
     @Override
     public void applyStaticPartition(Map<String, String> partition) {
         staticPartitionSpec = new LinkedHashMap<>();
-        for (String partitionCol : catalogTable.getPartitionKeys()) {
+        for (String partitionCol : partitionKeys) {
             if (partition.containsKey(partitionCol)) {
                 staticPartitionSpec.put(partitionCol, partition.get(partitionCol));
             }
@@ -101,7 +97,8 @@ public class ClickHouseDynamicTableSink implements DynamicTableSink, SupportsPar
     @Override
     public DynamicTableSink copy() {
         ClickHouseDynamicTableSink sink =
-                new ClickHouseDynamicTableSink(options, catalogTable, tableSchema);
+                new ClickHouseDynamicTableSink(
+                        options, primaryKeys, partitionKeys, physicalRowDataType);
         sink.dynamicGrouping = dynamicGrouping;
         sink.staticPartitionSpec = staticPartitionSpec;
         return sink;
