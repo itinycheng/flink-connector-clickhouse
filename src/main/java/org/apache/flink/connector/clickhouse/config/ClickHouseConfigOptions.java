@@ -73,6 +73,13 @@ public class ClickHouseConfigOptions {
                     .defaultValue(3)
                     .withDescription("The max retry times if writing records to database failed.");
 
+    public static final ConfigOption<SinkUpdateStrategy> SINK_UPDATE_STRATEGY =
+            ConfigOptions.key(ClickHouseConfig.SINK_UPDATE_STRATEGY)
+                    .enumType(SinkUpdateStrategy.class)
+                    .defaultValue(SinkUpdateStrategy.UPDATE)
+                    .withDescription(
+                            "Convert a record of type UPDATE_AFTER to update/insert statement or just ignore it, available: update, insert, discard.");
+
     public static final ConfigOption<String> SINK_PARTITION_STRATEGY =
             ConfigOptions.key(ClickHouseConfig.SINK_PARTITION_STRATEGY)
                     .stringType()
@@ -124,4 +131,28 @@ public class ClickHouseConfigOptions {
                     .longType()
                     .noDefaultValue()
                     .withDescription("The largest value of the last partition.");
+
+    /** Update conversion strategy for sink operator. */
+    public enum SinkUpdateStrategy {
+        UPDATE("update", "Convert UPDATE_AFTER records to update statement."),
+        INSERT("insert", "Convert UPDATE_AFTER records to insert statement."),
+        DISCARD("discard", "Discard UPDATE_AFTER records.");
+
+        private final String value;
+        private final String description;
+
+        SinkUpdateStrategy(String value, String description) {
+            this.value = value;
+            this.description = description;
+        }
+
+        @Override
+        public String toString() {
+            return value;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+    }
 }

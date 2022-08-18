@@ -24,6 +24,7 @@ import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptio
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_PARALLELISM;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_PARTITION_KEY;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_PARTITION_STRATEGY;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_UPDATE_STRATEGY;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.URL;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.USERNAME;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.USE_LOCAL;
@@ -57,6 +58,7 @@ public class ClickHouseCatalogFactory implements CatalogFactory {
         options.add(SINK_BATCH_SIZE);
         options.add(SINK_FLUSH_INTERVAL);
         options.add(SINK_MAX_RETRIES);
+        options.add(SINK_UPDATE_STRATEGY);
         options.add(SINK_PARTITION_STRATEGY);
         options.add(SINK_PARTITION_KEY);
         options.add(SINK_IGNORE_DELETE);

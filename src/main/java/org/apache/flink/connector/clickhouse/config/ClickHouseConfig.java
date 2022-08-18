@@ -25,6 +25,8 @@ public class ClickHouseConfig {
 
     public static final String SINK_MAX_RETRIES = "sink.max-retries";
 
+    public static final String SINK_UPDATE_STRATEGY = "sink.update-strategy";
+
     public static final String SINK_PARTITION_STRATEGY = "sink.partition-strategy";
 
     public static final String SINK_PARTITION_KEY = "sink.partition-key";

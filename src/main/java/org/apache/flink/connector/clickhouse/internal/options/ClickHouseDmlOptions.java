@@ -1,5 +1,7 @@
 package org.apache.flink.connector.clickhouse.internal.options;
 
+import org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SinkUpdateStrategy;
+
 import javax.annotation.Nullable;
 
 import java.time.Duration;
@@ -16,6 +18,8 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
     private final int maxRetries;
 
     private final boolean useLocal;
+
+    private final SinkUpdateStrategy updateStrategy;
 
     private final String partitionStrategy;
 
@@ -35,6 +39,7 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
             Duration flushInterval,
             int maxRetires,
             boolean useLocal,
+            SinkUpdateStrategy updateStrategy,
             String partitionStrategy,
             String partitionKey,
             boolean ignoreDelete,
@@ -44,6 +49,7 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
         this.flushInterval = flushInterval;
         this.maxRetries = maxRetires;
         this.useLocal = useLocal;
+        this.updateStrategy = updateStrategy;
         this.partitionStrategy = partitionStrategy;
         this.partitionKey = partitionKey;
         this.ignoreDelete = ignoreDelete;
@@ -64,6 +70,10 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
 
     public boolean isUseLocal() {
         return this.useLocal;
+    }
+
+    public SinkUpdateStrategy getUpdateStrategy() {
+        return updateStrategy;
     }
 
     public String getPartitionStrategy() {
@@ -93,6 +103,7 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
         private Duration flushInterval;
         private int maxRetries;
         private boolean useLocal;
+        private SinkUpdateStrategy updateStrategy;
         private String partitionStrategy;
         private String partitionKey;
         private boolean ignoreDelete;
@@ -140,6 +151,11 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
             return this;
         }
 
+        public ClickHouseDmlOptions.Builder withUpdateStrategy(SinkUpdateStrategy updateStrategy) {
+            this.updateStrategy = updateStrategy;
+            return this;
+        }
+
         public ClickHouseDmlOptions.Builder withUseLocal(Boolean useLocal) {
             this.useLocal = useLocal;
             return this;
@@ -176,6 +192,7 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
                     flushInterval,
                     maxRetries,
                     useLocal,
+                    updateStrategy,
                     partitionStrategy,
                     partitionKey,
                     ignoreDelete,
