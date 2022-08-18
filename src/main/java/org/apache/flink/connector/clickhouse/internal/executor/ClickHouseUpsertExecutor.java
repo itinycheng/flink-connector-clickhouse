@@ -1,6 +1,7 @@
 package org.apache.flink.connector.clickhouse.internal.executor;
 
 import org.apache.flink.api.common.functions.RuntimeContext;
+import org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SinkUpdateStrategy;
 import org.apache.flink.connector.clickhouse.internal.ClickHouseShardOutputFormat;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
@@ -15,6 +16,10 @@ import ru.yandex.clickhouse.ClickHousePreparedStatement;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.function.Function;
+
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SinkUpdateStrategy.DISCARD;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SinkUpdateStrategy.INSERT;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SinkUpdateStrategy.UPDATE;
 
 /** ClickHouse's upsert executor. */
 public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
@@ -40,6 +45,8 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
     private final Function<RowData, RowData> deleteExtractor;
 
     private final int maxRetries;
+
+    private final SinkUpdateStrategy updateStrategy;
 
     private transient ClickHousePreparedStatement insertStmt;
 
@@ -68,6 +75,7 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
         this.updateExtractor = updateExtractor;
         this.deleteExtractor = deleteExtractor;
         this.maxRetries = options.getMaxRetries();
+        this.updateStrategy = options.getUpdateStrategy();
     }
 
     @Override
@@ -95,8 +103,17 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
                 insertStmt.addBatch();
                 break;
             case UPDATE_AFTER:
-                updateConverter.toExternal(updateExtractor.apply(record), updateStmt);
-                updateStmt.addBatch();
+                if (INSERT.equals(updateStrategy)) {
+                    insertConverter.toExternal(record, insertStmt);
+                    insertStmt.addBatch();
+                } else if (UPDATE.equals(updateStrategy)) {
+                    updateConverter.toExternal(updateExtractor.apply(record), updateStmt);
+                    updateStmt.addBatch();
+                } else if (DISCARD.equals(updateStrategy)) {
+                    LOG.debug("Discard a record of type UPDATE_AFTER: {}", record);
+                } else {
+                    throw new RuntimeException("Unknown update strategy: " + updateStrategy);
+                }
                 break;
             case DELETE:
                 deleteConverter.toExternal(deleteExtractor.apply(record), deleteStmt);
@@ -150,6 +167,8 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
                 + '\''
                 + ", maxRetries="
                 + maxRetries
+                + ", updateStrategy="
+                + updateStrategy
                 + ", connectionProvider="
                 + connectionProvider
                 + '}';
