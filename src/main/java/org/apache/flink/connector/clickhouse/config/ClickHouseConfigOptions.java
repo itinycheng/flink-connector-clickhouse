@@ -78,7 +78,7 @@ public class ClickHouseConfigOptions {
                     .enumType(SinkUpdateStrategy.class)
                     .defaultValue(SinkUpdateStrategy.UPDATE)
                     .withDescription(
-                            "Convert a record of type UPDATE_AFTER to update/insert statement or just ignore it, available: update, insert, discard.");
+                            "Convert a record of type UPDATE_AFTER to update/insert statement or just discard it, available: update, insert, discard.");
 
     public static final ConfigOption<String> SINK_PARTITION_STRATEGY =
             ConfigOptions.key(ClickHouseConfig.SINK_PARTITION_STRATEGY)
