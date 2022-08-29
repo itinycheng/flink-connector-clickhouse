@@ -6,25 +6,13 @@ import org.apache.flink.table.data.RowData.FieldGetter;
 import java.io.Serializable;
 
 /** ClickHouse data partitioner interface. */
-public interface ClickHousePartitioner extends Serializable {
+public abstract class ClickHousePartitioner implements Serializable {
 
-    String BALANCED = "balanced";
+    protected final FieldGetter fieldGetter;
 
-    String SHUFFLE = "shuffle";
-
-    String HASH = "hash";
-
-    int select(RowData record, int numShards);
-
-    static ClickHousePartitioner createBalanced() {
-        return new BalancedPartitioner();
+    public ClickHousePartitioner(FieldGetter fieldGetter) {
+        this.fieldGetter = fieldGetter;
     }
 
-    static ClickHousePartitioner createShuffle() {
-        return new ShufflePartitioner();
-    }
-
-    static ClickHousePartitioner createHash(FieldGetter getter) {
-        return new HashPartitioner(getter);
-    }
+    public abstract int select(RowData record, int numShards);
 }

@@ -13,7 +13,6 @@ import org.apache.flink.table.factories.DynamicTableSourceFactory;
 import org.apache.flink.table.factories.FactoryUtil;
 import org.apache.flink.table.factories.FactoryUtil.TableFactoryHelper;
 
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
@@ -38,9 +37,6 @@ import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptio
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.URL;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.USERNAME;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.USE_LOCAL;
-import static org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.BALANCED;
-import static org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.HASH;
-import static org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner.SHUFFLE;
 import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.getClickHouseProperties;
 
 /** A {@link DynamicTableSinkFactory} for discovering {@link ClickHouseDynamicTableSink}. */
@@ -121,11 +117,7 @@ public class ClickHouseDynamicTableFactory
     }
 
     private void validateConfigOptions(ReadableConfig config) {
-        String partitionStrategy = config.get(SINK_PARTITION_STRATEGY);
-        if (!Arrays.asList(HASH, BALANCED, SHUFFLE).contains(partitionStrategy)) {
-            throw new IllegalArgumentException(
-                    String.format("Unknown sink.partition-strategy `%s`", partitionStrategy));
-        } else if (HASH.equals(partitionStrategy)
+        if (config.get(SINK_PARTITION_STRATEGY).partitionKeyNeeded
                 && !config.getOptional(SINK_PARTITION_KEY).isPresent()) {
             throw new IllegalArgumentException(
                     "A partition key must be provided for hash partition strategy");

@@ -24,7 +24,7 @@ import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.toFixedDateTimestamp;
+import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.toEpochDayOneTimestamp;
 
 /** convert between internal and external data types. */
 public class ClickHouseConverterUtils {
@@ -52,7 +52,7 @@ public class ClickHouseConverterUtils {
                 return Date.valueOf(LocalDate.ofEpochDay((Integer) value));
             case TIME_WITHOUT_TIME_ZONE:
                 LocalTime localTime = LocalTime.ofNanoOfDay(((Integer) value) * 1_000_000L);
-                return toFixedDateTimestamp(localTime);
+                return toEpochDayOneTimestamp(localTime);
             case TIMESTAMP_WITH_TIME_ZONE:
             case TIMESTAMP_WITHOUT_TIME_ZONE:
                 return ((TimestampData) value).toTimestamp();

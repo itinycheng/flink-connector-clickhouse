@@ -1,5 +1,6 @@
 package org.apache.flink.connector.clickhouse.internal.options;
 
+import org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SinkPartitionStrategy;
 import org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SinkUpdateStrategy;
 
 import javax.annotation.Nullable;
@@ -21,7 +22,7 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
 
     private final SinkUpdateStrategy updateStrategy;
 
-    private final String partitionStrategy;
+    private final SinkPartitionStrategy partitionStrategy;
 
     private final String partitionKey;
 
@@ -40,7 +41,7 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
             int maxRetires,
             boolean useLocal,
             SinkUpdateStrategy updateStrategy,
-            String partitionStrategy,
+            SinkPartitionStrategy partitionStrategy,
             String partitionKey,
             boolean ignoreDelete,
             Integer parallelism) {
@@ -76,7 +77,7 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
         return updateStrategy;
     }
 
-    public String getPartitionStrategy() {
+    public SinkPartitionStrategy getPartitionStrategy() {
         return this.partitionStrategy;
     }
 
@@ -104,7 +105,7 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
         private int maxRetries;
         private boolean useLocal;
         private SinkUpdateStrategy updateStrategy;
-        private String partitionStrategy;
+        private SinkPartitionStrategy partitionStrategy;
         private String partitionKey;
         private boolean ignoreDelete;
         private Integer parallelism;
@@ -161,7 +162,8 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
             return this;
         }
 
-        public ClickHouseDmlOptions.Builder withPartitionStrategy(String partitionStrategy) {
+        public ClickHouseDmlOptions.Builder withPartitionStrategy(
+                SinkPartitionStrategy partitionStrategy) {
             this.partitionStrategy = partitionStrategy;
             return this;
         }

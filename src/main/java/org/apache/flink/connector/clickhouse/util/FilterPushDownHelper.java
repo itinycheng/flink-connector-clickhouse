@@ -23,7 +23,7 @@ import java.util.function.Function;
 import static java.util.stream.Collectors.joining;
 import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.EMPTY;
 import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.quoteIdentifier;
-import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.toFixedDateTimestamp;
+import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.toEpochDayOneTimestamp;
 import static org.apache.flink.connector.clickhouse.util.SqlClause.AND;
 import static org.apache.flink.connector.clickhouse.util.SqlClause.EQ;
 import static org.apache.flink.connector.clickhouse.util.SqlClause.GT;
@@ -181,12 +181,12 @@ public class FilterPushDownHelper {
                             if (o instanceof Time) {
                                 value =
                                         ClickHouseValueFormatter.formatTimestamp(
-                                                toFixedDateTimestamp(((Time) o).toLocalTime()),
+                                                toEpochDayOneTimestamp(((Time) o).toLocalTime()),
                                                 timeZone);
                             } else if (o instanceof LocalTime) {
                                 value =
                                         ClickHouseValueFormatter.formatTimestamp(
-                                                toFixedDateTimestamp((LocalTime) o), timeZone);
+                                                toEpochDayOneTimestamp((LocalTime) o), timeZone);
                             } else if (o instanceof Instant) {
                                 value =
                                         ClickHouseValueFormatter.formatTimestamp(
