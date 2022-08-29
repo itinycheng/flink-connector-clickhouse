@@ -85,7 +85,7 @@ public class ClickHouseUtil {
         return properties;
     }
 
-    public static Timestamp toFixedDateTimestamp(LocalTime localTime) {
+    public static Timestamp toEpochDayOneTimestamp(LocalTime localTime) {
         LocalDateTime localDateTime = localTime.atDate(DATE_PREFIX_OF_TIME);
         return Timestamp.valueOf(localDateTime);
     }

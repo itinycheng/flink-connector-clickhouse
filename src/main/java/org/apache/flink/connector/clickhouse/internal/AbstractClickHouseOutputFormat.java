@@ -2,11 +2,11 @@ package org.apache.flink.connector.clickhouse.internal;
 
 import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SinkPartitionStrategy;
 import org.apache.flink.connector.clickhouse.internal.common.DistributedEngineFullSchema;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
-import org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner;
 import org.apache.flink.connector.clickhouse.util.ClickHouseUtil;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.RowData.FieldGetter;
@@ -201,30 +201,17 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
 
         private ClickHouseShardOutputFormat createShardOutputFormat(
                 LogicalType[] logicalTypes, DistributedEngineFullSchema engineFullSchema) {
-            String partitionStrategy = options.getPartitionStrategy();
-            ClickHousePartitioner partitioner;
-            switch (partitionStrategy) {
-                case ClickHousePartitioner.BALANCED:
-                    partitioner = ClickHousePartitioner.createBalanced();
-                    break;
-                case ClickHousePartitioner.SHUFFLE:
-                    partitioner = ClickHousePartitioner.createShuffle();
-                    break;
-                case ClickHousePartitioner.HASH:
-                    int index = Arrays.asList(fieldNames).indexOf(options.getPartitionKey());
-                    if (index == -1) {
-                        throw new IllegalArgumentException(
-                                String.format(
-                                        "Partition key `%s` not found in table schema",
-                                        options.getPartitionKey()));
-                    }
-                    FieldGetter getter = RowData.createFieldGetter(logicalTypes[index], index);
-                    partitioner = ClickHousePartitioner.createHash(getter);
-                    break;
-                default:
+            SinkPartitionStrategy partitionStrategy = options.getPartitionStrategy();
+            FieldGetter getter = null;
+            if (partitionStrategy.partitionKeyNeeded) {
+                int index = Arrays.asList(fieldNames).indexOf(options.getPartitionKey());
+                if (index == -1) {
                     throw new IllegalArgumentException(
                             String.format(
-                                    "Unknown sink.partition-strategy `%s`", partitionStrategy));
+                                    "Partition key `%s` not found in table schema",
+                                    options.getPartitionKey()));
+                }
+                getter = RowData.createFieldGetter(logicalTypes[index], index);
             }
 
             return new ClickHouseShardOutputFormat(
@@ -234,7 +221,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
                     primaryKeys,
                     partitionKeys,
                     logicalTypes,
-                    partitioner,
+                    partitionStrategy.provider.apply(getter),
                     options);
         }
     }
