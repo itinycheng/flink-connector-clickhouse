@@ -1,8 +1,8 @@
 package org.apache.flink.connector.clickhouse.internal.partitioner;
 
+import org.apache.flink.table.data.DecimalData;
 import org.apache.flink.table.data.RowData;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
 
 /** Partition key value based, value must be a number. */
@@ -29,10 +29,13 @@ public class ValuePartitioner extends ClickHousePartitioner {
             num = (int) ((float) value % numShards);
         } else if (value instanceof Double) {
             num = (int) ((double) value % numShards);
-        } else if (value instanceof BigDecimal) {
-            num = ((BigDecimal) value).toBigInteger().mod(BigInteger.valueOf(numShards)).intValue();
-        } else if (value instanceof BigInteger) {
-            num = ((BigInteger) value).mod(BigInteger.valueOf(numShards)).intValue();
+        } else if (value instanceof DecimalData) {
+            num =
+                    ((DecimalData) value)
+                            .toBigDecimal()
+                            .toBigInteger()
+                            .mod(BigInteger.valueOf(numShards))
+                            .intValue();
         } else {
             Class<?> valueClass = value == null ? null : value.getClass();
             throw new RuntimeException("Unsupported number type: " + valueClass);

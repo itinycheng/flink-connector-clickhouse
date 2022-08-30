@@ -1,8 +1,12 @@
 package com.tiny;
 
+import org.apache.flink.connector.clickhouse.internal.partitioner.ValuePartitioner;
 import org.apache.flink.connector.clickhouse.split.ClickHouseBatchBetweenParametersProvider;
 import org.apache.flink.connector.clickhouse.split.ClickHouseParametersProvider;
 import org.apache.flink.connector.clickhouse.split.ClickHouseShardBetweenParametersProvider;
+import org.apache.flink.table.data.DecimalData;
+import org.apache.flink.table.data.GenericRowData;
+import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.TimestampData;
 
 import org.junit.Assert;
@@ -10,6 +14,7 @@ import org.junit.Test;
 import ru.yandex.clickhouse.util.ClickHouseValueFormatter;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -76,5 +81,15 @@ public class AppTest {
         Serializable[][] parameterValues = provider.getParameterValues();
         Assert.assertNull(shardIdValues);
         Assert.assertEquals(3, parameterValues.length);
+    }
+
+    @Test
+    public void valuePartitionerTest() {
+        RowData.FieldGetter getter = row -> row.getDecimal(0, 20, 10);
+        ValuePartitioner partitioner = new ValuePartitioner(getter);
+        GenericRowData rowData = new GenericRowData(1);
+        rowData.setField(0, DecimalData.fromBigDecimal(new BigDecimal("100.2313"), 20, 10));
+        int select = partitioner.select(rowData, 7);
+        Assert.assertEquals(2, select);
     }
 }
