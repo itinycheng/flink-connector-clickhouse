@@ -152,7 +152,7 @@ public class ClickHouseConfigOptions {
 
         SHUFFLE(
                 "shuffle",
-                "Random.",
+                "Randomly choose a partitioner.",
                 false,
                 (Function<RowData.FieldGetter, ClickHousePartitioner> & Serializable)
                         fieldGetter -> new ShufflePartitioner()),
