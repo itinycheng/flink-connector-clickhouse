@@ -20,10 +20,14 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static java.util.stream.Collectors.toList;
 
 /** ClickHouse connection provider. Use ClickHouseDriver to create a connection. */
 public class ClickHouseConnectionProvider implements Serializable {
@@ -42,7 +46,7 @@ public class ClickHouseConnectionProvider implements Serializable {
      * `replica_num`.
      */
     private static final String QUERY_CLUSTER_INFO_SQL =
-            "SELECT shard_num, host_address, port FROM system.clusters WHERE cluster = ? and replica_num = 1 ORDER BY shard_num ASC";
+            "SELECT shard_num, host_address, port FROM system.clusters WHERE cluster = ? ORDER BY shard_num, replica_num ASC";
 
     private final ClickHouseConnectionOptions options;
 
@@ -98,7 +102,7 @@ public class ClickHouseConnectionProvider implements Serializable {
     }
 
     public List<String> getShardUrls(String remoteCluster) throws SQLException {
-        List<String> urls = new ArrayList<>();
+        Map<Long, List<String>> shardsMap = new HashMap<>();
         ClickHouseConnection conn = getOrCreateConnection();
         try (PreparedStatement stmt = conn.prepareStatement(QUERY_CLUSTER_INFO_SQL)) {
             stmt.setString(1, remoteCluster);
@@ -106,12 +110,17 @@ public class ClickHouseConnectionProvider implements Serializable {
                 while (rs.next()) {
                     String host = rs.getString("host_address");
                     int port = getActualHttpPort(host, rs.getInt("port"));
-                    urls.add("clickhouse://" + host + ":" + port);
+                    List<String> shardUrls =
+                            shardsMap.computeIfAbsent(
+                                    rs.getLong("shard_num"), k -> new ArrayList<>());
+                    shardUrls.add(host + ":" + port);
                 }
             }
         }
 
-        return urls;
+        return shardsMap.values().stream()
+                .map(urls -> "clickhouse://" + String.join(",", urls))
+                .collect(toList());
     }
 
     private ClickHouseConnection createConnection(String url, String database) throws SQLException {
