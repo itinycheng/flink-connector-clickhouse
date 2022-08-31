@@ -2,6 +2,7 @@ package org.apache.flink.connector.clickhouse;
 
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ReadableConfig;
+import org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SinkPartitionStrategy;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseReadOptions;
 import org.apache.flink.table.catalog.ResolvedCatalogTable;
@@ -117,10 +118,12 @@ public class ClickHouseDynamicTableFactory
     }
 
     private void validateConfigOptions(ReadableConfig config) {
-        if (config.get(SINK_PARTITION_STRATEGY).partitionKeyNeeded
+        SinkPartitionStrategy partitionStrategy = config.get(SINK_PARTITION_STRATEGY);
+        if (partitionStrategy.partitionKeyNeeded
                 && !config.getOptional(SINK_PARTITION_KEY).isPresent()) {
             throw new IllegalArgumentException(
-                    "A partition key must be provided for hash partition strategy");
+                    "A partition key must be provided for partition strategy: "
+                            + partitionStrategy.value);
         } else if (config.getOptional(USERNAME).isPresent()
                 ^ config.getOptional(PASSWORD).isPresent()) {
             throw new IllegalArgumentException(
