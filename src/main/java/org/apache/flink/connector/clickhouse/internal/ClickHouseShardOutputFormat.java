@@ -38,8 +38,6 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
     private final List<ClickHouseExecutor> shardExecutors;
 
-    private final boolean ignoreDelete;
-
     private final String[] keyFields;
 
     private final String[] partitionFields;
@@ -62,7 +60,6 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
         this.partitioner = Preconditions.checkNotNull(partitioner);
         this.options = Preconditions.checkNotNull(options);
         this.shardExecutors = new ArrayList<>();
-        this.ignoreDelete = options.getIgnoreDelete();
     }
 
     @Override
@@ -118,12 +115,8 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
         switch (record.getRowKind()) {
             case INSERT:
             case UPDATE_AFTER:
-                writeRecordToOneExecutor(record);
-                break;
             case DELETE:
-                if (!ignoreDelete) {
-                    writeRecordToOneExecutor(record);
-                }
+                writeRecordToOneExecutor(record);
                 break;
             case UPDATE_BEFORE:
                 break;

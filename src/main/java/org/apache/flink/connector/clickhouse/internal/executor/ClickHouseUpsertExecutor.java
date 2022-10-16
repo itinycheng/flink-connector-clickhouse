@@ -46,6 +46,8 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
 
     private final int maxRetries;
 
+    private final boolean ignoreDelete;
+
     private transient ClickHousePreparedStatement insertStmt;
 
     private transient ClickHousePreparedStatement updateStmt;
@@ -73,6 +75,7 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
         this.updateExtractor = updateExtractor;
         this.deleteExtractor = deleteExtractor;
         this.maxRetries = options.getMaxRetries();
+        this.ignoreDelete = options.getIgnoreDelete();
     }
 
     @Override
@@ -104,8 +107,10 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
                 updateStmt.addBatch();
                 break;
             case DELETE:
-                deleteConverter.toExternal(deleteExtractor.apply(record), deleteStmt);
-                deleteStmt.addBatch();
+                if (!ignoreDelete) {
+                    deleteConverter.toExternal(deleteExtractor.apply(record), deleteStmt);
+                    deleteStmt.addBatch();
+                }
                 break;
             case UPDATE_BEFORE:
                 break;
@@ -155,6 +160,8 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
                 + '\''
                 + ", maxRetries="
                 + maxRetries
+                + ", ignoreDelete="
+                + ignoreDelete
                 + ", connectionProvider="
                 + connectionProvider
                 + '}';
