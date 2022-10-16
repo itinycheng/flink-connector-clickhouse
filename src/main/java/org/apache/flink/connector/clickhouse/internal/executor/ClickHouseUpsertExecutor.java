@@ -48,6 +48,8 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
 
     private final SinkUpdateStrategy updateStrategy;
 
+    private final boolean ignoreDelete;
+
     private transient ClickHousePreparedStatement insertStmt;
 
     private transient ClickHousePreparedStatement updateStmt;
@@ -76,6 +78,7 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
         this.deleteExtractor = deleteExtractor;
         this.maxRetries = options.getMaxRetries();
         this.updateStrategy = options.getUpdateStrategy();
+        this.ignoreDelete = options.getIgnoreDelete();
     }
 
     @Override
@@ -116,8 +119,10 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
                 }
                 break;
             case DELETE:
-                deleteConverter.toExternal(deleteExtractor.apply(record), deleteStmt);
-                deleteStmt.addBatch();
+                if (!ignoreDelete) {
+                    deleteConverter.toExternal(deleteExtractor.apply(record), deleteStmt);
+                    deleteStmt.addBatch();
+                }
                 break;
             case UPDATE_BEFORE:
                 break;
@@ -169,6 +174,8 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
                 + maxRetries
                 + ", updateStrategy="
                 + updateStrategy
+                + ", ignoreDelete="
+                + ignoreDelete
                 + ", connectionProvider="
                 + connectionProvider
                 + '}';
