@@ -105,8 +105,7 @@ public class ClickHouseConfigOptions {
             ConfigOptions.key(ClickHouseConfig.SINK_IGNORE_DELETE)
                     .booleanType()
                     .defaultValue(true)
-                    .withDescription(
-                            "Whether to treat update statements as insert statements and ignore deletes. defaults to true.");
+                    .withDescription("Whether to ignore deletes. defaults to true.");
 
     public static final ConfigOption<Integer> SINK_PARALLELISM = FactoryUtil.SINK_PARALLELISM;
 
