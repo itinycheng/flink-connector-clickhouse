@@ -17,9 +17,11 @@ public class ClickHouseStatementFactory {
     public static String getSelectStatement(
             String tableName, String databaseName, String[] fieldNames) {
         String columns =
-                Arrays.stream(fieldNames)
+                fieldNames.length != 0
+                        ? Arrays.stream(fieldNames)
                         .map(ClickHouseStatementFactory::quoteIdentifier)
-                        .collect(joining(", "));
+                        .collect(joining(", "))
+                        : "''";
         return String.join(
                 EMPTY, "SELECT ", columns, " FROM ", fromTableClause(tableName, databaseName));
     }
