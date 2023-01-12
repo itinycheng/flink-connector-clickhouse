@@ -19,8 +19,8 @@ public class ClickHouseStatementFactory {
         String columns =
                 fieldNames.length != 0
                         ? Arrays.stream(fieldNames)
-                        .map(ClickHouseStatementFactory::quoteIdentifier)
-                        .collect(joining(", "))
+                                .map(ClickHouseStatementFactory::quoteIdentifier)
+                                .collect(joining(", "))
                         : "''";
         return String.join(
                 EMPTY, "SELECT ", columns, " FROM ", fromTableClause(tableName, databaseName));
