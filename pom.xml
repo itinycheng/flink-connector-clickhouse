@@ -36,8 +36,8 @@
 		<checkstyle.version>8.14</checkstyle.version>
 		<junit.version>4.13.2</junit.version>
 		<clickhouse-jdbc.version>0.3.1</clickhouse-jdbc.version>
-		<scala.binary.version>2.11</scala.binary.version>
-		<flink.version>1.15.1</flink.version>
+		<scala.binary.version>2.12</scala.binary.version>
+		<flink.version>1.16.0</flink.version>
 		<flink.scope>provided</flink.scope>
 		<guava.version>30.1.1-jre</guava.version>
 		<jackson.version>2.12.4</jackson.version>
