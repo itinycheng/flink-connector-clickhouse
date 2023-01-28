@@ -96,7 +96,7 @@ mvn clean deploy -DskipTests
 <dependency>
     <groupId>org.apache.flink</groupId>
     <artifactId>flink-connector-clickhouse</artifactId>
-    <version>1.15.1-SNAPSHOT</version>
+    <version>1.16.0-SNAPSHOT</version>
 </dependency>
 ```
 
