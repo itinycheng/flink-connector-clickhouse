@@ -1,6 +1,6 @@
 package org.apache.flink.connector.clickhouse.internal.options;
 
-import org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SinkPartitionStrategy;
+import org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SinkShardingStrategy;
 import org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SinkUpdateStrategy;
 
 import javax.annotation.Nullable;
@@ -22,9 +22,9 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
 
     private final SinkUpdateStrategy updateStrategy;
 
-    private final SinkPartitionStrategy partitionStrategy;
+    private final SinkShardingStrategy shardingStrategy;
 
-    private final String partitionKey;
+    private final String shardingKey;
 
     private final boolean ignoreDelete;
 
@@ -41,8 +41,8 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
             int maxRetires,
             boolean useLocal,
             SinkUpdateStrategy updateStrategy,
-            SinkPartitionStrategy partitionStrategy,
-            String partitionKey,
+            SinkShardingStrategy shardingStrategy,
+            String shardingKey,
             boolean ignoreDelete,
             Integer parallelism) {
         super(url, username, password, databaseName, tableName);
@@ -51,8 +51,8 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
         this.maxRetries = maxRetires;
         this.useLocal = useLocal;
         this.updateStrategy = updateStrategy;
-        this.partitionStrategy = partitionStrategy;
-        this.partitionKey = partitionKey;
+        this.shardingStrategy = shardingStrategy;
+        this.shardingKey = shardingKey;
         this.ignoreDelete = ignoreDelete;
         this.parallelism = parallelism;
     }
@@ -77,12 +77,12 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
         return updateStrategy;
     }
 
-    public SinkPartitionStrategy getPartitionStrategy() {
-        return this.partitionStrategy;
+    public SinkShardingStrategy getShardingStrategy() {
+        return this.shardingStrategy;
     }
 
-    public String getPartitionKey() {
-        return this.partitionKey;
+    public String getShardingKey() {
+        return this.shardingKey;
     }
 
     public boolean getIgnoreDelete() {
@@ -105,8 +105,8 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
         private int maxRetries;
         private boolean useLocal;
         private SinkUpdateStrategy updateStrategy;
-        private SinkPartitionStrategy partitionStrategy;
-        private String partitionKey;
+        private SinkShardingStrategy shardingStrategy;
+        private String shardingKey;
         private boolean ignoreDelete;
         private Integer parallelism;
 
@@ -162,14 +162,14 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
             return this;
         }
 
-        public ClickHouseDmlOptions.Builder withPartitionStrategy(
-                SinkPartitionStrategy partitionStrategy) {
-            this.partitionStrategy = partitionStrategy;
+        public ClickHouseDmlOptions.Builder withShardingStrategy(
+                SinkShardingStrategy shardingStrategy) {
+            this.shardingStrategy = shardingStrategy;
             return this;
         }
 
-        public ClickHouseDmlOptions.Builder withPartitionKey(String partitionKey) {
-            this.partitionKey = partitionKey;
+        public ClickHouseDmlOptions.Builder withShardingKey(String shardingKey) {
+            this.shardingKey = shardingKey;
             return this;
         }
 
@@ -195,8 +195,8 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
                     maxRetries,
                     useLocal,
                     updateStrategy,
-                    partitionStrategy,
-                    partitionKey,
+                    shardingStrategy,
+                    shardingKey,
                     ignoreDelete,
                     parallelism);
         }

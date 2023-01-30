@@ -89,17 +89,18 @@ public class ClickHouseConfigOptions {
                             "Convert a record of type UPDATE_AFTER to update/insert statement or just discard it, available: update, insert, discard."
                                     + " Additional: `table.exec.sink.upsert-materialize`, `org.apache.flink.table.runtime.operators.sink.SinkUpsertMaterializer`");
 
-    public static final ConfigOption<SinkPartitionStrategy> SINK_PARTITION_STRATEGY =
+    public static final ConfigOption<SinkShardingStrategy> SINK_PARTITION_STRATEGY =
             ConfigOptions.key(ClickHouseConfig.SINK_PARTITION_STRATEGY)
-                    .enumType(SinkPartitionStrategy.class)
-                    .defaultValue(SinkPartitionStrategy.BALANCED)
-                    .withDescription("Partition strategy, available: balanced, hash, shuffle.");
+                    .enumType(SinkShardingStrategy.class)
+                    .defaultValue(SinkShardingStrategy.BALANCED)
+                    .withDescription(
+                            "Sharding strategy, available: balanced, hash, shuffle, value.");
 
     public static final ConfigOption<String> SINK_PARTITION_KEY =
             ConfigOptions.key(ClickHouseConfig.SINK_PARTITION_KEY)
                     .stringType()
                     .noDefaultValue()
-                    .withDescription("Partition key used for hash strategy.");
+                    .withDescription("Sharding key used for hash strategy.");
 
     public static final ConfigOption<Boolean> SINK_IGNORE_DELETE =
             ConfigOptions.key(ClickHouseConfig.SINK_IGNORE_DELETE)
@@ -140,8 +141,8 @@ public class ClickHouseConfigOptions {
                     .noDefaultValue()
                     .withDescription("The largest value of the last partition.");
 
-    /** Partition strategy for sink operator. */
-    public enum SinkPartitionStrategy {
+    /** Sharding strategy for sink operator. */
+    public enum SinkShardingStrategy {
         BALANCED(
                 "balanced",
                 "Round robin.",
@@ -165,7 +166,7 @@ public class ClickHouseConfigOptions {
 
         VALUE(
                 "value",
-                "Partition by partition key value, must be a number.",
+                "Partition by sharding key value, must be a number.",
                 true,
                 (Function<RowData.FieldGetter, ClickHousePartitioner> & Serializable)
                         ValuePartitioner::new);
@@ -174,18 +175,18 @@ public class ClickHouseConfigOptions {
 
         public final String description;
 
-        public final boolean partitionKeyNeeded;
+        public final boolean shardingKeyNeeded;
 
         public final Function<RowData.FieldGetter, ClickHousePartitioner> provider;
 
-        SinkPartitionStrategy(
+        SinkShardingStrategy(
                 String value,
                 String description,
-                boolean partitionKeyNeeded,
+                boolean shardingKeyNeeded,
                 Function<RowData.FieldGetter, ClickHousePartitioner> provider) {
             this.value = value;
             this.description = description;
-            this.partitionKeyNeeded = partitionKeyNeeded;
+            this.shardingKeyNeeded = shardingKeyNeeded;
             this.provider = provider;
         }
     }

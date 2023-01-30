@@ -1,6 +1,6 @@
 package org.apache.flink.connector.clickhouse.util;
 
-import org.apache.flink.connector.clickhouse.internal.common.DistributedEngineFullSchema;
+import org.apache.flink.connector.clickhouse.internal.schema.DistributedEngineFull;
 
 import org.apache.http.client.utils.URIBuilder;
 import ru.yandex.clickhouse.ClickHouseConnection;
@@ -44,7 +44,7 @@ public class ClickHouseUtil {
         }
     }
 
-    public static DistributedEngineFullSchema getAndParseDistributedEngineSchema(
+    public static DistributedEngineFull getAndParseDistributedEngineSchema(
             ClickHouseConnection connection, String databaseName, String tableName)
             throws SQLException {
         try (PreparedStatement stmt = connection.prepareStatement(QUERY_TABLE_ENGINE_SQL)) {
@@ -59,7 +59,7 @@ public class ClickHouseUtil {
                         String cluster = matcher.group("cluster");
                         String database = matcher.group("database");
                         String table = matcher.group("table");
-                        return DistributedEngineFullSchema.of(cluster, database, table);
+                        return DistributedEngineFull.of(cluster, database, table);
                     } else {
                         return null;
                     }

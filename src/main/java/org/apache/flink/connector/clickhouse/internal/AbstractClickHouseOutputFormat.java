@@ -2,11 +2,11 @@ package org.apache.flink.connector.clickhouse.internal;
 
 import org.apache.flink.api.common.io.RichOutputFormat;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SinkPartitionStrategy;
-import org.apache.flink.connector.clickhouse.internal.common.DistributedEngineFullSchema;
+import org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SinkShardingStrategy;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
+import org.apache.flink.connector.clickhouse.internal.schema.DistributedEngineFull;
 import org.apache.flink.connector.clickhouse.util.ClickHouseUtil;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.RowData.FieldGetter;
@@ -165,7 +165,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
             ClickHouseConnectionProvider connectionProvider = null;
             try {
                 connectionProvider = new ClickHouseConnectionProvider(options);
-                DistributedEngineFullSchema engineFullSchema =
+                DistributedEngineFull engineFullSchema =
                         ClickHouseUtil.getAndParseDistributedEngineSchema(
                                 connectionProvider.getOrCreateConnection(),
                                 options.getDatabaseName(),
@@ -200,16 +200,16 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
         }
 
         private ClickHouseShardOutputFormat createShardOutputFormat(
-                LogicalType[] logicalTypes, DistributedEngineFullSchema engineFullSchema) {
-            SinkPartitionStrategy partitionStrategy = options.getPartitionStrategy();
+                LogicalType[] logicalTypes, DistributedEngineFull engineFullSchema) {
+            SinkShardingStrategy shardingStrategy = options.getShardingStrategy();
             FieldGetter getter = null;
-            if (partitionStrategy.partitionKeyNeeded) {
-                int index = Arrays.asList(fieldNames).indexOf(options.getPartitionKey());
+            if (shardingStrategy.shardingKeyNeeded) {
+                int index = Arrays.asList(fieldNames).indexOf(options.getShardingKey());
                 if (index == -1) {
                     throw new IllegalArgumentException(
                             String.format(
                                     "Partition key `%s` not found in table schema",
-                                    options.getPartitionKey()));
+                                    options.getShardingKey()));
                 }
                 getter = RowData.createFieldGetter(logicalTypes[index], index);
             }
@@ -221,7 +221,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
                     primaryKeys,
                     partitionKeys,
                     logicalTypes,
-                    partitionStrategy.provider.apply(getter),
+                    shardingStrategy.provider.apply(getter),
                     options);
         }
     }

@@ -1,10 +1,10 @@
 package org.apache.flink.connector.clickhouse.internal;
 
-import org.apache.flink.connector.clickhouse.internal.common.DistributedEngineFullSchema;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner;
+import org.apache.flink.connector.clickhouse.internal.schema.DistributedEngineFull;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.util.Preconditions;
@@ -33,7 +33,7 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
     private final ClickHousePartitioner partitioner;
 
-    private final DistributedEngineFullSchema shardTableSchema;
+    private final DistributedEngineFull shardTableSchema;
 
     private final ClickHouseDmlOptions options;
 
@@ -47,7 +47,7 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
     protected ClickHouseShardOutputFormat(
             @Nonnull ClickHouseConnectionProvider connectionProvider,
-            @Nonnull DistributedEngineFullSchema shardTableSchema,
+            @Nonnull DistributedEngineFull shardTableSchema,
             @Nonnull String[] fieldNames,
             @Nonnull String[] keyFields,
             @Nonnull String[] partitionFields,

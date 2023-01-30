@@ -1,13 +1,12 @@
-package org.apache.flink.connector.clickhouse.internal.common;
-
-import org.apache.flink.util.StringUtils;
+package org.apache.flink.connector.clickhouse.internal.schema;
 
 import java.io.Serializable;
 
 import static org.apache.flink.util.Preconditions.checkArgument;
+import static org.apache.flink.util.StringUtils.isNullOrWhitespaceOnly;
 
 /** Distributed table engine full schema. */
-public class DistributedEngineFullSchema implements Serializable {
+public class DistributedEngineFull implements Serializable {
 
     private final String cluster;
 
@@ -19,22 +18,20 @@ public class DistributedEngineFullSchema implements Serializable {
 
     private final String policyName;
 
-    public static DistributedEngineFullSchema of(String cluster, String database, String table) {
-        return new DistributedEngineFullSchema(cluster, database, table);
+    public static DistributedEngineFull of(String cluster, String database, String table) {
+        return new DistributedEngineFull(cluster, database, table);
     }
 
-    public static DistributedEngineFullSchema of(
+    public static DistributedEngineFull of(
             String cluster, String database, String table, String shardingKey, String policyName) {
-        return new DistributedEngineFullSchema(cluster, database, table, shardingKey, policyName);
+        return new DistributedEngineFull(cluster, database, table, shardingKey, policyName);
     }
 
-    private DistributedEngineFullSchema(
+    private DistributedEngineFull(
             String cluster, String database, String table, String shardingKey, String policyName) {
-        checkArgument(
-                !StringUtils.isNullOrWhitespaceOnly(cluster), "cluster cannot be null or empty");
-        checkArgument(
-                !StringUtils.isNullOrWhitespaceOnly(database), "database cannot be null or empty");
-        checkArgument(!StringUtils.isNullOrWhitespaceOnly(table), "table cannot be null or empty");
+        checkArgument(!isNullOrWhitespaceOnly(cluster), "cluster cannot be null or empty");
+        checkArgument(!isNullOrWhitespaceOnly(database), "database cannot be null or empty");
+        checkArgument(!isNullOrWhitespaceOnly(table), "table cannot be null or empty");
 
         this.cluster = cluster;
         this.database = database;
@@ -43,7 +40,7 @@ public class DistributedEngineFullSchema implements Serializable {
         this.policyName = policyName;
     }
 
-    private DistributedEngineFullSchema(String cluster, String database, String table) {
+    private DistributedEngineFull(String cluster, String database, String table) {
         this(cluster, database, table, null, null);
     }
 
