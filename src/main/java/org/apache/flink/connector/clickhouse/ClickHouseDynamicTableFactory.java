@@ -2,7 +2,7 @@ package org.apache.flink.connector.clickhouse;
 
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ReadableConfig;
-import org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SinkPartitionStrategy;
+import org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SinkShardingStrategy;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseReadOptions;
 import org.apache.flink.table.catalog.ResolvedCatalogTable;
@@ -118,12 +118,12 @@ public class ClickHouseDynamicTableFactory
     }
 
     private void validateConfigOptions(ReadableConfig config) {
-        SinkPartitionStrategy partitionStrategy = config.get(SINK_PARTITION_STRATEGY);
-        if (partitionStrategy.partitionKeyNeeded
+        SinkShardingStrategy shardingStrategy = config.get(SINK_PARTITION_STRATEGY);
+        if (shardingStrategy.shardingKeyNeeded
                 && !config.getOptional(SINK_PARTITION_KEY).isPresent()) {
             throw new IllegalArgumentException(
-                    "A partition key must be provided for partition strategy: "
-                            + partitionStrategy.value);
+                    "A sharding key must be provided for sharding strategy: "
+                            + shardingStrategy.value);
         } else if (config.getOptional(USERNAME).isPresent()
                 ^ config.getOptional(PASSWORD).isPresent()) {
             throw new IllegalArgumentException(
@@ -149,8 +149,8 @@ public class ClickHouseDynamicTableFactory
                 .withMaxRetries(config.get(SINK_MAX_RETRIES))
                 .withUseLocal(config.get(USE_LOCAL))
                 .withUpdateStrategy(config.get(SINK_UPDATE_STRATEGY))
-                .withPartitionStrategy(config.get(SINK_PARTITION_STRATEGY))
-                .withPartitionKey(config.get(SINK_PARTITION_KEY))
+                .withShardingStrategy(config.get(SINK_PARTITION_STRATEGY))
+                .withShardingKey(config.get(SINK_PARTITION_KEY))
                 .withIgnoreDelete(config.get(SINK_IGNORE_DELETE))
                 .withParallelism(config.get(SINK_PARALLELISM))
                 .build();

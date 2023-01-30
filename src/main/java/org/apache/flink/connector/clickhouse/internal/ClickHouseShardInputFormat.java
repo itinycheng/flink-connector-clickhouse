@@ -3,10 +3,10 @@ package org.apache.flink.connector.clickhouse.internal;
 import org.apache.flink.annotation.Experimental;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.connector.clickhouse.internal.common.DistributedEngineFullSchema;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseReadOptions;
+import org.apache.flink.connector.clickhouse.internal.schema.DistributedEngineFull;
 import org.apache.flink.core.io.InputSplit;
 import org.apache.flink.table.data.RowData;
 
@@ -34,7 +34,7 @@ public class ClickHouseShardInputFormat extends AbstractClickHouseInputFormat {
 
     private final ClickHouseReadOptions readOptions;
 
-    private final DistributedEngineFullSchema engineFullSchema;
+    private final DistributedEngineFull engineFullSchema;
 
     private final Map<Integer, String> shardMap;
 
@@ -49,7 +49,7 @@ public class ClickHouseShardInputFormat extends AbstractClickHouseInputFormat {
             ClickHouseConnectionProvider connectionProvider,
             ClickHouseRowConverter rowConverter,
             ClickHouseReadOptions readOptions,
-            DistributedEngineFullSchema engineFullSchema,
+            DistributedEngineFull engineFullSchema,
             Map<Integer, String> shardMap,
             Object[][] shardValues,
             String[] fieldNames,

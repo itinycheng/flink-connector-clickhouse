@@ -1,7 +1,7 @@
 package org.apache.flink.connector.clickhouse.catalog;
 
 import org.apache.flink.connector.clickhouse.ClickHouseDynamicTableFactory;
-import org.apache.flink.connector.clickhouse.internal.common.DistributedEngineFullSchema;
+import org.apache.flink.connector.clickhouse.internal.schema.DistributedEngineFull;
 import org.apache.flink.connector.clickhouse.util.ClickHouseTypeUtil;
 import org.apache.flink.connector.clickhouse.util.ClickHouseUtil;
 import org.apache.flink.table.api.TableSchema;
@@ -269,7 +269,7 @@ public class ClickHouseCatalog extends AbstractCatalog {
         String databaseName = tablePath.getDatabaseName();
         String tableName = tablePath.getObjectName();
         try {
-            DistributedEngineFullSchema engineFullSchema =
+            DistributedEngineFull engineFullSchema =
                     ClickHouseUtil.getAndParseDistributedEngineSchema(
                             connection, tablePath.getDatabaseName(), tablePath.getObjectName());
             if (engineFullSchema != null) {

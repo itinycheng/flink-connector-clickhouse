@@ -6,10 +6,10 @@ import org.apache.flink.api.common.io.statistics.BaseStatistics;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.connector.clickhouse.internal.common.DistributedEngineFullSchema;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseReadOptions;
+import org.apache.flink.connector.clickhouse.internal.schema.DistributedEngineFull;
 import org.apache.flink.connector.clickhouse.split.ClickHouseParametersProvider;
 import org.apache.flink.core.io.GenericInputSplit;
 import org.apache.flink.core.io.InputSplit;
@@ -187,7 +187,7 @@ public abstract class AbstractClickHouseInputFormat extends RichInputFormat<RowD
             try {
                 connectionProvider =
                         new ClickHouseConnectionProvider(readOptions, connectionProperties);
-                DistributedEngineFullSchema engineFullSchema =
+                DistributedEngineFull engineFullSchema =
                         getAndParseDistributedEngineSchema(
                                 connectionProvider.getOrCreateConnection(),
                                 readOptions.getDatabaseName(),
@@ -219,7 +219,7 @@ public abstract class AbstractClickHouseInputFormat extends RichInputFormat<RowD
 
         private void initShardInfo(
                 ClickHouseConnectionProvider connectionProvider,
-                DistributedEngineFullSchema engineFullSchema) {
+                DistributedEngineFull engineFullSchema) {
             try {
                 List<String> shardUrls =
                         connectionProvider.getShardUrls(engineFullSchema.getCluster());
@@ -263,7 +263,7 @@ public abstract class AbstractClickHouseInputFormat extends RichInputFormat<RowD
         }
 
         private AbstractClickHouseInputFormat createShardInputFormat(
-                LogicalType[] logicalTypes, DistributedEngineFullSchema engineFullSchema) {
+                LogicalType[] logicalTypes, DistributedEngineFull engineFullSchema) {
             return new ClickHouseShardInputFormat(
                     new ClickHouseConnectionProvider(readOptions, connectionProperties),
                     new ClickHouseRowConverter(RowType.of(logicalTypes)),
