@@ -9,7 +9,6 @@ import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.TimestampData;
 
-import org.junit.Assert;
 import org.junit.Test;
 import ru.yandex.clickhouse.util.ClickHouseValueFormatter;
 
@@ -21,6 +20,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.TimeZone;
+import java.util.regex.Matcher;
+
+import static java.util.Objects.requireNonNull;
+import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.DISTRIBUTED_TABLE_ENGINE_PATTERN;
+import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.parseShardingKey;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 /** Unit test for simple App. */
 public class AppTest {
@@ -46,7 +52,7 @@ public class AppTest {
         Timestamp timestamp = Timestamp.valueOf(localDateTime);
         String dateTimeStr =
                 ClickHouseValueFormatter.formatTimestamp(timestamp, TimeZone.getDefault());
-        Assert.assertEquals("1970-01-02 01:00:00", dateTimeStr);
+        assertEquals("1970-01-02 01:00:00", dateTimeStr);
     }
 
     @Test
@@ -58,7 +64,7 @@ public class AppTest {
                         .calculate();
         Serializable[][] shardIdValues = provider.getShardIdValues();
         Serializable[][] parameterValues = provider.getParameterValues();
-        Assert.assertEquals(shardIdValues.length, parameterValues.length);
+        assertEquals(shardIdValues.length, parameterValues.length);
     }
 
     @Test
@@ -70,7 +76,7 @@ public class AppTest {
                         .calculate();
         Serializable[][] shardIdValues = provider.getShardIdValues();
         Serializable[][] parameterValues = provider.getParameterValues();
-        Assert.assertEquals(shardIdValues.length, parameterValues.length);
+        assertEquals(shardIdValues.length, parameterValues.length);
     }
 
     @Test
@@ -79,8 +85,8 @@ public class AppTest {
                 new ClickHouseBatchBetweenParametersProvider(-100, 100).ofBatchNum(3).calculate();
         Serializable[][] shardIdValues = provider.getShardIdValues();
         Serializable[][] parameterValues = provider.getParameterValues();
-        Assert.assertNull(shardIdValues);
-        Assert.assertEquals(3, parameterValues.length);
+        assertNull(shardIdValues);
+        assertEquals(3, parameterValues.length);
     }
 
     @Test
@@ -90,6 +96,97 @@ public class AppTest {
         GenericRowData rowData = new GenericRowData(1);
         rowData.setField(0, DecimalData.fromBigDecimal(new BigDecimal("100.2313"), 20, 10));
         int select = partitioner.select(rowData, 7);
-        Assert.assertEquals(2, select);
+        assertEquals(2, select);
+    }
+
+    @Test
+    public void parseEngineFullTest() {
+        String engineFull =
+                "Distributed('cluster_name', 'database_name', 'table_name')"
+                        .replaceAll("'|\\s", "");
+        Matcher matcher = DISTRIBUTED_TABLE_ENGINE_PATTERN.matcher(engineFull);
+        if (matcher.find()) {
+            assertEquals("cluster_name", matcher.group("cluster"));
+            assertEquals("database_name", matcher.group("database"));
+            assertEquals("table_name", matcher.group("table"));
+            assertNull(matcher.group("shardingKey"));
+        }
+
+        engineFull =
+                "Distributed('cluster_name', 'database_name', 'table_name', 'id')"
+                        .replaceAll("'|\\s", "");
+        matcher = DISTRIBUTED_TABLE_ENGINE_PATTERN.matcher(engineFull);
+        if (matcher.find()) {
+            assertEquals("cluster_name", matcher.group("cluster"));
+            assertEquals("database_name", matcher.group("database"));
+            assertEquals("table_name", matcher.group("table"));
+            assertEquals(
+                    "id", requireNonNull(parseShardingKey(matcher.group("shardingKey"))).explain());
+        }
+
+        engineFull =
+                "Distributed('cluster_name', 'database_name', 'table_name', rand())"
+                        .replaceAll("'|\\s", "");
+        matcher = DISTRIBUTED_TABLE_ENGINE_PATTERN.matcher(engineFull);
+        if (matcher.find()) {
+            assertEquals("cluster_name", matcher.group("cluster"));
+            assertEquals("database_name", matcher.group("database"));
+            assertEquals("table_name", matcher.group("table"));
+            assertEquals(
+                    "rand()",
+                    requireNonNull(parseShardingKey(matcher.group("shardingKey"))).explain());
+        }
+
+        engineFull =
+                "Distributed('cluster_name', 'database_name', 'table_name', javaHash(id))"
+                        .replaceAll("'|\\s", "");
+        matcher = DISTRIBUTED_TABLE_ENGINE_PATTERN.matcher(engineFull);
+        if (matcher.find()) {
+            assertEquals("cluster_name", matcher.group("cluster"));
+            assertEquals("database_name", matcher.group("database"));
+            assertEquals("table_name", matcher.group("table"));
+            assertEquals(
+                    "javaHash(id)",
+                    requireNonNull(parseShardingKey(matcher.group("shardingKey"))).explain());
+        }
+
+        engineFull =
+                "Distributed('cluster_name', 'database_name', 'table_name', plus(id1, id2))"
+                        .replaceAll("'|\\s", "");
+        matcher = DISTRIBUTED_TABLE_ENGINE_PATTERN.matcher(engineFull);
+        if (matcher.find()) {
+            assertEquals("cluster_name", matcher.group("cluster"));
+            assertEquals("database_name", matcher.group("database"));
+            assertEquals("table_name", matcher.group("table"));
+            assertEquals(
+                    "plus(id1,id2)",
+                    requireNonNull(parseShardingKey(matcher.group("shardingKey"))).explain());
+        }
+
+        engineFull =
+                "Distributed('cluster_name', 'database_name', 'table_name', javaHash(toString(date, age)))"
+                        .replaceAll("'|\\s", "");
+        matcher = DISTRIBUTED_TABLE_ENGINE_PATTERN.matcher(engineFull);
+        if (matcher.find()) {
+            assertEquals("cluster_name", matcher.group("cluster"));
+            assertEquals("database_name", matcher.group("database"));
+            assertEquals("table_name", matcher.group("table"));
+            assertEquals(
+                    "javaHash(toString(date,age))",
+                    requireNonNull(parseShardingKey(matcher.group("shardingKey"))).explain());
+        }
+
+        engineFull =
+                "Distributed('cluster_name', 'database_name', 'table_name', javaHash(toString(date, age)), policy_name)"
+                        .replaceAll("'|\\s", "");
+        matcher = DISTRIBUTED_TABLE_ENGINE_PATTERN.matcher(engineFull);
+        if (matcher.find()) {
+            assertEquals("cluster_name", matcher.group("cluster"));
+            assertEquals("database_name", matcher.group("database"));
+            assertEquals("table_name", matcher.group("table"));
+            assertEquals(
+                    "javaHash(toString(date,age))",
+                    requireNonNull(parseShardingKey(matcher.group("shardingKey"))).explain());
+        }
     }
 }

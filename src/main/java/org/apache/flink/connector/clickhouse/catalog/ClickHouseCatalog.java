@@ -2,8 +2,8 @@ package org.apache.flink.connector.clickhouse.catalog;
 
 import org.apache.flink.connector.clickhouse.ClickHouseDynamicTableFactory;
 import org.apache.flink.connector.clickhouse.internal.schema.DistributedEngineFull;
-import org.apache.flink.connector.clickhouse.util.ClickHouseTypeUtil;
 import org.apache.flink.connector.clickhouse.util.ClickHouseUtil;
+import org.apache.flink.connector.clickhouse.util.DataTypeUtil;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.catalog.AbstractCatalog;
 import org.apache.flink.table.catalog.CatalogBaseTable;
@@ -312,7 +312,7 @@ public class ClickHouseCatalog extends AbstractCatalog {
                 ClickHouseColumnInfo columnInfo =
                         (ClickHouseColumnInfo) getColMethod.invoke(metaData, idx);
                 String columnName = columnInfo.getColumnName();
-                DataType columnType = ClickHouseTypeUtil.toFlinkType(columnInfo);
+                DataType columnType = DataTypeUtil.toFlinkType(columnInfo);
                 if (primaryKeys.contains(columnName)) {
                     columnType = columnType.notNull();
                 }
