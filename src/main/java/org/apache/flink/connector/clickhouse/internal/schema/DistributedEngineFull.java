@@ -14,21 +14,25 @@ public class DistributedEngineFull implements Serializable {
 
     private final String table;
 
-    private final String shardingKey;
+    private final Expression shardingKey;
 
     private final String policyName;
 
-    public static DistributedEngineFull of(String cluster, String database, String table) {
-        return new DistributedEngineFull(cluster, database, table);
-    }
-
     public static DistributedEngineFull of(
-            String cluster, String database, String table, String shardingKey, String policyName) {
+            String cluster,
+            String database,
+            String table,
+            Expression shardingKey,
+            String policyName) {
         return new DistributedEngineFull(cluster, database, table, shardingKey, policyName);
     }
 
     private DistributedEngineFull(
-            String cluster, String database, String table, String shardingKey, String policyName) {
+            String cluster,
+            String database,
+            String table,
+            Expression shardingKey,
+            String policyName) {
         checkArgument(!isNullOrWhitespaceOnly(cluster), "cluster cannot be null or empty");
         checkArgument(!isNullOrWhitespaceOnly(database), "database cannot be null or empty");
         checkArgument(!isNullOrWhitespaceOnly(table), "table cannot be null or empty");
@@ -38,10 +42,6 @@ public class DistributedEngineFull implements Serializable {
         this.table = table;
         this.shardingKey = shardingKey;
         this.policyName = policyName;
-    }
-
-    private DistributedEngineFull(String cluster, String database, String table) {
-        this(cluster, database, table, null, null);
     }
 
     public String getCluster() {
@@ -56,7 +56,7 @@ public class DistributedEngineFull implements Serializable {
         return table;
     }
 
-    public String getShardingKey() {
+    public Expression getShardingKey() {
         return shardingKey;
     }
 

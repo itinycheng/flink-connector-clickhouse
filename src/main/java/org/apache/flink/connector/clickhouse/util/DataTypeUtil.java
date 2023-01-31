@@ -12,11 +12,14 @@ import java.util.regex.Pattern;
 import static org.apache.flink.table.types.logical.DecimalType.MAX_PRECISION;
 
 /** Type utils. */
-public class ClickHouseTypeUtil {
+public class DataTypeUtil {
 
     private static final Pattern INTERNAL_TYPE_PATTERN = Pattern.compile(".*?\\((?<type>.*)\\)");
 
-    /** Convert clickhouse data type to flink data type. Whether to indicate nullable ? */
+    /**
+     * Convert clickhouse data type to flink data type. <br>
+     * TODO: Whether to indicate nullable?
+     */
     public static DataType toFlinkType(ClickHouseColumnInfo clickHouseColumnInfo) {
         switch (clickHouseColumnInfo.getClickHouseDataType()) {
             case Int8:
