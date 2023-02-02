@@ -4,12 +4,21 @@ import org.apache.flink.table.data.DecimalData;
 import org.apache.flink.table.data.RowData;
 
 import java.math.BigInteger;
+import java.util.List;
+
+import static java.util.Objects.nonNull;
+import static org.apache.flink.util.Preconditions.checkArgument;
 
 /** Partition key value based, value must be a number. */
 public class ValuePartitioner extends ClickHousePartitioner {
 
-    public ValuePartitioner(RowData.FieldGetter fieldGetter) {
-        super(fieldGetter);
+    private final RowData.FieldGetter fieldGetter;
+
+    public ValuePartitioner(List<RowData.FieldGetter> getters) {
+        checkArgument(
+                getters.size() == 1 && nonNull(getters.get(0)),
+                "The parameter number of ValuePartitioner must be 1");
+        this.fieldGetter = getters.get(0);
     }
 
     @Override

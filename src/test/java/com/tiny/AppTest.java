@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Collections;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
 
@@ -92,7 +93,7 @@ public class AppTest {
     @Test
     public void valuePartitionerTest() {
         RowData.FieldGetter getter = row -> row.getDecimal(0, 20, 10);
-        ValuePartitioner partitioner = new ValuePartitioner(getter);
+        ValuePartitioner partitioner = new ValuePartitioner(Collections.singletonList(getter));
         GenericRowData rowData = new GenericRowData(1);
         rowData.setField(0, DecimalData.fromBigDecimal(new BigDecimal("100.2313"), 20, 10));
         int select = partitioner.select(rowData, 7);

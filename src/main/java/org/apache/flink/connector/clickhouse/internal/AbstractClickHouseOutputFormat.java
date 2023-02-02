@@ -20,7 +20,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Flushable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -202,16 +204,20 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
         private ClickHouseShardOutputFormat createShardOutputFormat(
                 LogicalType[] logicalTypes, DistributedEngineFull engineFullSchema) {
             SinkShardingStrategy shardingStrategy = options.getShardingStrategy();
-            FieldGetter getter = null;
+            List<FieldGetter> fieldGetters = null;
             if (shardingStrategy.shardingKeyNeeded) {
-                int index = Arrays.asList(fieldNames).indexOf(options.getShardingKey());
-                if (index == -1) {
-                    throw new IllegalArgumentException(
-                            String.format(
-                                    "Partition key `%s` not found in table schema",
-                                    options.getShardingKey()));
+                List<String> shardingKeys = options.getShardingKey();
+                fieldGetters = new ArrayList<>(shardingKeys.size());
+                for (String shardingKey : shardingKeys) {
+                    int index = Arrays.asList(fieldNames).indexOf(shardingKey);
+                    if (index == -1) {
+                        throw new IllegalArgumentException(
+                                String.format(
+                                        "Sharding key `%s` not found in table schema",
+                                        shardingKey));
+                    }
+                    fieldGetters.add(RowData.createFieldGetter(logicalTypes[index], index));
                 }
-                getter = RowData.createFieldGetter(logicalTypes[index], index);
             }
 
             return new ClickHouseShardOutputFormat(
@@ -221,7 +227,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
                     primaryKeys,
                     partitionKeys,
                     logicalTypes,
-                    shardingStrategy.provider.apply(getter),
+                    shardingStrategy.provider.apply(fieldGetters),
                     options);
         }
     }

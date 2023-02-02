@@ -9,9 +9,7 @@ public class ShufflePartitioner extends ClickHousePartitioner {
 
     private static final long serialVersionUID = 1L;
 
-    public ShufflePartitioner() {
-        super(null);
-    }
+    public ShufflePartitioner() {}
 
     @Override
     public int select(RowData record, int numShards) {
