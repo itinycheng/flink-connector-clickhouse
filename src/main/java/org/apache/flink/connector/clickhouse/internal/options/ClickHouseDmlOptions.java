@@ -6,6 +6,8 @@ import org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.Sink
 import javax.annotation.Nullable;
 
 import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
 
 /** ClickHouse data modify language options. */
 public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
@@ -24,7 +26,7 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
 
     private final SinkShardingStrategy shardingStrategy;
 
-    private final String shardingKey;
+    private final List<String> shardingKey;
 
     private final boolean ignoreDelete;
 
@@ -42,7 +44,7 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
             boolean useLocal,
             SinkUpdateStrategy updateStrategy,
             SinkShardingStrategy shardingStrategy,
-            String shardingKey,
+            List<String> shardingKey,
             boolean ignoreDelete,
             Integer parallelism) {
         super(url, username, password, databaseName, tableName);
@@ -81,7 +83,7 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
         return this.shardingStrategy;
     }
 
-    public String getShardingKey() {
+    public List<String> getShardingKey() {
         return this.shardingKey;
     }
 
@@ -106,7 +108,7 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
         private boolean useLocal;
         private SinkUpdateStrategy updateStrategy;
         private SinkShardingStrategy shardingStrategy;
-        private String shardingKey;
+        private List<String> shardingKey;
         private boolean ignoreDelete;
         private Integer parallelism;
 
@@ -169,6 +171,11 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
         }
 
         public ClickHouseDmlOptions.Builder withShardingKey(String shardingKey) {
+            this.shardingKey = Collections.singletonList(shardingKey);
+            return this;
+        }
+
+        public ClickHouseDmlOptions.Builder withShardingKey(List<String> shardingKey) {
             this.shardingKey = shardingKey;
             return this;
         }

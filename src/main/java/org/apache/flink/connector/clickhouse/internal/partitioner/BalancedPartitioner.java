@@ -9,9 +9,7 @@ public class BalancedPartitioner extends ClickHousePartitioner {
 
     private int nextShard = 0;
 
-    public BalancedPartitioner() {
-        super(null);
-    }
+    public BalancedPartitioner() {}
 
     @Override
     public int select(RowData record, int numShards) {

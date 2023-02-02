@@ -13,6 +13,7 @@ import org.apache.flink.table.factories.FactoryUtil;
 
 import java.io.Serializable;
 import java.time.Duration;
+import java.util.List;
 import java.util.function.Function;
 
 /** clickhouse config options. */
@@ -147,28 +148,28 @@ public class ClickHouseConfigOptions {
                 "balanced",
                 "Round robin.",
                 false,
-                (Function<RowData.FieldGetter, ClickHousePartitioner> & Serializable)
+                (Function<List<RowData.FieldGetter>, ClickHousePartitioner> & Serializable)
                         fieldGetter -> new BalancedPartitioner()),
 
         SHUFFLE(
                 "shuffle",
                 "Randomly choose a partitioner.",
                 false,
-                (Function<RowData.FieldGetter, ClickHousePartitioner> & Serializable)
+                (Function<List<RowData.FieldGetter>, ClickHousePartitioner> & Serializable)
                         fieldGetter -> new ShufflePartitioner()),
 
         HASH(
                 "hash",
                 "Generate hash value by calling `Objects.hashcode`.",
                 true,
-                (Function<RowData.FieldGetter, ClickHousePartitioner> & Serializable)
+                (Function<List<RowData.FieldGetter>, ClickHousePartitioner> & Serializable)
                         HashPartitioner::new),
 
         VALUE(
                 "value",
                 "Partition by sharding key value, must be a number.",
                 true,
-                (Function<RowData.FieldGetter, ClickHousePartitioner> & Serializable)
+                (Function<List<RowData.FieldGetter>, ClickHousePartitioner> & Serializable)
                         ValuePartitioner::new);
 
         public final String value;
@@ -177,13 +178,13 @@ public class ClickHouseConfigOptions {
 
         public final boolean shardingKeyNeeded;
 
-        public final Function<RowData.FieldGetter, ClickHousePartitioner> provider;
+        public final Function<List<RowData.FieldGetter>, ClickHousePartitioner> provider;
 
         SinkShardingStrategy(
                 String value,
                 String description,
                 boolean shardingKeyNeeded,
-                Function<RowData.FieldGetter, ClickHousePartitioner> provider) {
+                Function<List<RowData.FieldGetter>, ClickHousePartitioner> provider) {
             this.value = value;
             this.description = description;
             this.shardingKeyNeeded = shardingKeyNeeded;
