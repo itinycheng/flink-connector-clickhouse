@@ -31,6 +31,8 @@ public class ClickHouseConfig {
 
     public static final String SINK_PARTITION_KEY = "sink.partition-key";
 
+    public static final String SINK_SHARDING_USE_TABLE_DEF = "sink.sharding.use-table-definition";
+
     public static final String SINK_IGNORE_DELETE = "sink.ignore-delete";
 
     public static final String CATALOG_IGNORE_PRIMARY_KEY = "catalog.ignore-primary-key";

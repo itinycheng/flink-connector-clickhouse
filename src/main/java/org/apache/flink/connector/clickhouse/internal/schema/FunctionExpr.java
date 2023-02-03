@@ -29,6 +29,14 @@ public class FunctionExpr extends Expression {
         return new FunctionExpr(functionName, arguments);
     }
 
+    public String getFunctionName() {
+        return functionName;
+    }
+
+    public List<Expression> getArguments() {
+        return arguments;
+    }
+
     @Override
     public String explain() {
         if (arguments.isEmpty()) {

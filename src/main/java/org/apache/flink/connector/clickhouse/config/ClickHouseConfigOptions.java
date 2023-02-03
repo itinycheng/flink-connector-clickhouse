@@ -103,6 +103,13 @@ public class ClickHouseConfigOptions {
                     .noDefaultValue()
                     .withDescription("Sharding key used for hash strategy.");
 
+    public static final ConfigOption<Boolean> SINK_SHARDING_USE_TABLE_DEF =
+            ConfigOptions.key(ClickHouseConfig.SINK_SHARDING_USE_TABLE_DEF)
+                    .booleanType()
+                    .defaultValue(false)
+                    .withDescription(
+                            "Sharding strategy strictly to the definition of distributed tables.");
+
     public static final ConfigOption<Boolean> SINK_IGNORE_DELETE =
             ConfigOptions.key(ClickHouseConfig.SINK_IGNORE_DELETE)
                     .booleanType()
@@ -149,14 +156,14 @@ public class ClickHouseConfigOptions {
                 "Round robin.",
                 false,
                 (Function<List<RowData.FieldGetter>, ClickHousePartitioner> & Serializable)
-                        fieldGetter -> new BalancedPartitioner()),
+                        fieldGetters -> new BalancedPartitioner()),
 
         SHUFFLE(
                 "shuffle",
                 "Randomly choose a partitioner.",
                 false,
                 (Function<List<RowData.FieldGetter>, ClickHousePartitioner> & Serializable)
-                        fieldGetter -> new ShufflePartitioner()),
+                        fieldGetters -> new ShufflePartitioner()),
 
         HASH(
                 "hash",

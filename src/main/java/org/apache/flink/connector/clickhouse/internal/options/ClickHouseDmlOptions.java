@@ -28,6 +28,8 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
 
     private final List<String> shardingKey;
 
+    private final boolean shardingUseTableDef;
+
     private final boolean ignoreDelete;
 
     private final Integer parallelism;
@@ -45,6 +47,7 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
             SinkUpdateStrategy updateStrategy,
             SinkShardingStrategy shardingStrategy,
             List<String> shardingKey,
+            boolean shardingUseTableDef,
             boolean ignoreDelete,
             Integer parallelism) {
         super(url, username, password, databaseName, tableName);
@@ -55,6 +58,7 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
         this.updateStrategy = updateStrategy;
         this.shardingStrategy = shardingStrategy;
         this.shardingKey = shardingKey;
+        this.shardingUseTableDef = shardingUseTableDef;
         this.ignoreDelete = ignoreDelete;
         this.parallelism = parallelism;
     }
@@ -87,7 +91,11 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
         return this.shardingKey;
     }
 
-    public boolean getIgnoreDelete() {
+    public boolean isShardingUseTableDef() {
+        return shardingUseTableDef;
+    }
+
+    public boolean isIgnoreDelete() {
         return this.ignoreDelete;
     }
 
@@ -109,6 +117,7 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
         private SinkUpdateStrategy updateStrategy;
         private SinkShardingStrategy shardingStrategy;
         private List<String> shardingKey;
+        private boolean shardingUseTableDef;
         private boolean ignoreDelete;
         private Integer parallelism;
 
@@ -175,8 +184,8 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
             return this;
         }
 
-        public ClickHouseDmlOptions.Builder withShardingKey(List<String> shardingKey) {
-            this.shardingKey = shardingKey;
+        public ClickHouseDmlOptions.Builder withUseTableDef(boolean shardingUseTableDef) {
+            this.shardingUseTableDef = shardingUseTableDef;
             return this;
         }
 
@@ -204,6 +213,7 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
                     updateStrategy,
                     shardingStrategy,
                     shardingKey,
+                    shardingUseTableDef,
                     ignoreDelete,
                     parallelism);
         }

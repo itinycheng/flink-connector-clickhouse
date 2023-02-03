@@ -7,8 +7,6 @@ import java.util.concurrent.ThreadLocalRandom;
 /** Shuffle data by random numbers. */
 public class ShufflePartitioner extends ClickHousePartitioner {
 
-    private static final long serialVersionUID = 1L;
-
     public ShufflePartitioner() {}
 
     @Override

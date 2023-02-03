@@ -33,6 +33,7 @@ import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptio
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_PARALLELISM;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_PARTITION_KEY;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_PARTITION_STRATEGY;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_SHARDING_USE_TABLE_DEF;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SINK_UPDATE_STRATEGY;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.TABLE_NAME;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.URL;
@@ -107,6 +108,7 @@ public class ClickHouseDynamicTableFactory
         optionalOptions.add(SINK_UPDATE_STRATEGY);
         optionalOptions.add(SINK_PARTITION_STRATEGY);
         optionalOptions.add(SINK_PARTITION_KEY);
+        optionalOptions.add(SINK_SHARDING_USE_TABLE_DEF);
         optionalOptions.add(SINK_IGNORE_DELETE);
         optionalOptions.add(SINK_PARALLELISM);
         optionalOptions.add(CATALOG_IGNORE_PRIMARY_KEY);
@@ -119,7 +121,8 @@ public class ClickHouseDynamicTableFactory
 
     private void validateConfigOptions(ReadableConfig config) {
         SinkShardingStrategy shardingStrategy = config.get(SINK_PARTITION_STRATEGY);
-        if (shardingStrategy.shardingKeyNeeded
+        if (!config.get(SINK_SHARDING_USE_TABLE_DEF)
+                && shardingStrategy.shardingKeyNeeded
                 && !config.getOptional(SINK_PARTITION_KEY).isPresent()) {
             throw new IllegalArgumentException(
                     "A sharding key must be provided for sharding strategy: "
@@ -151,6 +154,7 @@ public class ClickHouseDynamicTableFactory
                 .withUpdateStrategy(config.get(SINK_UPDATE_STRATEGY))
                 .withShardingStrategy(config.get(SINK_PARTITION_STRATEGY))
                 .withShardingKey(config.get(SINK_PARTITION_KEY))
+                .withUseTableDef(config.get(SINK_SHARDING_USE_TABLE_DEF))
                 .withIgnoreDelete(config.get(SINK_IGNORE_DELETE))
                 .withParallelism(config.get(SINK_PARALLELISM))
                 .build();
