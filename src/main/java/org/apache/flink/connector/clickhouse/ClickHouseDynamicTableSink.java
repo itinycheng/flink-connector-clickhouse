@@ -69,7 +69,7 @@ public class ClickHouseDynamicTableSink implements DynamicTableSink, SupportsPar
                         .withOptions(options)
                         .withFieldNames(
                                 DataType.getFieldNames(physicalRowDataType).toArray(new String[0]))
-                        .withFieldDataTypes(
+                        .withFieldTypes(
                                 DataType.getFieldDataTypes(physicalRowDataType)
                                         .toArray(new DataType[0]))
                         .withPrimaryKey(primaryKeys)

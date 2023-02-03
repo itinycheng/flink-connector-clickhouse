@@ -19,6 +19,10 @@ public class FieldExpr extends Expression {
         return new FieldExpr(columnName);
     }
 
+    public String getColumnName() {
+        return columnName;
+    }
+
     @Override
     public String explain() {
         return columnName;

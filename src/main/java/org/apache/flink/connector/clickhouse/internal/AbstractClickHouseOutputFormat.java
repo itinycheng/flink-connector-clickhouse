@@ -7,6 +7,9 @@ import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConne
 import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.connector.clickhouse.internal.schema.DistributedEngineFull;
+import org.apache.flink.connector.clickhouse.internal.schema.Expression;
+import org.apache.flink.connector.clickhouse.internal.schema.FieldExpr;
+import org.apache.flink.connector.clickhouse.internal.schema.FunctionExpr;
 import org.apache.flink.connector.clickhouse.util.ClickHouseUtil;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.RowData.FieldGetter;
@@ -20,13 +23,16 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Flushable;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 
 /** Abstract class of ClickHouse output format. */
 public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<RowData>
@@ -114,7 +120,9 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
         private static final Logger LOG =
                 LoggerFactory.getLogger(AbstractClickHouseOutputFormat.Builder.class);
 
-        private DataType[] fieldDataTypes;
+        private DataType[] fieldTypes;
+
+        private LogicalType[] logicalTypes;
 
         private ClickHouseDmlOptions options;
 
@@ -131,9 +139,12 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
             return this;
         }
 
-        public AbstractClickHouseOutputFormat.Builder withFieldDataTypes(
-                DataType[] fieldDataTypes) {
-            this.fieldDataTypes = fieldDataTypes;
+        public AbstractClickHouseOutputFormat.Builder withFieldTypes(DataType[] fieldTypes) {
+            this.fieldTypes = fieldTypes;
+            this.logicalTypes =
+                    Arrays.stream(fieldTypes)
+                            .map(DataType::getLogicalType)
+                            .toArray(LogicalType[]::new);
             return this;
         }
 
@@ -155,7 +166,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
         public AbstractClickHouseOutputFormat build() {
             Preconditions.checkNotNull(options);
             Preconditions.checkNotNull(fieldNames);
-            Preconditions.checkNotNull(fieldDataTypes);
+            Preconditions.checkNotNull(fieldTypes);
             Preconditions.checkNotNull(primaryKeys);
             Preconditions.checkNotNull(partitionKeys);
             if (primaryKeys.length > 0) {
@@ -173,15 +184,10 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
                                 options.getDatabaseName(),
                                 options.getTableName());
 
-                LogicalType[] logicalTypes =
-                        Arrays.stream(fieldDataTypes)
-                                .map(DataType::getLogicalType)
-                                .toArray(LogicalType[]::new);
-
                 boolean isDistributed = engineFullSchema != null;
                 return isDistributed && options.isUseLocal()
-                        ? createShardOutputFormat(logicalTypes, engineFullSchema)
-                        : createBatchOutputFormat(logicalTypes);
+                        ? createShardOutputFormat(engineFullSchema)
+                        : createBatchOutputFormat();
             } catch (Exception exception) {
                 throw new RuntimeException("Build ClickHouse output format failed.", exception);
             } finally {
@@ -191,7 +197,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
             }
         }
 
-        private ClickHouseBatchOutputFormat createBatchOutputFormat(LogicalType[] logicalTypes) {
+        private ClickHouseBatchOutputFormat createBatchOutputFormat() {
             return new ClickHouseBatchOutputFormat(
                     new ClickHouseConnectionProvider(options),
                     fieldNames,
@@ -202,21 +208,31 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
         }
 
         private ClickHouseShardOutputFormat createShardOutputFormat(
-                LogicalType[] logicalTypes, DistributedEngineFull engineFullSchema) {
-            SinkShardingStrategy shardingStrategy = options.getShardingStrategy();
+                DistributedEngineFull engineFullSchema) {
+            SinkShardingStrategy shardingStrategy;
             List<FieldGetter> fieldGetters = null;
-            if (shardingStrategy.shardingKeyNeeded) {
-                List<String> shardingKeys = options.getShardingKey();
-                fieldGetters = new ArrayList<>(shardingKeys.size());
-                for (String shardingKey : shardingKeys) {
-                    int index = Arrays.asList(fieldNames).indexOf(shardingKey);
-                    if (index == -1) {
-                        throw new IllegalArgumentException(
-                                String.format(
-                                        "Sharding key `%s` not found in table schema",
-                                        shardingKey));
-                    }
-                    fieldGetters.add(RowData.createFieldGetter(logicalTypes[index], index));
+            if (options.isShardingUseTableDef()) {
+                Expression shardingKey = engineFullSchema.getShardingKey();
+                if (shardingKey instanceof FieldExpr) {
+                    shardingStrategy = SinkShardingStrategy.VALUE;
+                    FieldGetter fieldGetter =
+                            getFieldGetterOfShardingKey(((FieldExpr) shardingKey).getColumnName());
+                    fieldGetters = singletonList(fieldGetter);
+                } else if (shardingKey instanceof FunctionExpr
+                        && "rand()".equals(shardingKey.explain())) {
+                    shardingStrategy = SinkShardingStrategy.SHUFFLE;
+                    fieldGetters = emptyList();
+                } else {
+                    throw new RuntimeException(
+                            "Unsupported sharding key: " + shardingKey.explain());
+                }
+            } else {
+                shardingStrategy = options.getShardingStrategy();
+                if (shardingStrategy.shardingKeyNeeded) {
+                    fieldGetters =
+                            options.getShardingKey().stream()
+                                    .map(this::getFieldGetterOfShardingKey)
+                                    .collect(toList());
                 }
             }
 
@@ -229,6 +245,15 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
                     logicalTypes,
                     shardingStrategy.provider.apply(fieldGetters),
                     options);
+        }
+
+        private FieldGetter getFieldGetterOfShardingKey(String shardingKey) {
+            int index = Arrays.asList(fieldNames).indexOf(shardingKey);
+            if (index == -1) {
+                throw new IllegalArgumentException(
+                        String.format("Sharding key `%s` not found in table schema", shardingKey));
+            }
+            return RowData.createFieldGetter(logicalTypes[index], index);
         }
     }
 }

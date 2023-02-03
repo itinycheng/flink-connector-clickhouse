@@ -78,7 +78,7 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
         this.deleteExtractor = deleteExtractor;
         this.maxRetries = options.getMaxRetries();
         this.updateStrategy = options.getUpdateStrategy();
-        this.ignoreDelete = options.getIgnoreDelete();
+        this.ignoreDelete = options.isIgnoreDelete();
     }
 
     @Override
