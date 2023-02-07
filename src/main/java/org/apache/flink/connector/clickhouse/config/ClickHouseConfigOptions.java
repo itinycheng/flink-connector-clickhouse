@@ -4,7 +4,7 @@ import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.connector.clickhouse.internal.partitioner.BalancedPartitioner;
 import org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner;
-import org.apache.flink.connector.clickhouse.internal.partitioner.HashPartitioner;
+import org.apache.flink.connector.clickhouse.internal.partitioner.JavaHashPartitioner;
 import org.apache.flink.connector.clickhouse.internal.partitioner.ShufflePartitioner;
 import org.apache.flink.connector.clickhouse.internal.partitioner.ValuePartitioner;
 import org.apache.flink.table.catalog.CommonCatalogOptions;
@@ -167,10 +167,10 @@ public class ClickHouseConfigOptions {
 
         HASH(
                 "hash",
-                "Generate hash value by calling `Objects.hashcode`.",
+                "Generate hash value by calling `Objects.hashcode`, same as ClickHouse's hash function javaHash.",
                 true,
                 (Function<List<RowData.FieldGetter>, ClickHousePartitioner> & Serializable)
-                        HashPartitioner::new),
+                        JavaHashPartitioner::new),
 
         VALUE(
                 "value",
