@@ -9,15 +9,18 @@ import java.util.Objects;
 import static java.util.Objects.nonNull;
 import static org.apache.flink.util.Preconditions.checkArgument;
 
-/** Use primary-key's hash code to partition data. */
-public class HashPartitioner extends ClickHousePartitioner {
+/**
+ * Same as ClickHouse's hash function `javaHash`. <br>
+ * ! Extended to integers from ClickHouse release 22.10.
+ */
+public class JavaHashPartitioner extends ClickHousePartitioner {
 
     private final FieldGetter fieldGetter;
 
-    public HashPartitioner(List<FieldGetter> getters) {
+    public JavaHashPartitioner(List<FieldGetter> getters) {
         checkArgument(
                 getters.size() == 1 && nonNull(getters.get(0)),
-                "The parameter number of HashPartitioner must be 1");
+                "The parameter number of JavaHashPartitioner must be 1");
         this.fieldGetter = getters.get(0);
     }
 

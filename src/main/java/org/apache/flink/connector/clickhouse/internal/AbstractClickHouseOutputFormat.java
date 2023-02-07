@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.io.Flushable;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -222,6 +223,13 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
                         && "rand()".equals(shardingKey.explain())) {
                     shardingStrategy = SinkShardingStrategy.SHUFFLE;
                     fieldGetters = emptyList();
+                } else if (shardingKey instanceof FunctionExpr
+                        && "javaHash".equals(((FunctionExpr) shardingKey).getFunctionName())
+                        && ((FunctionExpr) shardingKey)
+                                .getArguments().stream()
+                                        .allMatch(expression -> expression instanceof FieldExpr)) {
+                    shardingStrategy = SinkShardingStrategy.HASH;
+                    fieldGetters = parseFieldGetters((FunctionExpr) shardingKey);
                 } else {
                     throw new RuntimeException(
                             "Unsupported sharding key: " + shardingKey.explain());
@@ -245,6 +253,23 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
                     logicalTypes,
                     shardingStrategy.provider.apply(fieldGetters),
                     options);
+        }
+
+        private List<FieldGetter> parseFieldGetters(FunctionExpr functionExpr) {
+            return functionExpr.getArguments().stream()
+                    .map(
+                            expression -> {
+                                if (expression instanceof FunctionExpr) {
+                                    return parseFieldGetters((FunctionExpr) expression);
+                                } else {
+                                    FieldGetter fieldGetter =
+                                            getFieldGetterOfShardingKey(
+                                                    ((FieldExpr) expression).getColumnName());
+                                    return singletonList(fieldGetter);
+                                }
+                            })
+                    .flatMap(Collection::stream)
+                    .collect(toList());
         }
 
         private FieldGetter getFieldGetterOfShardingKey(String shardingKey) {

@@ -25,7 +25,8 @@ public class FunctionExpr extends Expression {
         this.arguments = arguments;
     }
 
-    public static FunctionExpr of(@Nonnull String functionName, List<Expression> arguments) {
+    public static FunctionExpr of(
+            @Nonnull String functionName, @Nonnull List<Expression> arguments) {
         return new FunctionExpr(functionName, arguments);
     }
 
@@ -39,12 +40,7 @@ public class FunctionExpr extends Expression {
 
     @Override
     public String explain() {
-        if (arguments.isEmpty()) {
-            return functionName + "()";
-        }
-
-        return String.format(
-                "%s(%s)",
-                functionName, arguments.stream().map(Expression::explain).collect(joining(",")));
+        String joinedArgs = arguments.stream().map(Expression::explain).collect(joining(","));
+        return String.format("%s(%s)", functionName, joinedArgs);
     }
 }
