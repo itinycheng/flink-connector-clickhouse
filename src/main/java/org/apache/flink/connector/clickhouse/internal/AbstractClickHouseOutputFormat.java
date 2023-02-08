@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -127,6 +128,8 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
 
         private ClickHouseDmlOptions options;
 
+        private Properties connectionProperties;
+
         private String[] fieldNames;
 
         private String[] primaryKeys;
@@ -137,6 +140,11 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
 
         public AbstractClickHouseOutputFormat.Builder withOptions(ClickHouseDmlOptions options) {
             this.options = options;
+            return this;
+        }
+
+        public Builder withConnectionProperties(Properties connectionProperties) {
+            this.connectionProperties = connectionProperties;
             return this;
         }
 
@@ -200,7 +208,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
 
         private ClickHouseBatchOutputFormat createBatchOutputFormat() {
             return new ClickHouseBatchOutputFormat(
-                    new ClickHouseConnectionProvider(options),
+                    new ClickHouseConnectionProvider(options, connectionProperties),
                     fieldNames,
                     primaryKeys,
                     partitionKeys,
@@ -245,7 +253,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
             }
 
             return new ClickHouseShardOutputFormat(
-                    new ClickHouseConnectionProvider(options),
+                    new ClickHouseConnectionProvider(options, connectionProperties),
                     engineFullSchema,
                     fieldNames,
                     primaryKeys,

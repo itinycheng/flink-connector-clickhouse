@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfig.IDENTIFIER;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfig.PROPERTIES_PREFIX;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.CATALOG_IGNORE_PRIMARY_KEY;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.DATABASE_NAME;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.PASSWORD;
@@ -77,7 +78,7 @@ public class ClickHouseCatalogFactory implements CatalogFactory {
     public Catalog createCatalog(Context context) {
         final FactoryUtil.CatalogFactoryHelper helper =
                 FactoryUtil.createCatalogFactoryHelper(this, context);
-        helper.validate();
+        helper.validateExcept(PROPERTIES_PREFIX);
 
         return new ClickHouseCatalog(
                 context.getName(),

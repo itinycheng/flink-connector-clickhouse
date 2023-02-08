@@ -19,6 +19,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfig.IDENTIFIER;
+import static org.apache.flink.connector.clickhouse.config.ClickHouseConfig.PROPERTIES_PREFIX;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.CATALOG_IGNORE_PRIMARY_KEY;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.DATABASE_NAME;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.PASSWORD;
@@ -51,7 +52,7 @@ public class ClickHouseDynamicTableFactory
     public DynamicTableSink createDynamicTableSink(Context context) {
         TableFactoryHelper helper = FactoryUtil.createTableFactoryHelper(this, context);
         ReadableConfig config = helper.getOptions();
-        helper.validate();
+        helper.validateExcept(PROPERTIES_PREFIX);
         validateConfigOptions(config);
 
         ResolvedCatalogTable catalogTable = context.getCatalogTable();
@@ -62,8 +63,11 @@ public class ClickHouseDynamicTableFactory
                         .map(UniqueConstraint::getColumns)
                         .map(keys -> keys.toArray(new String[0]))
                         .orElse(new String[0]);
+        Properties clickHouseProperties =
+                getClickHouseProperties(context.getCatalogTable().getOptions());
         return new ClickHouseDynamicTableSink(
                 getDmlOptions(config),
+                clickHouseProperties,
                 primaryKeys,
                 catalogTable.getPartitionKeys().toArray(new String[0]),
                 context.getPhysicalRowDataType());
@@ -73,7 +77,7 @@ public class ClickHouseDynamicTableFactory
     public DynamicTableSource createDynamicTableSource(Context context) {
         TableFactoryHelper helper = FactoryUtil.createTableFactoryHelper(this, context);
         ReadableConfig config = helper.getOptions();
-        helper.validate();
+        helper.validateExcept(PROPERTIES_PREFIX);
         validateConfigOptions(config);
 
         Properties clickHouseProperties =
