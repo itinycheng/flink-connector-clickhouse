@@ -14,6 +14,7 @@ import javax.annotation.Nonnull;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * A {@link DynamicTableSink} that describes how to create a {@link ClickHouseDynamicTableSink} from
@@ -31,16 +32,20 @@ public class ClickHouseDynamicTableSink implements DynamicTableSink, SupportsPar
 
     private final ClickHouseDmlOptions options;
 
+    private final Properties connectionProperties;
+
     private boolean dynamicGrouping = false;
 
     private LinkedHashMap<String, String> staticPartitionSpec = new LinkedHashMap<>();
 
     public ClickHouseDynamicTableSink(
             @Nonnull ClickHouseDmlOptions options,
+            @Nonnull Properties connectionProperties,
             @Nonnull String[] primaryKeys,
             @Nonnull String[] partitionKeys,
             @Nonnull DataType physicalRowDataType) {
         this.options = options;
+        this.connectionProperties = connectionProperties;
         this.primaryKeys = primaryKeys;
         this.partitionKeys = partitionKeys;
         this.physicalRowDataType = physicalRowDataType;
@@ -67,6 +72,7 @@ public class ClickHouseDynamicTableSink implements DynamicTableSink, SupportsPar
         AbstractClickHouseOutputFormat outputFormat =
                 new AbstractClickHouseOutputFormat.Builder()
                         .withOptions(options)
+                        .withConnectionProperties(connectionProperties)
                         .withFieldNames(
                                 DataType.getFieldNames(physicalRowDataType).toArray(new String[0]))
                         .withFieldTypes(
@@ -98,7 +104,11 @@ public class ClickHouseDynamicTableSink implements DynamicTableSink, SupportsPar
     public DynamicTableSink copy() {
         ClickHouseDynamicTableSink sink =
                 new ClickHouseDynamicTableSink(
-                        options, primaryKeys, partitionKeys, physicalRowDataType);
+                        options,
+                        connectionProperties,
+                        primaryKeys,
+                        partitionKeys,
+                        physicalRowDataType);
         sink.dynamicGrouping = dynamicGrouping;
         sink.staticPartitionSpec = staticPartitionSpec;
         return sink;
