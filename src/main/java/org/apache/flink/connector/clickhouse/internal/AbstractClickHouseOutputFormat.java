@@ -6,11 +6,11 @@ import org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.Sink
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
+import org.apache.flink.connector.clickhouse.internal.schema.ClusterSpec;
 import org.apache.flink.connector.clickhouse.internal.schema.DistributedEngineFull;
 import org.apache.flink.connector.clickhouse.internal.schema.Expression;
 import org.apache.flink.connector.clickhouse.internal.schema.FieldExpr;
 import org.apache.flink.connector.clickhouse.internal.schema.FunctionExpr;
-import org.apache.flink.connector.clickhouse.util.ClickHouseUtil;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.RowData.FieldGetter;
 import org.apache.flink.table.types.DataType;
@@ -20,9 +20,11 @@ import org.apache.flink.util.concurrent.ExecutorThreadFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.yandex.clickhouse.ClickHouseConnection;
 
 import java.io.Flushable;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -35,6 +37,8 @@ import java.util.concurrent.TimeUnit;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
+import static org.apache.flink.connector.clickhouse.util.ClickHouseJdbcUtil.getClusterSpec;
+import static org.apache.flink.connector.clickhouse.util.ClickHouseJdbcUtil.getDistributedEngineFull;
 
 /** Abstract class of ClickHouse output format. */
 public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<RowData>
@@ -188,14 +192,15 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
             try {
                 connectionProvider = new ClickHouseConnectionProvider(options);
                 DistributedEngineFull engineFullSchema =
-                        ClickHouseUtil.getAndParseDistributedEngineSchema(
+                        getDistributedEngineFull(
                                 connectionProvider.getOrCreateConnection(),
                                 options.getDatabaseName(),
                                 options.getTableName());
 
                 boolean isDistributed = engineFullSchema != null;
                 return isDistributed && options.isUseLocal()
-                        ? createShardOutputFormat(engineFullSchema)
+                        ? createShardOutputFormat(
+                                connectionProvider.getOrCreateConnection(), engineFullSchema)
                         : createBatchOutputFormat();
             } catch (Exception exception) {
                 throw new RuntimeException("Build ClickHouse output format failed.", exception);
@@ -217,7 +222,8 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
         }
 
         private ClickHouseShardOutputFormat createShardOutputFormat(
-                DistributedEngineFull engineFullSchema) {
+                ClickHouseConnection connection, DistributedEngineFull engineFullSchema)
+                throws SQLException {
             SinkShardingStrategy shardingStrategy;
             List<FieldGetter> fieldGetters = null;
             if (options.isShardingUseTableDef()) {
@@ -252,8 +258,10 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
                 }
             }
 
+            ClusterSpec clusterSpec = getClusterSpec(connection, engineFullSchema.getCluster());
             return new ClickHouseShardOutputFormat(
                     new ClickHouseConnectionProvider(options, connectionProperties),
+                    clusterSpec,
                     engineFullSchema,
                     fieldNames,
                     primaryKeys,

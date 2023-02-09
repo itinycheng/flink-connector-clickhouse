@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.getAndParseDistributedEngineSchema;
+import static org.apache.flink.connector.clickhouse.util.ClickHouseJdbcUtil.getDistributedEngineFull;
 
 /** Abstract Clickhouse input format. */
 public abstract class AbstractClickHouseInputFormat extends RichInputFormat<RowData, InputSplit>
@@ -188,7 +188,7 @@ public abstract class AbstractClickHouseInputFormat extends RichInputFormat<RowD
                 connectionProvider =
                         new ClickHouseConnectionProvider(readOptions, connectionProperties);
                 DistributedEngineFull engineFullSchema =
-                        getAndParseDistributedEngineSchema(
+                        getDistributedEngineFull(
                                 connectionProvider.getOrCreateConnection(),
                                 readOptions.getDatabaseName(),
                                 readOptions.getTableName());

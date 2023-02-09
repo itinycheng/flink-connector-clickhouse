@@ -24,7 +24,7 @@ import java.util.TimeZone;
 import java.util.regex.Matcher;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.DISTRIBUTED_TABLE_ENGINE_PATTERN;
+import static org.apache.flink.connector.clickhouse.util.ClickHouseJdbcUtil.DISTRIBUTED_TABLE_ENGINE_PATTERN;
 import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.parseShardingKey;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;

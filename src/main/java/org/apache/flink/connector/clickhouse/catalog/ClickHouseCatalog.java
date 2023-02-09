@@ -60,6 +60,7 @@ import static org.apache.flink.connector.clickhouse.config.ClickHouseConfig.PASS
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfig.TABLE_NAME;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfig.URL;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfig.USERNAME;
+import static org.apache.flink.connector.clickhouse.util.ClickHouseJdbcUtil.getDistributedEngineFull;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.StringUtils.isNullOrWhitespaceOnly;
 
@@ -267,7 +268,7 @@ public class ClickHouseCatalog extends AbstractCatalog {
         String tableName = tablePath.getObjectName();
         try {
             DistributedEngineFull engineFullSchema =
-                    ClickHouseUtil.getAndParseDistributedEngineSchema(
+                    getDistributedEngineFull(
                             connection, tablePath.getDatabaseName(), tablePath.getObjectName());
             if (engineFullSchema != null) {
                 databaseName = engineFullSchema.getDatabase();

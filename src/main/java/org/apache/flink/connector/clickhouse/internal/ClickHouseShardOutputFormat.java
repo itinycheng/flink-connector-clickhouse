@@ -4,6 +4,7 @@ import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConne
 import org.apache.flink.connector.clickhouse.internal.executor.ClickHouseExecutor;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.connector.clickhouse.internal.partitioner.ClickHousePartitioner;
+import org.apache.flink.connector.clickhouse.internal.schema.ClusterSpec;
 import org.apache.flink.connector.clickhouse.internal.schema.DistributedEngineFull;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.logical.LogicalType;
@@ -27,26 +28,29 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
     private final ClickHouseConnectionProvider connectionProvider;
 
-    private final String[] fieldNames;
-
-    private final LogicalType[] logicalTypes;
-
-    private final ClickHousePartitioner partitioner;
+    private final ClusterSpec clusterSpec;
 
     private final DistributedEngineFull shardTableSchema;
 
-    private final ClickHouseDmlOptions options;
-
-    private final List<ClickHouseExecutor> shardExecutors;
+    private final String[] fieldNames;
 
     private final String[] keyFields;
 
     private final String[] partitionFields;
 
+    private final LogicalType[] logicalTypes;
+
+    private final ClickHousePartitioner partitioner;
+
+    private final ClickHouseDmlOptions options;
+
+    private final List<ClickHouseExecutor> shardExecutors;
+
     private transient int[] batchCounts;
 
     protected ClickHouseShardOutputFormat(
             @Nonnull ClickHouseConnectionProvider connectionProvider,
+            @Nonnull ClusterSpec clusterSpec,
             @Nonnull DistributedEngineFull shardTableSchema,
             @Nonnull String[] fieldNames,
             @Nonnull String[] keyFields,
@@ -55,6 +59,7 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
             @Nonnull ClickHousePartitioner partitioner,
             @Nonnull ClickHouseDmlOptions options) {
         this.connectionProvider = Preconditions.checkNotNull(connectionProvider);
+        this.clusterSpec = Preconditions.checkNotNull(clusterSpec);
         this.shardTableSchema = Preconditions.checkNotNull(shardTableSchema);
         this.fieldNames = Preconditions.checkNotNull(fieldNames);
         this.keyFields = keyFields;
@@ -70,7 +75,7 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
         try {
             List<ClickHouseConnection> shardConnections =
                     connectionProvider.createShardConnections(
-                            shardTableSchema.getCluster(), shardTableSchema.getDatabase());
+                            clusterSpec, shardTableSchema.getDatabase());
             for (ClickHouseConnection shardConnection : shardConnections) {
                 ClickHouseExecutor executor =
                         ClickHouseExecutor.createClickHouseExecutor(
