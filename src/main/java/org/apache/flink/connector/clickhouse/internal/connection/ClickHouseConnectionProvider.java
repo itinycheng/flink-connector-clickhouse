@@ -1,14 +1,10 @@
 package org.apache.flink.connector.clickhouse.internal.connection;
 
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseConnectionOptions;
+import org.apache.flink.connector.clickhouse.internal.schema.ClusterSpec;
+import org.apache.flink.connector.clickhouse.internal.schema.ShardSpec;
 import org.apache.flink.connector.clickhouse.util.ClickHouseUtil;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.yandex.clickhouse.BalancedClickhouseDataSource;
@@ -24,10 +20,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static java.util.stream.Collectors.toList;
+import static org.apache.flink.connector.clickhouse.util.ClickHouseJdbcUtil.getActualHttpPort;
 
 /** ClickHouse connection provider. Use ClickHouseDriver to create a connection. */
 public class ClickHouseConnectionProvider implements Serializable {
@@ -35,9 +30,6 @@ public class ClickHouseConnectionProvider implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private static final Logger LOG = LoggerFactory.getLogger(ClickHouseConnectionProvider.class);
-
-    private static final Pattern HTTP_PORT_PATTERN =
-            Pattern.compile("You must use port (?<port>[0-9]+) for HTTP.");
 
     /**
      * Query different shard info
@@ -74,16 +66,11 @@ public class ClickHouseConnectionProvider implements Serializable {
     }
 
     public synchronized List<ClickHouseConnection> createShardConnections(
-            String shardCluster, String shardDatabase) throws SQLException {
-        List<String> shardUrls = getShardUrls(shardCluster);
-        if (shardUrls.isEmpty()) {
-            throw new SQLException("Unable to query shards in system.clusters");
-        }
-
+            ClusterSpec clusterSpec, String defaultDatabase) throws SQLException {
         List<ClickHouseConnection> connections = new ArrayList<>();
-        for (String shardUrl : shardUrls) {
+        for (ShardSpec shardSpec : clusterSpec.getShards()) {
             ClickHouseConnection connection =
-                    createAndStoreShardConnection(shardUrl, shardDatabase);
+                    createAndStoreShardConnection(shardSpec.getJdbcUrls(), defaultDatabase);
             connections.add(connection);
         }
 
@@ -159,32 +146,6 @@ public class ClickHouseConnectionProvider implements Serializable {
             }
 
             shardConnections = null;
-        }
-    }
-
-    private int getActualHttpPort(String host, int port) throws SQLException {
-        try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
-            HttpGet request =
-                    new HttpGet(
-                            (new URIBuilder())
-                                    .setScheme("http")
-                                    .setHost(host)
-                                    .setPort(port)
-                                    .build());
-            HttpResponse response = httpclient.execute(request);
-            int statusCode = response.getStatusLine().getStatusCode();
-            if (statusCode != 200) {
-                String raw = EntityUtils.toString(response.getEntity());
-                Matcher matcher = HTTP_PORT_PATTERN.matcher(raw);
-                if (matcher.find()) {
-                    return Integer.parseInt(matcher.group("port"));
-                }
-                throw new SQLException("Cannot query ClickHouse http port.");
-            }
-
-            return port;
-        } catch (Throwable throwable) {
-            throw new SQLException("Cannot connect to ClickHouse server using HTTP.", throwable);
         }
     }
 }
