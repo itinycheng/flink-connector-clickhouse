@@ -82,9 +82,9 @@ public class ClickHouseJdbcUtil {
                     clusterRows.add(
                             new ClusterRow(
                                     rs.getString("cluster"),
-                                    rs.getLong("shard_num"),
+                                    rs.getInt("shard_num"),
                                     rs.getLong("shard_weight"),
-                                    rs.getLong("replica_num"),
+                                    rs.getInt("replica_num"),
                                     rs.getString("host_address"),
                                     rs.getInt("port")));
                 }
@@ -165,17 +165,17 @@ public class ClickHouseJdbcUtil {
 
     private static class ClusterRow {
         public final String cluster;
-        public final Long shardNum;
+        public final Integer shardNum;
         public final Long shardWeight;
-        public final Long replicaNum;
+        public final Integer replicaNum;
         public final String hostAddress;
         public final Integer port;
 
         public ClusterRow(
                 String cluster,
-                Long shardNum,
+                Integer shardNum,
                 Long shardWeight,
-                Long replicaNum,
+                Integer replicaNum,
                 String hostAddress,
                 Integer port) {
             this.cluster = cluster;

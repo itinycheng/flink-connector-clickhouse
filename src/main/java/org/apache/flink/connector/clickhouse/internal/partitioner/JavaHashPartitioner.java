@@ -1,5 +1,6 @@
 package org.apache.flink.connector.clickhouse.internal.partitioner;
 
+import org.apache.flink.connector.clickhouse.internal.schema.ClusterSpec;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.RowData.FieldGetter;
 
@@ -25,7 +26,9 @@ public class JavaHashPartitioner extends ClickHousePartitioner {
     }
 
     @Override
-    public int select(RowData record, int numShards) {
-        return Math.abs(Objects.hashCode(fieldGetter.getFieldOrNull(record)) % numShards);
+    public int select(RowData record, ClusterSpec clusterSpec) {
+        long weightSum = clusterSpec.getWeightSum();
+        long result = Objects.hashCode(fieldGetter.getFieldOrNull(record)) % weightSum;
+        return select(result, clusterSpec);
     }
 }
