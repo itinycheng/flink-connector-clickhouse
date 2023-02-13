@@ -15,8 +15,9 @@ import ru.yandex.clickhouse.ClickHouseConnection;
 import javax.annotation.Nonnull;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * The shard output format of distributed table.<br>
@@ -44,9 +45,9 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
     private final ClickHouseDmlOptions options;
 
-    private final List<ClickHouseExecutor> shardExecutors;
+    private final transient Map<Integer, ClickHouseExecutor> shardExecutorMap;
 
-    private transient int[] batchCounts;
+    private final transient Map<Integer, AtomicInteger> batchCountMap;
 
     protected ClickHouseShardOutputFormat(
             @Nonnull ClickHouseConnectionProvider connectionProvider,
@@ -67,16 +68,18 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
         this.logicalTypes = Preconditions.checkNotNull(logicalTypes);
         this.partitioner = Preconditions.checkNotNull(partitioner);
         this.options = Preconditions.checkNotNull(options);
-        this.shardExecutors = new ArrayList<>();
+        this.shardExecutorMap = new HashMap<>();
+        this.batchCountMap = new HashMap<>();
     }
 
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         try {
-            List<ClickHouseConnection> shardConnections =
+            Map<Integer, ClickHouseConnection> connectionMap =
                     connectionProvider.createShardConnections(
                             clusterSpec, shardTableSchema.getDatabase());
-            for (ClickHouseConnection shardConnection : shardConnections) {
+            for (Map.Entry<Integer, ClickHouseConnection> connectionEntry :
+                    connectionMap.entrySet()) {
                 ClickHouseExecutor executor =
                         ClickHouseExecutor.createClickHouseExecutor(
                                 shardTableSchema.getTable(),
@@ -87,11 +90,10 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
                                 partitionFields,
                                 logicalTypes,
                                 options);
-                executor.prepareStatement(shardConnection);
-                shardExecutors.add(executor);
+                executor.prepareStatement(connectionEntry.getValue());
+                shardExecutorMap.put(connectionEntry.getKey(), executor);
             }
 
-            batchCounts = new int[shardConnections.size()];
             long flushIntervalMillis = options.getFlushInterval().toMillis();
             scheduledFlush(flushIntervalMillis, "clickhouse-shard-output-format");
         } catch (Exception exception) {
@@ -99,10 +101,6 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
         }
     }
 
-    /**
-     * TODO: It's not appropriate to write records in this way, we should adapt it to ClickHouse's
-     * data shard strategy.
-     */
     @Override
     public synchronized void writeRecord(RowData record) throws IOException {
         checkFlushException();
@@ -125,11 +123,14 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
     private void writeRecordToOneExecutor(RowData record) throws IOException {
         try {
-            int selected = partitioner.select(record, shardExecutors.size());
-            shardExecutors.get(selected).addToBatch(record);
-            batchCounts[selected]++;
-            if (batchCounts[selected] >= options.getBatchSize()) {
-                flush(selected);
+            int shardNum = partitioner.select(record, clusterSpec);
+            shardExecutorMap.get(shardNum).addToBatch(record);
+            int batchCount =
+                    batchCountMap
+                            .computeIfAbsent(shardNum, integer -> new AtomicInteger(0))
+                            .incrementAndGet();
+            if (batchCount >= options.getBatchSize()) {
+                flush(shardNum);
             }
         } catch (Exception exception) {
             throw new IOException("Writing record to one executor failed.", exception);
@@ -138,21 +139,21 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
     @Override
     public synchronized void flush() throws IOException {
-        for (int i = 0; i < shardExecutors.size(); i++) {
-            flush(i);
+        for (Integer shardNum : shardExecutorMap.keySet()) {
+            flush(shardNum);
         }
     }
 
-    private synchronized void flush(int index) throws IOException {
-        if (batchCounts[index] > 0) {
-            checkBeforeFlush(shardExecutors.get(index));
-            batchCounts[index] = 0;
+    private synchronized void flush(int shardNum) throws IOException {
+        if (batchCountMap.get(shardNum).intValue() > 0) {
+            checkBeforeFlush(shardExecutorMap.get(shardNum));
+            batchCountMap.get(shardNum).set(0);
         }
     }
 
     @Override
     public synchronized void closeOutputFormat() {
-        for (ClickHouseExecutor shardExecutor : shardExecutors) {
+        for (ClickHouseExecutor shardExecutor : shardExecutorMap.values()) {
             shardExecutor.closeStatement();
         }
         connectionProvider.closeConnections();

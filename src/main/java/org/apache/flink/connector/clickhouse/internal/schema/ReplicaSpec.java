@@ -9,19 +9,19 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 /** Replica. */
 public class ReplicaSpec implements Comparable<ReplicaSpec>, Serializable {
 
-    private final Long num;
+    private final Integer num;
 
     private final String host;
 
     private final Integer port;
 
-    public ReplicaSpec(@Nonnull Long num, @Nonnull String host, @Nonnull Integer port) {
+    public ReplicaSpec(@Nonnull Integer num, @Nonnull String host, @Nonnull Integer port) {
         this.num = checkNotNull(num);
         this.host = checkNotNull(host);
         this.port = checkNotNull(port);
     }
 
-    public Long getNum() {
+    public Integer getNum() {
         return num;
     }
 
@@ -35,6 +35,6 @@ public class ReplicaSpec implements Comparable<ReplicaSpec>, Serializable {
 
     @Override
     public int compareTo(ReplicaSpec replicaSpec) {
-        return (int) (this.getNum() - replicaSpec.getNum());
+        return this.getNum() - replicaSpec.getNum();
     }
 }

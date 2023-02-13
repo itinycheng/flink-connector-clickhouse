@@ -14,7 +14,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** Shard. */
 public class ShardSpec implements Comparable<ShardSpec>, Serializable {
-    private final Long num;
+    private final Integer num;
 
     private final Long weight;
 
@@ -24,7 +24,8 @@ public class ShardSpec implements Comparable<ShardSpec>, Serializable {
 
     private Long shardUpperBound;
 
-    public ShardSpec(@Nonnull Long num, @Nonnull Long weight, @Nonnull List<ReplicaSpec> replicas) {
+    public ShardSpec(
+            @Nonnull Integer num, @Nonnull Long weight, @Nonnull List<ReplicaSpec> replicas) {
         this.num = checkNotNull(num);
         this.weight = checkNotNull(weight);
         this.replicas = checkNotNull(new ArrayList<>(replicas).stream().sorted().collect(toList()));
@@ -44,12 +45,16 @@ public class ShardSpec implements Comparable<ShardSpec>, Serializable {
         shardUpperBound = weights.stream().mapToLong(value -> value).limit(this.num).sum();
     }
 
-    @Override
-    public int compareTo(ShardSpec shardSpec) {
-        return (int) (this.getNum() - shardSpec.getNum());
+    public boolean isInShardRangeBounds(long number) {
+        return number >= shardLowerBound && number < shardUpperBound;
     }
 
-    public Long getNum() {
+    @Override
+    public int compareTo(ShardSpec shardSpec) {
+        return this.getNum() - shardSpec.getNum();
+    }
+
+    public Integer getNum() {
         return num;
     }
 

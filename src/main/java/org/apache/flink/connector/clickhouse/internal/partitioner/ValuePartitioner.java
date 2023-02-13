@@ -1,5 +1,6 @@
 package org.apache.flink.connector.clickhouse.internal.partitioner;
 
+import org.apache.flink.connector.clickhouse.internal.schema.ClusterSpec;
 import org.apache.flink.table.data.DecimalData;
 import org.apache.flink.table.data.RowData;
 
@@ -22,34 +23,35 @@ public class ValuePartitioner extends ClickHousePartitioner {
     }
 
     @Override
-    public int select(RowData record, int numShards) {
+    public int select(RowData record, ClusterSpec clusterSpec) {
         Object value = fieldGetter.getFieldOrNull(record);
+        long weightSum = clusterSpec.getWeightSum();
 
-        int num;
+        long num;
         if (value instanceof Byte) {
-            num = (byte) value % numShards;
+            num = (byte) value % weightSum;
         } else if (value instanceof Short) {
-            num = (short) value % numShards;
+            num = (short) value % weightSum;
         } else if (value instanceof Integer) {
-            num = (int) value % numShards;
+            num = (int) value % weightSum;
         } else if (value instanceof Long) {
-            num = (int) ((long) value % numShards);
+            num = (int) ((long) value % weightSum);
         } else if (value instanceof Float) {
-            num = (int) ((float) value % numShards);
+            num = (int) ((float) value % weightSum);
         } else if (value instanceof Double) {
-            num = (int) ((double) value % numShards);
+            num = (int) ((double) value % weightSum);
         } else if (value instanceof DecimalData) {
             num =
                     ((DecimalData) value)
                             .toBigDecimal()
                             .toBigInteger()
-                            .mod(BigInteger.valueOf(numShards))
+                            .mod(BigInteger.valueOf(weightSum))
                             .intValue();
         } else {
             Class<?> valueClass = value == null ? null : value.getClass();
             throw new RuntimeException("Unsupported number type: " + valueClass);
         }
 
-        return Math.abs(num);
+        return select(num, clusterSpec);
     }
 }

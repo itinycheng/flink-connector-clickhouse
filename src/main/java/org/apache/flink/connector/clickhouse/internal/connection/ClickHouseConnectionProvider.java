@@ -31,12 +31,7 @@ public class ClickHouseConnectionProvider implements Serializable {
 
     private static final Logger LOG = LoggerFactory.getLogger(ClickHouseConnectionProvider.class);
 
-    /**
-     * Query different shard info
-     *
-     * <p>TODO: Should consider `shard_weight` when writing data into different shards, may be also
-     * `replica_num`.
-     */
+    /** Query different shard info */
     private static final String QUERY_CLUSTER_INFO_SQL =
             "SELECT shard_num, host_address, port FROM system.clusters WHERE cluster = ? ORDER BY shard_num, replica_num ASC";
 
@@ -65,16 +60,16 @@ public class ClickHouseConnectionProvider implements Serializable {
         return connection;
     }
 
-    public synchronized List<ClickHouseConnection> createShardConnections(
+    public synchronized Map<Integer, ClickHouseConnection> createShardConnections(
             ClusterSpec clusterSpec, String defaultDatabase) throws SQLException {
-        List<ClickHouseConnection> connections = new ArrayList<>();
+        Map<Integer, ClickHouseConnection> connectionMap = new HashMap<>();
         for (ShardSpec shardSpec : clusterSpec.getShards()) {
             ClickHouseConnection connection =
                     createAndStoreShardConnection(shardSpec.getJdbcUrls(), defaultDatabase);
-            connections.add(connection);
+            connectionMap.put(shardSpec.getNum(), connection);
         }
 
-        return connections;
+        return connectionMap;
     }
 
     public synchronized ClickHouseConnection createAndStoreShardConnection(

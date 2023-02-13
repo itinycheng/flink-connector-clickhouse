@@ -1,6 +1,8 @@
 package com.tiny;
 
 import org.apache.flink.connector.clickhouse.internal.partitioner.ValuePartitioner;
+import org.apache.flink.connector.clickhouse.internal.schema.ClusterSpec;
+import org.apache.flink.connector.clickhouse.internal.schema.ShardSpec;
 import org.apache.flink.connector.clickhouse.split.ClickHouseBatchBetweenParametersProvider;
 import org.apache.flink.connector.clickhouse.split.ClickHouseParametersProvider;
 import org.apache.flink.connector.clickhouse.split.ClickHouseShardBetweenParametersProvider;
@@ -19,6 +21,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
@@ -96,8 +100,15 @@ public class AppTest {
         ValuePartitioner partitioner = new ValuePartitioner(Collections.singletonList(getter));
         GenericRowData rowData = new GenericRowData(1);
         rowData.setField(0, DecimalData.fromBigDecimal(new BigDecimal("100.2313"), 20, 10));
-        int select = partitioner.select(rowData, 7);
-        assertEquals(2, select);
+
+        ClusterSpec clusterSpec =
+                new ClusterSpec(
+                        "test",
+                        Arrays.asList(
+                                new ShardSpec(1, 1L, new ArrayList<>()),
+                                new ShardSpec(2, 1L, new ArrayList<>())));
+        int select = partitioner.select(rowData, clusterSpec);
+        assertEquals(1, select);
     }
 
     @Test
