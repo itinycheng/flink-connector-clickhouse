@@ -19,10 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * The shard output format of distributed table.<br>
- * TODO: Use ClickHouse's sharding key to distribute data to different instances.
- */
+/** The shard output format of distributed table. */
 public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat {
 
     private static final long serialVersionUID = 1L;
@@ -45,9 +42,9 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
 
     private final ClickHouseDmlOptions options;
 
-    private final transient Map<Integer, ClickHouseExecutor> shardExecutorMap;
+    private final Map<Integer, ClickHouseExecutor> shardExecutorMap;
 
-    private final transient Map<Integer, AtomicInteger> batchCountMap;
+    private final Map<Integer, AtomicInteger> batchCountMap;
 
     protected ClickHouseShardOutputFormat(
             @Nonnull ClickHouseConnectionProvider connectionProvider,
@@ -145,9 +142,10 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
     }
 
     private synchronized void flush(int shardNum) throws IOException {
-        if (batchCountMap.get(shardNum).intValue() > 0) {
+        AtomicInteger batchCount = batchCountMap.get(shardNum);
+        if (batchCount != null && batchCount.intValue() > 0) {
             checkBeforeFlush(shardExecutorMap.get(shardNum));
-            batchCountMap.get(shardNum).set(0);
+            batchCount.set(0);
         }
     }
 

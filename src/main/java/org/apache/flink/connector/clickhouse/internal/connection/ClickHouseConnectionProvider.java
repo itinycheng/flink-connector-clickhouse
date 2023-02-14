@@ -31,7 +31,6 @@ public class ClickHouseConnectionProvider implements Serializable {
 
     private static final Logger LOG = LoggerFactory.getLogger(ClickHouseConnectionProvider.class);
 
-    /** Query different shard info */
     private static final String QUERY_CLUSTER_INFO_SQL =
             "SELECT shard_num, host_address, port FROM system.clusters WHERE cluster = ? ORDER BY shard_num, replica_num ASC";
 
