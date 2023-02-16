@@ -9,28 +9,29 @@ Please create issues if you encounter bugs and any help for the project is great
 
 ## Connector Options
 
-| Option                     | Required | Default  | Type     | Description                                                                                                              |
-|:---------------------------| :------- |:---------|:---------|:-------------------------------------------------------------------------------------------------------------------------|
-| url                        | required | none     | String   | The ClickHouse jdbc url in format `clickhouse://<host>:<port>`.                                                          |
-| username                   | optional | none     | String   | The 'username' and 'password' must both be specified if any of them is specified.                                        |
-| password                   | optional | none     | String   | The ClickHouse password.                                                                                                 |
-| database-name              | optional | default  | String   | The ClickHouse database name.                                                                                            |
-| table-name                 | required | none     | String   | The ClickHouse table name.                                                                                               |
-| use-local                  | optional | false    | Boolean  | Directly read/write local tables in case of distributed table engine.                                                    |
-| sink.batch-size            | optional | 1000     | Integer  | The max flush size, over this will flush data.                                                                           |
-| sink.flush-interval        | optional | 1s       | Duration | Over this flush interval mills, asynchronous threads will flush data.                                                    |
-| sink.max-retries           | optional | 3        | Integer  | The max retry times when writing records to the database failed.                                                         |
-| ~~sink.write-local~~       | optional | false    | Boolean  | Removed from version 1.15, use `use-local` instead.                                                                      |
-| sink.update-strategy       | optional | update   | String   | Convert a record of type UPDATE_AFTER to update/insert statement or just discard it, available: update, insert, discard. |
-| sink.partition-strategy    | optional | balanced | String   | Partition strategy: balanced(round-robin), hash(partition key), shuffle(random).                                         |
-| sink.partition-key         | optional | none     | String   | Partition key used for hash strategy.                                                                                    |
-| sink.ignore-delete         | optional | true     | Boolean  | Whether to ignore delete statements.                                                                                     |
-| sink.parallelism           | optional | none     | Integer  | Defines a custom parallelism for the sink.                                                                               |
-| scan.partition.column      | optional | none     | String   | The column name used for partitioning the input.                                                                         |
-| scan.partition.num         | optional | none     | Integer  | The number of partitions.                                                                                                |
-| scan.partition.lower-bound | optional | none     | Long     | The smallest value of the first partition.                                                                               |
-| scan.partition.upper-bound | optional | none     | Long     | The largest value of the last partition.                                                                                 |
-| catalog.ignore-primary-key | optional | true     | Boolean  | Whether to ignore primary keys when using ClickHouseCatalog to create table.                                             |
+| Option                             | Required | Default  | Type     | Description                                                                                                                                                                     |
+|:-----------------------------------|:---------|:---------|:---------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| url                                | required | none     | String   | The ClickHouse jdbc url in format `clickhouse://<host>:<port>`.                                                                                                                 |
+| username                           | optional | none     | String   | The 'username' and 'password' must both be specified if any of them is specified.                                                                                               |
+| password                           | optional | none     | String   | The ClickHouse password.                                                                                                                                                        |
+| database-name                      | optional | default  | String   | The ClickHouse database name.                                                                                                                                                   |
+| table-name                         | required | none     | String   | The ClickHouse table name.                                                                                                                                                      |
+| use-local                          | optional | false    | Boolean  | Directly read/write local tables in case of distributed table engine.                                                                                                           |
+| sink.batch-size                    | optional | 1000     | Integer  | The max flush size, over this will flush data.                                                                                                                                  |
+| sink.flush-interval                | optional | 1s       | Duration | Over this flush interval mills, asynchronous threads will flush data.                                                                                                           |
+| sink.max-retries                   | optional | 3        | Integer  | The max retry times when writing records to the database failed.                                                                                                                |
+| ~~sink.write-local~~               | optional | false    | Boolean  | Removed from version 1.15, use `use-local` instead.                                                                                                                             |
+| sink.update-strategy               | optional | update   | String   | Convert a record of type UPDATE_AFTER to update/insert statement or just discard it, available: update, insert, discard.                                                        |
+| sink.partition-strategy            | optional | balanced | String   | Partition strategy: balanced(round-robin), hash(partition key), shuffle(random).                                                                                                |
+| sink.partition-key                 | optional | none     | String   | Partition key used for hash strategy.                                                                                                                                           |
+| sink.sharding.use-table-definition | optional | false    | Boolean  | Sharding strategy consistent with definition of distributed table, if set to true, the configuration of `sink.partition-strategy` and `sink.partition-key` will be overwritten. |
+| sink.ignore-delete                 | optional | true     | Boolean  | Whether to ignore delete statements.                                                                                                                                            |
+| sink.parallelism                   | optional | none     | Integer  | Defines a custom parallelism for the sink.                                                                                                                                      |
+| scan.partition.column              | optional | none     | String   | The column name used for partitioning the input.                                                                                                                                |
+| scan.partition.num                 | optional | none     | Integer  | The number of partitions.                                                                                                                                                       |
+| scan.partition.lower-bound         | optional | none     | Long     | The smallest value of the first partition.                                                                                                                                      |
+| scan.partition.upper-bound         | optional | none     | Long     | The largest value of the last partition.                                                                                                                                        |
+| catalog.ignore-primary-key         | optional | true     | Boolean  | Whether to ignore primary keys when using ClickHouseCatalog to create table.                                                                                                    |
 
 **Update/Delete Data Considerations:**
 
@@ -39,6 +40,9 @@ Please create issues if you encounter bugs and any help for the project is great
    true.
 2. The data is updated and deleted by the primary key, please be aware of this when using it in the
    partition table.
+
+**breaking**
+Since version 1.16, we have taken shard weight into consideration, this may affect which shard the data is distributed to.
 
 ## Data Type Mapping
 
