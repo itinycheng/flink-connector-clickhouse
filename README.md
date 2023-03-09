@@ -32,6 +32,7 @@ Please create issues if you encounter bugs and any help for the project is great
 | scan.partition.lower-bound         | optional | none     | Long     | The smallest value of the first partition.                                                                                                                                      |
 | scan.partition.upper-bound         | optional | none     | Long     | The largest value of the last partition.                                                                                                                                        |
 | catalog.ignore-primary-key         | optional | true     | Boolean  | Whether to ignore primary keys when using ClickHouseCatalog to create table.                                                                                                    |
+| properties.*                       | optional | none     | String   | This can set and pass `clickhouse-jdbc` configurations.                                                                                                                         |
 
 **Update/Delete Data Considerations:**
 
@@ -42,6 +43,7 @@ Please create issues if you encounter bugs and any help for the project is great
    partition table.
 
 **breaking**
+
 Since version 1.16, we have taken shard weight into consideration, this may affect which shard the data is distributed to.
 
 ## Data Type Mapping

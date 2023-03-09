@@ -190,6 +190,10 @@
 							</artifactSet>
 							<relocations>
 								<relocation>
+									<pattern>ru.yandex.clickhouse</pattern>
+									<shadedPattern>${shade.base}.ru.yandex.clickhouse</shadedPattern>
+								</relocation>
+								<relocation>
 									<pattern>com.fasterxml</pattern>
 									<shadedPattern>${shade.base}.com.fasterxml</shadedPattern>
 								</relocation>
