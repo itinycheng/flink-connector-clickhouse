@@ -4,6 +4,7 @@ import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.connector.clickhouse.internal.ClickHouseShardOutputFormat;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
+import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseStatementWrapper;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.table.data.RowData;
 
@@ -27,7 +28,7 @@ public class ClickHouseBatchExecutor implements ClickHouseExecutor {
 
     private final int maxRetries;
 
-    private transient ClickHousePreparedStatement statement;
+    private transient ClickHouseStatementWrapper statement;
 
     private transient ClickHouseConnectionProvider connectionProvider;
 
@@ -40,7 +41,9 @@ public class ClickHouseBatchExecutor implements ClickHouseExecutor {
 
     @Override
     public void prepareStatement(ClickHouseConnection connection) throws SQLException {
-        statement = (ClickHousePreparedStatement) connection.prepareStatement(insertSql);
+        statement =
+                new ClickHouseStatementWrapper(
+                        (ClickHousePreparedStatement) connection.prepareStatement(insertSql));
     }
 
     @Override
