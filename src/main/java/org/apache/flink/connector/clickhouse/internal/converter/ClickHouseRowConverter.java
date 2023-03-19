@@ -26,6 +26,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.UUID;
 
 import static org.apache.flink.connector.clickhouse.internal.converter.ClickHouseConverterUtils.BOOL_TRUE;
 import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.toEpochDayOneTimestamp;
@@ -117,7 +118,10 @@ public class ClickHouseRowConverter implements Serializable {
                 return val -> TimestampData.fromInstant(((Timestamp) val).toInstant());
             case CHAR:
             case VARCHAR:
-                return val -> StringData.fromString((String) val);
+                return val ->
+                        val instanceof UUID
+                                ? StringData.fromString(val.toString())
+                                : StringData.fromString((String) val);
             case ARRAY:
             case MAP:
                 return val -> ClickHouseConverterUtils.toInternal(val, type);
