@@ -71,17 +71,17 @@ public class ClickHouseCatalog extends AbstractCatalog {
 
     public static final String DEFAULT_DATABASE = "default";
 
-    private final String baseUrl;
+    protected final String baseUrl;
 
-    private final String username;
+    protected final String username;
 
-    private final String password;
+    protected final String password;
 
-    private final boolean ignorePrimaryKey;
+    protected final boolean ignorePrimaryKey;
 
-    private final Map<String, String> properties;
+    protected final Map<String, String> properties;
 
-    private ClickHouseConnection connection;
+    protected ClickHouseConnection connection;
 
     public ClickHouseCatalog(String catalogName, Map<String, String> properties) {
         this(
