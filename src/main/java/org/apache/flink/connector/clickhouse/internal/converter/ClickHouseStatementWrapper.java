@@ -4,6 +4,7 @@ import ru.yandex.clickhouse.ClickHousePreparedStatement;
 
 import java.math.BigDecimal;
 import java.sql.Date;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 
@@ -81,5 +82,13 @@ public class ClickHouseStatementWrapper {
 
     public void setObject(int parameterIndex, Object x) throws SQLException {
         statement.setObject(parameterIndex, x);
+    }
+
+    public void clearParameters() throws SQLException {
+        statement.clearParameters();
+    }
+
+    public ResultSet executeQuery() throws SQLException {
+        return statement.executeQuery();
     }
 }
