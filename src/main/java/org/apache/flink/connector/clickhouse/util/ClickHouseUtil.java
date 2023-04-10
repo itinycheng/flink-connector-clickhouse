@@ -13,10 +13,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
+import static java.lang.String.format;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfig.PROPERTIES_PREFIX;
@@ -94,5 +97,22 @@ public class ClickHouseUtil {
 
         Expression expression = parseFunctionExpr(subExprLiteral);
         return FunctionExpr.of(functionName, singletonList(expression));
+    }
+
+    public static String getSelectFromStatement(
+            String tableName, String[] selectFields, String[] conditionFields) {
+        String selectExpressions =
+                Arrays.stream(selectFields)
+                        .map(ClickHouseUtil::quoteIdentifier)
+                        .collect(Collectors.joining(", "));
+        String fieldExpressions =
+                Arrays.stream(conditionFields)
+                        .map(f -> format("%s = ?", quoteIdentifier(f)))
+                        .collect(Collectors.joining(" AND "));
+        return "SELECT "
+                + selectExpressions
+                + " FROM "
+                + quoteIdentifier(tableName)
+                + (conditionFields.length > 0 ? " WHERE " + fieldExpressions : "");
     }
 }
