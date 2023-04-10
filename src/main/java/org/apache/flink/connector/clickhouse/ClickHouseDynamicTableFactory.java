@@ -9,10 +9,15 @@ import org.apache.flink.table.catalog.ResolvedCatalogTable;
 import org.apache.flink.table.catalog.UniqueConstraint;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.connector.source.DynamicTableSource;
+import org.apache.flink.table.connector.source.lookup.LookupOptions;
+import org.apache.flink.table.connector.source.lookup.cache.DefaultLookupCache;
+import org.apache.flink.table.connector.source.lookup.cache.LookupCache;
 import org.apache.flink.table.factories.DynamicTableSinkFactory;
 import org.apache.flink.table.factories.DynamicTableSourceFactory;
 import org.apache.flink.table.factories.FactoryUtil;
 import org.apache.flink.table.factories.FactoryUtil.TableFactoryHelper;
+
+import javax.annotation.Nullable;
 
 import java.util.HashSet;
 import java.util.Properties;
@@ -83,7 +88,11 @@ public class ClickHouseDynamicTableFactory
         Properties clickHouseProperties =
                 getClickHouseProperties(context.getCatalogTable().getOptions());
         return new ClickHouseDynamicTableSource(
-                getReadOptions(config), clickHouseProperties, context.getPhysicalRowDataType());
+                getReadOptions(config),
+                helper.getOptions().get(LookupOptions.MAX_RETRIES),
+                getLookupCache(config),
+                clickHouseProperties,
+                context.getPhysicalRowDataType());
     }
 
     @Override
@@ -120,6 +129,12 @@ public class ClickHouseDynamicTableFactory
         optionalOptions.add(SCAN_PARTITION_NUM);
         optionalOptions.add(SCAN_PARTITION_LOWER_BOUND);
         optionalOptions.add(SCAN_PARTITION_UPPER_BOUND);
+        optionalOptions.add(LookupOptions.CACHE_TYPE);
+        optionalOptions.add(LookupOptions.PARTIAL_CACHE_EXPIRE_AFTER_ACCESS);
+        optionalOptions.add(LookupOptions.PARTIAL_CACHE_EXPIRE_AFTER_WRITE);
+        optionalOptions.add(LookupOptions.PARTIAL_CACHE_MAX_ROWS);
+        optionalOptions.add(LookupOptions.PARTIAL_CACHE_CACHE_MISSING_KEY);
+        optionalOptions.add(LookupOptions.MAX_RETRIES);
         return optionalOptions;
     }
 
@@ -135,12 +150,25 @@ public class ClickHouseDynamicTableFactory
                 ^ config.getOptional(PASSWORD).isPresent()) {
             throw new IllegalArgumentException(
                     "Either all or none of username and password should be provided");
+        } else if (!config.get(LookupOptions.CACHE_TYPE).equals(LookupOptions.LookupCacheType.NONE)
+                && !config.get(LookupOptions.CACHE_TYPE)
+                        .equals(LookupOptions.LookupCacheType.PARTIAL)) {
+            throw new IllegalArgumentException(
+                    String.format(
+                            "The value of '%s' option should be 'NONE' or 'PARTIAL'(not support 'FULL' yet), but is %s.",
+                            LookupOptions.CACHE_TYPE.key(), config.get(LookupOptions.CACHE_TYPE)));
         } else if (config.getOptional(SCAN_PARTITION_COLUMN).isPresent()
                 ^ config.getOptional(SCAN_PARTITION_NUM).isPresent()
                 ^ config.getOptional(SCAN_PARTITION_LOWER_BOUND).isPresent()
                 ^ config.getOptional(SCAN_PARTITION_UPPER_BOUND).isPresent()) {
             throw new IllegalArgumentException(
                     "Either all or none of partition configs should be provided");
+        } else if (config.get(LookupOptions.MAX_RETRIES) < 0) {
+            throw new IllegalArgumentException(
+                    String.format(
+                            "The value of '%s' option shouldn't be negative, but is %s.",
+                            LookupOptions.MAX_RETRIES.key(),
+                            config.get(LookupOptions.MAX_RETRIES)));
         }
     }
 
@@ -177,5 +205,16 @@ public class ClickHouseDynamicTableFactory
                 .withPartitionLowerBound(config.get(SCAN_PARTITION_LOWER_BOUND))
                 .withPartitionUpperBound(config.get(SCAN_PARTITION_UPPER_BOUND))
                 .build();
+    }
+
+    @Nullable
+    private LookupCache getLookupCache(ReadableConfig tableOptions) {
+        LookupCache cache = null;
+        if (tableOptions
+                .get(LookupOptions.CACHE_TYPE)
+                .equals(LookupOptions.LookupCacheType.PARTIAL)) {
+            cache = DefaultLookupCache.fromConfig(tableOptions);
+        }
+        return cache;
     }
 }

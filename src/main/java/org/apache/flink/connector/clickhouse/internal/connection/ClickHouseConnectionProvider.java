@@ -52,6 +52,10 @@ public class ClickHouseConnectionProvider implements Serializable {
         this.connectionProperties = connectionProperties;
     }
 
+    public boolean isConnectionValid() throws SQLException {
+        return connection != null;
+    }
+
     public synchronized ClickHouseConnection getOrCreateConnection() throws SQLException {
         if (connection == null) {
             connection = createConnection(options.getUrl(), options.getDatabaseName());
