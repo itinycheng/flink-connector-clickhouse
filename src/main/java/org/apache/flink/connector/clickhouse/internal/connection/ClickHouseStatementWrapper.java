@@ -1,4 +1,4 @@
-package org.apache.flink.connector.clickhouse.internal.converter;
+package org.apache.flink.connector.clickhouse.internal.connection;
 
 import ru.yandex.clickhouse.ClickHousePreparedStatement;
 

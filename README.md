@@ -11,7 +11,7 @@ Please create issues if you encounter bugs and any help for the project is great
 
 | Option                                   | Required | Default  | Type     | Description                                                                                                                                                                     |
 |:-----------------------------------------|:---------|:---------|:---------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| url                                      | required | none     | String   | The ClickHouse jdbc url in format `clickhouse://<host>:<port>`.                                                                  |
+| url                                      | required | none     | String   | The ClickHouse jdbc url in format `clickhouse://<host>:<port>`.                                                                                                                 |
 | username                                 | optional | none     | String   | The 'username' and 'password' must both be specified if any of them is specified.                                                                                               |
 | password                                 | optional | none     | String   | The ClickHouse password.                                                                                                                                                        |
 | database-name                            | optional | default  | String   | The ClickHouse database name.                                                                                                                                                   |
@@ -33,12 +33,12 @@ Please create issues if you encounter bugs and any help for the project is great
 | scan.partition.upper-bound               | optional | none     | Long     | The largest value of the last partition.                                                                                                                                        |
 | catalog.ignore-primary-key               | optional | true     | Boolean  | Whether to ignore primary keys when using ClickHouseCatalog to create table.                                                                                                    |
 | properties.*                             | optional | none     | String   | This can set and pass `clickhouse-jdbc` configurations.                                                                                                                         |
-| lookup.cache                             | optional | NONE     | String   | The caching strategy for this lookup table, including NONE and PARTIAL(not support FULL yet)                                                                             |
-| lookup.partial-cache.expire-after-access | optional | none     | Duration | Duration to expire an entry in the cache after accessing, over this time, the oldest rows will be expired.                                                                         |
-| lookup.partial-cache.expire-after-write  | optional | none     | Duration | Duration to expire an entry in the cache after writing, over this time, the oldest rows will be expired.                                                                         |
-| lookup.partial-cache.max-rows            | optional | none     | Long     | The max number of rows of lookup cache, over this value, the oldest rows will be expired.                                                                         |
-| lookup.partial-cache.caching-missing-key | optional | true     | Boolean  | Flag to cache missing key, true by default                                                                          |
-| lookup.max-retries                       | optional | 3        | Integer  | The max retry times if lookup database failed.                                                                          |
+| lookup.cache                             | optional | NONE     | String   | The caching strategy for this lookup table, including NONE and PARTIAL(not support FULL yet)                                                                                    |
+| lookup.partial-cache.expire-after-access | optional | none     | Duration | Duration to expire an entry in the cache after accessing, over this time, the oldest rows will be expired.                                                                      |
+| lookup.partial-cache.expire-after-write  | optional | none     | Duration | Duration to expire an entry in the cache after writing, over this time, the oldest rows will be expired.                                                                        |
+| lookup.partial-cache.max-rows            | optional | none     | Long     | The max number of rows of lookup cache, over this value, the oldest rows will be expired.                                                                                       |
+| lookup.partial-cache.caching-missing-key | optional | true     | Boolean  | Flag to cache missing key, true by default                                                                                                                                      |
+| lookup.max-retries                       | optional | 3        | Integer  | The max retry times if lookup database failed.                                                                                                                                  |
 
 **Update/Delete Data Considerations:**
 
@@ -55,7 +55,7 @@ Since version 1.16, we have taken shard weight into consideration, this may affe
 ## Data Type Mapping
 
 | Flink Type          | ClickHouse Type                                         |
-| :------------------ |:--------------------------------------------------------|
+|:--------------------|:--------------------------------------------------------|
 | CHAR                | String                                                  |
 | VARCHAR             | String / IP / UUID                                      |
 | STRING              | String / Enum                                           |
@@ -210,3 +210,4 @@ tEnv.executeSql("insert into `clickhouse`.`default`.`t_table` select...");
 - [x] Support array and Map types.
 - [x] Support ClickHouseCatalog.
 - [x] Implement the Flink SQL Source function.
+- [x] Implement the Flink SQL Lookup function.
