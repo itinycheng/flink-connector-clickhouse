@@ -2,8 +2,8 @@ package org.apache.flink.connector.clickhouse.internal;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
+import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseStatementWrapper;
 import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
-import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseStatementWrapper;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseReadOptions;
 import org.apache.flink.connector.clickhouse.util.ClickHouseUtil;
 import org.apache.flink.table.data.RowData;
