@@ -1,11 +1,11 @@
 package org.apache.flink.connector.clickhouse.internal;
 
 import org.apache.flink.annotation.Internal;
+import org.apache.flink.connector.clickhouse.ClickHouseDynamicTableSource;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseStatementWrapper;
 import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseReadOptions;
-import org.apache.flink.connector.clickhouse.util.ClickHouseUtil;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.table.functions.LookupFunction;
@@ -17,7 +17,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.yandex.clickhouse.ClickHousePreparedStatement;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -39,7 +38,6 @@ public class ClickHouseRowDataLookupFunction extends LookupFunction {
 
     private final String query;
     private final ClickHouseConnectionProvider connectionProvider;
-    private final String[] keyNames;
     private final int maxRetryTimes;
     private final ClickHouseRowConverter clickhouseRowConverter;
     private final ClickHouseRowConverter lookupKeyRowConverter;
@@ -58,7 +56,6 @@ public class ClickHouseRowDataLookupFunction extends LookupFunction {
         checkNotNull(fieldTypes, "No fieldTypes supplied.");
         checkNotNull(keyNames, "No keyNames supplied.");
         this.connectionProvider = new ClickHouseConnectionProvider(options);
-        this.keyNames = keyNames;
         List<String> nameList = Arrays.asList(fieldNames);
         DataType[] keyTypes =
                 Arrays.stream(keyNames)
@@ -74,7 +71,8 @@ public class ClickHouseRowDataLookupFunction extends LookupFunction {
                         .toArray(DataType[]::new);
         this.maxRetryTimes = maxRetryTimes;
         this.query =
-                ClickHouseUtil.getSelectFromStatement(options.getTableName(), fieldNames, keyNames);
+                ClickHouseStatementFactory.getSelectWhereStatement(
+                        options.getTableName(), options.getDatabaseName(), fieldNames, keyNames);
         this.clickhouseRowConverter = new ClickHouseRowConverter(rowType);
         this.lookupKeyRowConverter =
                 new ClickHouseRowConverter(
@@ -85,13 +83,11 @@ public class ClickHouseRowDataLookupFunction extends LookupFunction {
     }
 
     @Override
-    public void open(FunctionContext context) throws Exception {
+    public void open(FunctionContext context) {
         try {
             establishConnectionAndStatement();
         } catch (SQLException sqe) {
             throw new IllegalArgumentException("open() failed.", sqe);
-        } catch (ClassNotFoundException cnfe) {
-            throw new IllegalArgumentException("ClickHouse driver class not found.", cnfe);
         }
     }
 
@@ -128,7 +124,7 @@ public class ClickHouseRowDataLookupFunction extends LookupFunction {
                         connectionProvider.closeConnections();
                         establishConnectionAndStatement();
                     }
-                } catch (SQLException | ClassNotFoundException exception) {
+                } catch (SQLException exception) {
                     LOG.error(
                             "ClickHouse connection is not valid, and reestablish connection failed",
                             exception);
@@ -146,7 +142,7 @@ public class ClickHouseRowDataLookupFunction extends LookupFunction {
         return Collections.emptyList();
     }
 
-    private void establishConnectionAndStatement() throws SQLException, ClassNotFoundException {
+    private void establishConnectionAndStatement() throws SQLException {
         Connection dbConn = connectionProvider.getOrCreateConnection();
         statement =
                 new ClickHouseStatementWrapper(
@@ -154,7 +150,7 @@ public class ClickHouseRowDataLookupFunction extends LookupFunction {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         if (statement != null) {
             try {
                 statement.close();
