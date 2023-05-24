@@ -3,6 +3,7 @@ package org.apache.flink.connector.clickhouse.catalog;
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.table.catalog.Catalog;
+import org.apache.flink.table.connector.source.lookup.LookupOptions;
 import org.apache.flink.table.factories.CatalogFactory;
 import org.apache.flink.table.factories.FactoryUtil;
 
@@ -71,6 +72,13 @@ public class ClickHouseCatalogFactory implements CatalogFactory {
         options.add(SCAN_PARTITION_NUM);
         options.add(SCAN_PARTITION_LOWER_BOUND);
         options.add(SCAN_PARTITION_UPPER_BOUND);
+
+        options.add(LookupOptions.CACHE_TYPE);
+        options.add(LookupOptions.PARTIAL_CACHE_EXPIRE_AFTER_ACCESS);
+        options.add(LookupOptions.PARTIAL_CACHE_EXPIRE_AFTER_WRITE);
+        options.add(LookupOptions.PARTIAL_CACHE_MAX_ROWS);
+        options.add(LookupOptions.PARTIAL_CACHE_CACHE_MISSING_KEY);
+        options.add(LookupOptions.MAX_RETRIES);
         return options;
     }
 
