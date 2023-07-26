@@ -16,6 +16,8 @@ import ru.yandex.clickhouse.ClickHousePreparedStatement;
 
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 
 import static org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SinkUpdateStrategy.DISCARD;
@@ -43,13 +45,15 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
 
     private final Function<RowData, RowData> updateExtractor;
 
-    private final Function<RowData, RowData> deleteExtractor;
+    private final Function<RowData, RowData> keyExtractor;
 
     private final int maxRetries;
 
     private final SinkUpdateStrategy updateStrategy;
 
     private final boolean ignoreDelete;
+
+    private final Map<RowData, RowData> reduceBuffer = new HashMap<>();
 
     private transient ClickHouseStatementWrapper insertStatement;
 
@@ -67,7 +71,7 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
             ClickHouseRowConverter updateConverter,
             ClickHouseRowConverter deleteConverter,
             Function<RowData, RowData> updateExtractor,
-            Function<RowData, RowData> deleteExtractor,
+            Function<RowData, RowData> keyExtractor,
             ClickHouseDmlOptions options) {
         this.insertSql = insertSql;
         this.updateSql = updateSql;
@@ -76,7 +80,7 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
         this.updateConverter = updateConverter;
         this.deleteConverter = deleteConverter;
         this.updateExtractor = updateExtractor;
-        this.deleteExtractor = deleteExtractor;
+        this.keyExtractor = keyExtractor;
         this.maxRetries = options.getMaxRetries();
         this.updateStrategy = options.getUpdateStrategy();
         this.ignoreDelete = options.isIgnoreDelete();
@@ -106,7 +110,28 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
     public void setRuntimeContext(RuntimeContext context) {}
 
     @Override
-    public void addToBatch(RowData record) throws SQLException {
+    public void addToBatch(RowData record) {
+        RowData key = keyExtractor.apply(record);
+        reduceBuffer.put(key, record);
+    }
+
+    @Override
+    public void executeBatch() throws SQLException {
+        for (RowData value : reduceBuffer.values()) {
+            addValueToBatch(value);
+        }
+
+        for (ClickHouseStatementWrapper clickHouseStatement :
+                Arrays.asList(insertStatement, updateStatement, deleteStatement)) {
+            if (clickHouseStatement != null) {
+                attemptExecuteBatch(clickHouseStatement, maxRetries);
+            }
+        }
+
+        reduceBuffer.clear();
+    }
+
+    private void addValueToBatch(RowData record) throws SQLException {
         switch (record.getRowKind()) {
             case INSERT:
                 insertConverter.toExternal(record, insertStatement);
@@ -127,7 +152,7 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
                 break;
             case DELETE:
                 if (!ignoreDelete) {
-                    deleteConverter.toExternal(deleteExtractor.apply(record), deleteStatement);
+                    deleteConverter.toExternal(keyExtractor.apply(record), deleteStatement);
                     deleteStatement.addBatch();
                 }
                 break;
@@ -138,16 +163,6 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
                         String.format(
                                 "Unknown row kind, the supported row kinds is: INSERT, UPDATE_BEFORE, UPDATE_AFTER, DELETE, but get: %s.",
                                 record.getRowKind()));
-        }
-    }
-
-    @Override
-    public void executeBatch() throws SQLException {
-        for (ClickHouseStatementWrapper clickHouseStatement :
-                Arrays.asList(insertStatement, updateStatement, deleteStatement)) {
-            if (clickHouseStatement != null) {
-                attemptExecuteBatch(clickHouseStatement, maxRetries);
-            }
         }
     }
 
