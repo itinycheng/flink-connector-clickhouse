@@ -4,10 +4,6 @@ import org.apache.flink.connector.clickhouse.internal.schema.Expression;
 import org.apache.flink.connector.clickhouse.internal.schema.FieldExpr;
 import org.apache.flink.connector.clickhouse.internal.schema.FunctionExpr;
 
-import org.apache.http.client.utils.URIBuilder;
-
-import javax.annotation.Nullable;
-
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -29,15 +25,6 @@ public class ClickHouseUtil {
 
     private static final LocalDate DATE_PREFIX_OF_TIME = LocalDate.ofEpochDay(1);
 
-    public static String getJdbcUrl(String url, @Nullable String database) {
-        try {
-            database = database != null ? database : "";
-            return "jdbc:" + (new URIBuilder(url)).setPath("/" + database).build().toString();
-        } catch (Exception e) {
-            throw new IllegalStateException(String.format("Cannot parse url: %s", url), e);
-        }
-    }
-
     public static Properties getClickHouseProperties(Map<String, String> tableOptions) {
         final Properties properties = new Properties();
 
@@ -55,6 +42,10 @@ public class ClickHouseUtil {
     public static Timestamp toEpochDayOneTimestamp(LocalTime localTime) {
         LocalDateTime localDateTime = localTime.atDate(DATE_PREFIX_OF_TIME);
         return Timestamp.valueOf(localDateTime);
+    }
+
+    public static LocalDateTime toLocalDateTime(LocalTime localTime) {
+        return localTime.atDate(DATE_PREFIX_OF_TIME);
     }
 
     public static String quoteIdentifier(String identifier) {

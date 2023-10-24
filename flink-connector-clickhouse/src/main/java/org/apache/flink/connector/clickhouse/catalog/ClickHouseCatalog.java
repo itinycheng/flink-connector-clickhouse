@@ -2,7 +2,6 @@ package org.apache.flink.connector.clickhouse.catalog;
 
 import org.apache.flink.connector.clickhouse.ClickHouseDynamicTableFactory;
 import org.apache.flink.connector.clickhouse.internal.schema.DistributedEngineFull;
-import org.apache.flink.connector.clickhouse.util.ClickHouseUtil;
 import org.apache.flink.connector.clickhouse.util.DataTypeUtil;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.catalog.AbstractCatalog;
@@ -33,13 +32,13 @@ import org.apache.flink.table.expressions.Expression;
 import org.apache.flink.table.factories.Factory;
 import org.apache.flink.table.types.DataType;
 
+import com.clickhouse.client.config.ClickHouseDefaults;
+import com.clickhouse.data.ClickHouseColumn;
+import com.clickhouse.jdbc.ClickHouseConnection;
+import com.clickhouse.jdbc.ClickHouseDriver;
+import com.clickhouse.jdbc.ClickHouseResultSetMetaData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.yandex.clickhouse.BalancedClickhouseDataSource;
-import ru.yandex.clickhouse.ClickHouseConnection;
-import ru.yandex.clickhouse.response.ClickHouseColumnInfo;
-import ru.yandex.clickhouse.response.ClickHouseResultSetMetaData;
-import ru.yandex.clickhouse.settings.ClickHouseQueryParam;
 
 import javax.annotation.Nullable;
 
@@ -129,14 +128,11 @@ public class ClickHouseCatalog extends AbstractCatalog {
         try {
             Properties configuration = new Properties();
             configuration.putAll(properties);
-            configuration.setProperty(ClickHouseQueryParam.USER.getKey(), username);
-            configuration.setProperty(ClickHouseQueryParam.PASSWORD.getKey(), password);
-            String jdbcUrl = ClickHouseUtil.getJdbcUrl(baseUrl, getDefaultDatabase());
-            BalancedClickhouseDataSource dataSource =
-                    new BalancedClickhouseDataSource(jdbcUrl, configuration);
-            dataSource.actualize();
-            connection = dataSource.getConnection();
-            LOG.info("Created catalog {}, established connection to {}", getName(), jdbcUrl);
+            configuration.setProperty(ClickHouseDefaults.USER.getKey(), username);
+            configuration.setProperty(ClickHouseDefaults.PASSWORD.getKey(), password);
+            ClickHouseDriver driver = new ClickHouseDriver();
+            connection = driver.connect(baseUrl, configuration);
+            LOG.info("Created catalog {}, established connection to {}", getName(), baseUrl);
         } catch (Exception e) {
             throw new CatalogException(String.format("Opening catalog %s failed.", getName()), e);
         }
@@ -307,8 +303,7 @@ public class ClickHouseCatalog extends AbstractCatalog {
             List<String> primaryKeys = getPrimaryKeys(databaseName, tableName);
             TableSchema.Builder builder = TableSchema.builder();
             for (int idx = 1; idx <= metaData.getColumnCount(); idx++) {
-                ClickHouseColumnInfo columnInfo =
-                        (ClickHouseColumnInfo) getColMethod.invoke(metaData, idx);
+                ClickHouseColumn columnInfo = (ClickHouseColumn) getColMethod.invoke(metaData, idx);
                 String columnName = columnInfo.getColumnName();
                 DataType columnType = DataTypeUtil.toFlinkType(columnInfo);
                 if (primaryKeys.contains(columnName)) {

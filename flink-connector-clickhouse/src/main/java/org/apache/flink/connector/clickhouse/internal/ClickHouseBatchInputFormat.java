@@ -7,9 +7,9 @@ import org.apache.flink.connector.clickhouse.internal.options.ClickHouseReadOpti
 import org.apache.flink.core.io.InputSplit;
 import org.apache.flink.table.data.RowData;
 
+import com.clickhouse.jdbc.ClickHouseConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.yandex.clickhouse.ClickHouseConnection;
 
 import java.io.IOException;
 import java.sql.PreparedStatement;

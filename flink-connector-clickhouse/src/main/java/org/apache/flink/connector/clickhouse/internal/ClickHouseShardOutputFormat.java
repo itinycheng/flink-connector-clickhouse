@@ -10,7 +10,7 @@ import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.util.Preconditions;
 
-import ru.yandex.clickhouse.ClickHouseConnection;
+import com.clickhouse.jdbc.ClickHouseConnection;
 
 import javax.annotation.Nonnull;
 

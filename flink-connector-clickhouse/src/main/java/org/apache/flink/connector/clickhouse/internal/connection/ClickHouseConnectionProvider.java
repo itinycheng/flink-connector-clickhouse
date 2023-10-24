@@ -3,13 +3,12 @@ package org.apache.flink.connector.clickhouse.internal.connection;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseConnectionOptions;
 import org.apache.flink.connector.clickhouse.internal.schema.ClusterSpec;
 import org.apache.flink.connector.clickhouse.internal.schema.ShardSpec;
-import org.apache.flink.connector.clickhouse.util.ClickHouseUtil;
 
+import com.clickhouse.client.config.ClickHouseDefaults;
+import com.clickhouse.jdbc.ClickHouseConnection;
+import com.clickhouse.jdbc.ClickHouseDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.yandex.clickhouse.BalancedClickhouseDataSource;
-import ru.yandex.clickhouse.ClickHouseConnection;
-import ru.yandex.clickhouse.settings.ClickHouseProperties;
 
 import java.io.Serializable;
 import java.sql.PreparedStatement;
@@ -110,17 +109,13 @@ public class ClickHouseConnectionProvider implements Serializable {
 
     private ClickHouseConnection createConnection(String url, String database) throws SQLException {
         LOG.info("connecting to {}, database {}", url, database);
-
-        String jdbcUrl = ClickHouseUtil.getJdbcUrl(url, database);
-        ClickHouseProperties properties = new ClickHouseProperties(connectionProperties);
-        properties.setUser(options.getUsername().orElse(null));
-        properties.setPassword(options.getPassword().orElse(null));
-        BalancedClickhouseDataSource dataSource =
-                new BalancedClickhouseDataSource(jdbcUrl, properties);
-        if (dataSource.getAllClickhouseUrls().size() > 1) {
-            dataSource.actualize();
-        }
-        return dataSource.getConnection();
+        Properties configuration = new Properties();
+        configuration.setProperty(
+                ClickHouseDefaults.USER.getKey(), options.getUsername().orElse(null));
+        configuration.setProperty(
+                ClickHouseDefaults.PASSWORD.getKey(), options.getPassword().orElse(null));
+        ClickHouseDriver driver = new ClickHouseDriver();
+        return driver.connect(url, configuration);
     }
 
     public void closeConnections() {

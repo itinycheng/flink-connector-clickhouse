@@ -4,7 +4,7 @@ import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.catalog.exceptions.CatalogException;
 import org.apache.flink.table.types.DataType;
 
-import ru.yandex.clickhouse.response.ClickHouseColumnInfo;
+import com.clickhouse.data.ClickHouseColumn;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -20,11 +20,13 @@ public class DataTypeUtil {
      * Convert clickhouse data type to flink data type. <br>
      * TODO: Whether to indicate nullable?
      */
-    public static DataType toFlinkType(ClickHouseColumnInfo clickHouseColumnInfo) {
-        switch (clickHouseColumnInfo.getClickHouseDataType()) {
+    public static DataType toFlinkType(ClickHouseColumn clickHouseColumnInfo) {
+        switch (clickHouseColumnInfo.getDataType()) {
             case Int8:
                 return DataTypes.TINYINT();
             case Int16:
+            case Bool:
+                return DataTypes.BOOLEAN();
             case UInt8:
                 return DataTypes.SMALLINT();
             case Int32:
@@ -81,12 +83,10 @@ public class DataTypeUtil {
             case Array:
                 String arrayBaseType =
                         getInternalClickHouseType(clickHouseColumnInfo.getOriginalTypeName());
-                ClickHouseColumnInfo arrayBaseColumnInfo =
-                        ClickHouseColumnInfo.parse(
-                                arrayBaseType,
-                                clickHouseColumnInfo.getColumnName() + ".array_base",
-                                clickHouseColumnInfo.getTimeZone());
-                return DataTypes.ARRAY(toFlinkType(arrayBaseColumnInfo));
+                String arrayColumnName = clickHouseColumnInfo.getColumnName() + ".array_base";
+                ClickHouseColumn clickHouseColumn =
+                        ClickHouseColumn.of(arrayColumnName, arrayBaseType);
+                return DataTypes.ARRAY(toFlinkType(clickHouseColumn));
             case Map:
                 return DataTypes.MAP(
                         toFlinkType(clickHouseColumnInfo.getKeyInfo()),
@@ -96,7 +96,7 @@ public class DataTypeUtil {
             case AggregateFunction:
             default:
                 throw new UnsupportedOperationException(
-                        "Unsupported type:" + clickHouseColumnInfo.getClickHouseDataType());
+                        "Unsupported type:" + clickHouseColumnInfo.getDataType());
         }
     }
 
@@ -106,7 +106,8 @@ public class DataTypeUtil {
             return matcher.group("type");
         } else {
             throw new CatalogException(
-                    String.format("No content found in the bucket of '%s'", clickHouseTypeLiteral));
+                    java.lang.String.format(
+                            "No content found in the bucket of '%s'", clickHouseTypeLiteral));
         }
     }
 }

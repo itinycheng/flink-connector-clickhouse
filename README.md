@@ -206,8 +206,7 @@ tEnv.executeSql("insert into `clickhouse`.`default`.`t_table` select...");
 
 ## Roadmap
 
-- [x] Implement the Flink SQL Sink function.
-- [x] Support array and Map types.
-- [x] Support ClickHouseCatalog.
-- [x] Implement the Flink SQL Source function.
-- [x] Implement the Flink SQL Lookup function.
+The main branch is currently unstable and should not be used in production
+
+- [ ] Flink Clickhouse Connector donated to Apache Flink #102 @czy006
+- [ ] Perfect Junit Tests for Connector
