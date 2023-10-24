@@ -13,9 +13,9 @@ import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.RowType;
 
+import com.clickhouse.jdbc.ClickHousePreparedStatement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.yandex.clickhouse.ClickHousePreparedStatement;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -146,7 +146,7 @@ public class ClickHouseRowDataLookupFunction extends LookupFunction {
         Connection dbConn = connectionProvider.getOrCreateConnection();
         statement =
                 new ClickHouseStatementWrapper(
-                        (ClickHousePreparedStatement) dbConn.prepareStatement(query));
+                        dbConn, (ClickHousePreparedStatement) dbConn.prepareStatement(query));
     }
 
     @Override

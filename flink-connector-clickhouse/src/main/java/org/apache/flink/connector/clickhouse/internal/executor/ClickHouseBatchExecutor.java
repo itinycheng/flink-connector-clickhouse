@@ -8,10 +8,10 @@ import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowCon
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.table.data.RowData;
 
+import com.clickhouse.jdbc.ClickHouseConnection;
+import com.clickhouse.jdbc.ClickHousePreparedStatement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.yandex.clickhouse.ClickHouseConnection;
-import ru.yandex.clickhouse.ClickHousePreparedStatement;
 
 import java.sql.SQLException;
 
@@ -43,6 +43,7 @@ public class ClickHouseBatchExecutor implements ClickHouseExecutor {
     public void prepareStatement(ClickHouseConnection connection) throws SQLException {
         statement =
                 new ClickHouseStatementWrapper(
+                        connection,
                         (ClickHousePreparedStatement) connection.prepareStatement(insertSql));
     }
 

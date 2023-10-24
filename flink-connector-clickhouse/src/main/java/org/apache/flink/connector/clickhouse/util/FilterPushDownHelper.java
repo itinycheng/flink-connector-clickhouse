@@ -7,10 +7,10 @@ import org.apache.flink.table.expressions.ValueLiteralExpression;
 import org.apache.flink.table.functions.BuiltInFunctionDefinitions;
 import org.apache.flink.table.functions.FunctionDefinition;
 
-import ru.yandex.clickhouse.util.ClickHouseValueFormatter;
+import com.clickhouse.data.ClickHouseValues;
+import com.clickhouse.data.value.ClickHouseDateTimeValue;
 
 import java.sql.Time;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.util.HashMap;
@@ -23,7 +23,7 @@ import java.util.function.Function;
 import static java.util.stream.Collectors.joining;
 import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.EMPTY;
 import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.quoteIdentifier;
-import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.toEpochDayOneTimestamp;
+import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.toLocalDateTime;
 import static org.apache.flink.connector.clickhouse.util.SqlClause.AND;
 import static org.apache.flink.connector.clickhouse.util.SqlClause.EQ;
 import static org.apache.flink.connector.clickhouse.util.SqlClause.GT;
@@ -179,28 +179,30 @@ public class FilterPushDownHelper {
                             TimeZone timeZone = getFlinkTimeZone();
                             String value;
                             if (o instanceof Time) {
-                                value =
-                                        ClickHouseValueFormatter.formatTimestamp(
-                                                toEpochDayOneTimestamp(((Time) o).toLocalTime()),
+                                ClickHouseDateTimeValue clickHouseDateTimeValue =
+                                        ClickHouseDateTimeValue.of(
+                                                toLocalDateTime(((Time) o).toLocalTime()),
+                                                0,
                                                 timeZone);
+                                value = clickHouseDateTimeValue.asString();
                             } else if (o instanceof LocalTime) {
-                                value =
-                                        ClickHouseValueFormatter.formatTimestamp(
-                                                toEpochDayOneTimestamp((LocalTime) o), timeZone);
+                                ClickHouseDateTimeValue clickHouseDateTimeValue =
+                                        ClickHouseDateTimeValue.of(
+                                                toLocalDateTime(((LocalTime) o)), 0, timeZone);
+                                value = clickHouseDateTimeValue.asString();
                             } else if (o instanceof Instant) {
-                                value =
-                                        ClickHouseValueFormatter.formatTimestamp(
-                                                Timestamp.from((Instant) o), timeZone);
+                                Instant instant = (Instant) o;
+                                ClickHouseDateTimeValue clickHouseDateTimeValue =
+                                        ClickHouseDateTimeValue.of(
+                                                instant.atZone(timeZone.toZoneId())
+                                                        .toLocalDateTime(),
+                                                0,
+                                                timeZone);
+                                value = clickHouseDateTimeValue.asString();
                             } else {
-                                value =
-                                        ClickHouseValueFormatter.formatObject(
-                                                o, timeZone, timeZone);
+                                // TODO Object and other
+                                value = ClickHouseValues.convertToQuotedString(o);
                             }
-
-                            value =
-                                    ClickHouseValueFormatter.needsQuoting(o)
-                                            ? String.join(EMPTY, "'", value, "'")
-                                            : value;
                             return value;
                         });
     }

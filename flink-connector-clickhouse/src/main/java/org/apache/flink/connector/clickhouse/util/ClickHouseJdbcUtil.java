@@ -6,13 +6,16 @@ import org.apache.flink.connector.clickhouse.internal.schema.ReplicaSpec;
 import org.apache.flink.connector.clickhouse.internal.schema.ShardSpec;
 import org.apache.flink.util.Preconditions;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
-import ru.yandex.clickhouse.ClickHouseConnection;
+import com.clickhouse.jdbc.ClickHouseConnection;
+import org.apache.hc.client5.http.HttpResponseException;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.net.URIBuilder;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -139,25 +142,29 @@ public class ClickHouseJdbcUtil {
 
     public static int getActualHttpPort(String host, int port) throws SQLException {
         try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
-            HttpGet request =
+            HttpUriRequestBase request =
                     new HttpGet(
                             (new URIBuilder())
                                     .setScheme("http")
                                     .setHost(host)
                                     .setPort(port)
                                     .build());
-            HttpResponse response = httpclient.execute(request);
-            int statusCode = response.getStatusLine().getStatusCode();
-            if (statusCode != 200) {
-                String raw = EntityUtils.toString(response.getEntity());
-                Matcher matcher = HTTP_PORT_PATTERN.matcher(raw);
-                if (matcher.find()) {
-                    return Integer.parseInt(matcher.group("port"));
-                }
-                throw new SQLException("Cannot query ClickHouse http port.");
-            }
 
-            return port;
+            try (CloseableHttpResponse response = httpclient.execute(request)) {
+                int statusCode = response.getCode();
+
+                if (statusCode != 200) {
+                    String raw = EntityUtils.toString(response.getEntity());
+                    Matcher matcher = HTTP_PORT_PATTERN.matcher(raw);
+                    if (matcher.find()) {
+                        return Integer.parseInt(matcher.group("port"));
+                    }
+                    throw new SQLException("Cannot query ClickHouse http port.");
+                }
+                return port;
+            } catch (ParseException | HttpResponseException e) {
+                throw new SQLException("Error parsing response.", e);
+            }
         } catch (Throwable throwable) {
             throw new SQLException("Cannot connect to ClickHouse server using HTTP.", throwable);
         }

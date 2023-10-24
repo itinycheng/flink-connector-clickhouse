@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.apache.flink</groupId>
 		<artifactId>flink-connector-clickhouse-parent</artifactId>
-		<version>1.17.1-SNAPSHOT</version>
+		<version>1.0.0-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>flink-connector-clickhouse</artifactId>
@@ -46,19 +46,9 @@
 		<!-- Clickhouse -->
 
 		<dependency>
-			<groupId>ru.yandex.clickhouse</groupId>
+			<groupId>com.clickhouse</groupId>
 			<artifactId>clickhouse-jdbc</artifactId>
 			<version>${clickhouse-jdbc.version}</version>
-			<exclusions>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>jackson-core</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>jackson-databind</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
@@ -69,6 +59,14 @@
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
 			<version>${commons-lang3.version}</version>
+		</dependency>
+
+		<!--	Http	-->
+
+		<dependency>
+			<groupId>org.apache.httpcomponents.client5</groupId>
+			<artifactId>httpclient5</artifactId>
+			<version>5.2.1</version>
 		</dependency>
 
 		<!-- Tests -->

@@ -9,10 +9,10 @@ import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowCon
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.table.data.RowData;
 
+import com.clickhouse.jdbc.ClickHouseConnection;
+import com.clickhouse.jdbc.ClickHousePreparedStatement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.yandex.clickhouse.ClickHouseConnection;
-import ru.yandex.clickhouse.ClickHousePreparedStatement;
 
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -90,12 +90,15 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
     public void prepareStatement(ClickHouseConnection connection) throws SQLException {
         this.insertStatement =
                 new ClickHouseStatementWrapper(
+                        connection,
                         (ClickHousePreparedStatement) connection.prepareStatement(this.insertSql));
         this.updateStatement =
                 new ClickHouseStatementWrapper(
+                        connection,
                         (ClickHousePreparedStatement) connection.prepareStatement(this.updateSql));
         this.deleteStatement =
                 new ClickHouseStatementWrapper(
+                        connection,
                         (ClickHousePreparedStatement) connection.prepareStatement(this.deleteSql));
     }
 

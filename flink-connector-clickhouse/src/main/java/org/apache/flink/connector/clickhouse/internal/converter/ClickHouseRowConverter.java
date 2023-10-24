@@ -14,8 +14,8 @@ import org.apache.flink.table.types.logical.RowType.RowField;
 import org.apache.flink.table.types.logical.TimestampType;
 import org.apache.flink.util.Preconditions;
 
-import ru.yandex.clickhouse.ClickHousePreparedStatement;
-import ru.yandex.clickhouse.response.ClickHouseResultSet;
+import com.clickhouse.jdbc.ClickHousePreparedStatement;
+import com.clickhouse.jdbc.ClickHouseResultSet;
 
 import java.io.Serializable;
 import java.math.BigDecimal;

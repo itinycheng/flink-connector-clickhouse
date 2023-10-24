@@ -18,9 +18,9 @@ import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.util.Preconditions;
 import org.apache.flink.util.concurrent.ExecutorThreadFactory;
 
+import com.clickhouse.jdbc.ClickHouseConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.yandex.clickhouse.ClickHouseConnection;
 
 import java.io.Flushable;
 import java.io.IOException;

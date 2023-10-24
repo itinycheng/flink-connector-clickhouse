@@ -11,10 +11,10 @@ import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.RowType;
 
+import com.clickhouse.jdbc.ClickHouseConnection;
 import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.yandex.clickhouse.ClickHouseConnection;
 
 import java.io.Serializable;
 import java.sql.SQLException;
