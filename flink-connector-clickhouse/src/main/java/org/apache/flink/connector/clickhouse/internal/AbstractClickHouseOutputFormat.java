@@ -189,7 +189,8 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
 
             ClickHouseConnectionProvider connectionProvider = null;
             try {
-                connectionProvider = new ClickHouseConnectionProvider(options);
+                connectionProvider =
+                        new ClickHouseConnectionProvider(options, connectionProperties);
                 DistributedEngineFull engineFullSchema =
                         getDistributedEngineFull(
                                 connectionProvider.getOrCreateConnection(),
