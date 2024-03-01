@@ -105,7 +105,7 @@ public class ClickHouseConverterUtils {
             case NULL:
                 return null;
             case BOOLEAN:
-                return BOOL_TRUE == ((Number) value).intValue();
+                return value instanceof Number ? BOOL_TRUE == ((Number) value).intValue() : value;
             case FLOAT:
             case DOUBLE:
             case INTERVAL_YEAR_MONTH:

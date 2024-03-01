@@ -80,12 +80,12 @@ public class ClickHouseRowConverter implements Serializable {
         }
     }
 
-    protected DeserializationConverter createToInternalConverter(LogicalType type) {
+    private DeserializationConverter createToInternalConverter(LogicalType type) {
         switch (type.getTypeRoot()) {
             case NULL:
                 return val -> null;
             case BOOLEAN:
-                return val -> BOOL_TRUE == ((Number) val).intValue();
+                return val -> val instanceof Number ? BOOL_TRUE == ((Number) val).intValue() : val;
             case FLOAT:
             case DOUBLE:
             case INTERVAL_YEAR_MONTH:
@@ -133,7 +133,7 @@ public class ClickHouseRowConverter implements Serializable {
         }
     }
 
-    protected SerializationConverter createToExternalConverter(LogicalType type) {
+    private SerializationConverter createToExternalConverter(LogicalType type) {
         switch (type.getTypeRoot()) {
             case BOOLEAN:
                 return (val, index, statement) ->
