@@ -115,7 +115,7 @@ public class ClickHouseCatalog extends AbstractCatalog {
         checkArgument(!isNullOrWhitespaceOnly(username), "username cannot be null or empty");
         checkArgument(!isNullOrWhitespaceOnly(password), "password cannot be null or empty");
 
-        this.baseUrl = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
+        this.baseUrl = baseUrl;
         this.username = username;
         this.password = password;
         this.ignorePrimaryKey =
