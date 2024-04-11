@@ -125,15 +125,16 @@
 				</dependencies>
 			</plugin>
 
-			<plugin>
+            <plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
 			</plugin>
 
-			<plugin>
+            <plugin>
 				<!-- activate API compatibility checks -->
 				<groupId>io.github.zentol.japicmp</groupId>
 				<artifactId>japicmp-maven-plugin</artifactId>
+                <version>0.20.0</version>
 			</plugin>
 
 			<plugin>
