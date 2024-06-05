@@ -83,9 +83,9 @@ public class DataTypeUtil {
             case Array:
                 String arrayBaseType =
                         getInternalClickHouseType(clickHouseColumnInfo.getOriginalTypeName());
-                String arrayColumnName = clickHouseColumnInfo.getColumnName() + ".array_base";
+                String arrayBaseName = clickHouseColumnInfo.getColumnName() + ".array_base";
                 ClickHouseColumn clickHouseColumn =
-                        ClickHouseColumn.of(arrayColumnName, arrayBaseType);
+                        ClickHouseColumn.of(arrayBaseName, arrayBaseType);
                 return DataTypes.ARRAY(toFlinkType(clickHouseColumn));
             case Map:
                 return DataTypes.MAP(
@@ -106,8 +106,7 @@ public class DataTypeUtil {
             return matcher.group("type");
         } else {
             throw new CatalogException(
-                    java.lang.String.format(
-                            "No content found in the bucket of '%s'", clickHouseTypeLiteral));
+                    String.format("No content found in the bucket of '%s'", clickHouseTypeLiteral));
         }
     }
 }

@@ -43,7 +43,6 @@ public class ClickHouseBatchExecutor implements ClickHouseExecutor {
     public void prepareStatement(ClickHouseConnection connection) throws SQLException {
         statement =
                 new ClickHouseStatementWrapper(
-                        connection,
                         (ClickHousePreparedStatement) connection.prepareStatement(insertSql));
     }
 

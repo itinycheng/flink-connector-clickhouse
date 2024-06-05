@@ -34,7 +34,7 @@ public class ShardSpec implements Comparable<ShardSpec>, Serializable {
     public String getJdbcUrls() {
         return replicas.stream()
                 .map(replicaSpec -> replicaSpec.getHost() + ":" + replicaSpec.getPort())
-                .collect(joining(",", "clickhouse://", ""));
+                .collect(joining(",", "jdbc:ch://", ""));
     }
 
     public void initShardRangeBound(List<Long> weights) {

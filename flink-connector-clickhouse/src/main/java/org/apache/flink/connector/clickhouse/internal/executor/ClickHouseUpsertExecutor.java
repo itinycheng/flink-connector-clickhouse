@@ -90,15 +90,12 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
     public void prepareStatement(ClickHouseConnection connection) throws SQLException {
         this.insertStatement =
                 new ClickHouseStatementWrapper(
-                        connection,
                         (ClickHousePreparedStatement) connection.prepareStatement(this.insertSql));
         this.updateStatement =
                 new ClickHouseStatementWrapper(
-                        connection,
                         (ClickHousePreparedStatement) connection.prepareStatement(this.updateSql));
         this.deleteStatement =
                 new ClickHouseStatementWrapper(
-                        connection,
                         (ClickHousePreparedStatement) connection.prepareStatement(this.deleteSql));
     }
 

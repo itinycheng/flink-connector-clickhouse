@@ -87,16 +87,19 @@ public interface ClickHouseExecutor extends Serializable {
                     fieldTypes,
                     options);
         } else {
-            return createBatchExecutor(tableName, fieldNames, fieldTypes, options);
+            return createBatchExecutor(tableName, databaseName, fieldNames, fieldTypes, options);
         }
     }
 
     static ClickHouseBatchExecutor createBatchExecutor(
             String tableName,
+            String databaseName,
             String[] fieldNames,
             LogicalType[] fieldTypes,
             ClickHouseDmlOptions options) {
-        String insertSql = ClickHouseStatementFactory.getInsertIntoStatement(tableName, fieldNames);
+        String insertSql =
+                ClickHouseStatementFactory.getInsertIntoStatement(
+                        tableName, databaseName, fieldNames);
         ClickHouseRowConverter converter = new ClickHouseRowConverter(RowType.of(fieldTypes));
         return new ClickHouseBatchExecutor(insertSql, converter, options);
     }
@@ -110,7 +113,9 @@ public interface ClickHouseExecutor extends Serializable {
             String[] partitionFields,
             LogicalType[] fieldTypes,
             ClickHouseDmlOptions options) {
-        String insertSql = ClickHouseStatementFactory.getInsertIntoStatement(tableName, fieldNames);
+        String insertSql =
+                ClickHouseStatementFactory.getInsertIntoStatement(
+                        tableName, databaseName, fieldNames);
         String updateSql =
                 ClickHouseStatementFactory.getUpdateStatement(
                         tableName,

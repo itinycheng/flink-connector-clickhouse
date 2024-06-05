@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TimeZone;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -70,7 +71,7 @@ public class ClickHouseUtil {
         String subExprLiteral =
                 shardingExpr.substring(bracketStartIndex + 1, shardingExpr.lastIndexOf(")"));
 
-        if (subExprLiteral.trim().length() == 0) {
+        if (subExprLiteral.trim().isEmpty()) {
             return FunctionExpr.of(functionName, emptyList());
         }
 
@@ -85,5 +86,10 @@ public class ClickHouseUtil {
 
         Expression expression = parseFunctionExpr(subExprLiteral);
         return FunctionExpr.of(functionName, singletonList(expression));
+    }
+
+    /** TODO The timezone configured via `table.local-time-zone` should be used. */
+    public static TimeZone getFlinkTimeZone() {
+        return TimeZone.getDefault();
     }
 }

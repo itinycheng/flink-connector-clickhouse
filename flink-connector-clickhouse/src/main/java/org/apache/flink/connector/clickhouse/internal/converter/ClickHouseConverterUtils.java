@@ -20,10 +20,12 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.getFlinkTimeZone;
 import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.toEpochDayOneTimestamp;
 
 /** convert between internal and external data types. */
@@ -132,9 +134,10 @@ public class ClickHouseConverterUtils {
                 return (int) (((Time) value).toLocalTime().toNanoOfDay() / 1_000_000L);
             case TIMESTAMP_WITH_TIME_ZONE:
             case TIMESTAMP_WITHOUT_TIME_ZONE:
-                return TimestampData.fromTimestamp((Timestamp) value);
+                return TimestampData.fromLocalDateTime((LocalDateTime) value);
             case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-                return TimestampData.fromInstant(((Timestamp) value).toInstant());
+                return TimestampData.fromInstant(
+                        ((LocalDateTime) value).atZone(getFlinkTimeZone().toZoneId()).toInstant());
             case CHAR:
             case VARCHAR:
                 return StringData.fromString((String) value);
@@ -144,7 +147,8 @@ public class ClickHouseConverterUtils {
                                 .findFirst()
                                 .orElseThrow(
                                         () -> new RuntimeException("Unknown array element type"));
-                Object externalArray = ((Array) value).getArray();
+                Object externalArray =
+                        value.getClass().isArray() ? value : ((Array) value).getArray();
                 int externalArrayLength = java.lang.reflect.Array.getLength(externalArray);
                 Object[] internalArray = new Object[externalArrayLength];
                 for (int i = 0; i < externalArrayLength; i++) {

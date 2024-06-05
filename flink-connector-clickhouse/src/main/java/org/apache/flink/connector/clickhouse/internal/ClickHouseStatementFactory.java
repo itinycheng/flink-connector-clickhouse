@@ -41,7 +41,8 @@ public class ClickHouseStatementFactory {
         return selectStatement + (conditionFields.length > 0 ? " WHERE " + whereClause : "");
     }
 
-    public static String getInsertIntoStatement(String tableName, String[] fieldNames) {
+    public static String getInsertIntoStatement(
+            String tableName, String databaseName, String[] fieldNames) {
         String columns =
                 Arrays.stream(fieldNames)
                         .map(ClickHouseUtil::quoteIdentifier)
@@ -50,7 +51,7 @@ public class ClickHouseStatementFactory {
         return String.join(
                 EMPTY,
                 "INSERT INTO ",
-                quoteIdentifier(tableName),
+                fromTableClause(tableName, databaseName),
                 "(",
                 columns,
                 ") VALUES (",

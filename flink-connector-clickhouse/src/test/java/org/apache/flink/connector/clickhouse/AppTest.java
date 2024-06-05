@@ -16,7 +16,7 @@ import org.junit.Test;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -31,6 +31,7 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.flink.connector.clickhouse.util.ClickHouseJdbcUtil.DISTRIBUTED_TABLE_ENGINE_PATTERN;
 import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.parseShardingKey;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 
 /** Unit test for simple App. */
@@ -42,23 +43,15 @@ public class AppTest {
         TimestampData timestampData = TimestampData.fromInstant(now);
         Instant instant = timestampData.toInstant();
         LocalDateTime localDateTime = timestampData.toLocalDateTime();
-        String clickHouseDateTimeValueInstant =
-                ClickHouseDateTimeValue.of(
-                                instant.atZone(TimeZone.getDefault().toZoneId()).toLocalDateTime(),
-                                0,
-                                TimeZone.getDefault())
-                        .asString();
-        String clickHouseDateTimeValueLocalDateTime =
-                ClickHouseDateTimeValue.of(localDateTime, 0, TimeZone.getDefault()).asString();
-        System.out.println(clickHouseDateTimeValueInstant);
-        System.out.println(clickHouseDateTimeValueLocalDateTime);
+        LocalDateTime zoneDateTime =
+                instant.atZone(TimeZone.getDefault().toZoneId()).toLocalDateTime();
+        assertFalse(Duration.between(localDateTime, zoneDateTime).isZero());
     }
 
     @Test
     public void timeTest() {
         LocalTime localTime = LocalTime.ofSecondOfDay(60 * 60);
         LocalDateTime localDateTime = localTime.atDate(LocalDate.ofEpochDay(1));
-        Timestamp timestamp = Timestamp.valueOf(localDateTime);
         String dateTimeStr =
                 ClickHouseDateTimeValue.of(localDateTime, 0, TimeZone.getDefault()).asString();
         assertEquals("1970-01-02 01:00:00", dateTimeStr);

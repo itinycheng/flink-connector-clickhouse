@@ -26,10 +26,12 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.UUID;
 
 import static org.apache.flink.connector.clickhouse.internal.converter.ClickHouseConverterUtils.BOOL_TRUE;
+import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.getFlinkTimeZone;
 import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.toEpochDayOneTimestamp;
 
 /** Row converter，convert flink type to/from ClickHouse type. */
@@ -113,9 +115,13 @@ public class ClickHouseRowConverter implements Serializable {
                 return val -> (int) (((Time) val).toLocalTime().toNanoOfDay() / 1_000_000L);
             case TIMESTAMP_WITH_TIME_ZONE:
             case TIMESTAMP_WITHOUT_TIME_ZONE:
-                return val -> TimestampData.fromTimestamp((Timestamp) val);
+                return val -> TimestampData.fromLocalDateTime((LocalDateTime) val);
             case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-                return val -> TimestampData.fromInstant(((Timestamp) val).toInstant());
+                return val ->
+                        TimestampData.fromInstant(
+                                ((LocalDateTime) val)
+                                        .atZone(getFlinkTimeZone().toZoneId())
+                                        .toInstant());
             case CHAR:
             case VARCHAR:
                 return val ->

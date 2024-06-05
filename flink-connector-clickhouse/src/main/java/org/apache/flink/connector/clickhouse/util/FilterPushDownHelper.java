@@ -22,6 +22,7 @@ import java.util.function.Function;
 
 import static java.util.stream.Collectors.joining;
 import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.EMPTY;
+import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.getFlinkTimeZone;
 import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.quoteIdentifier;
 import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.toLocalDateTime;
 import static org.apache.flink.connector.clickhouse.util.SqlClause.AND;
@@ -177,38 +178,30 @@ public class FilterPushDownHelper {
                 .map(
                         o -> {
                             TimeZone timeZone = getFlinkTimeZone();
-                            String value;
+                            Object value;
                             if (o instanceof Time) {
-                                ClickHouseDateTimeValue clickHouseDateTimeValue =
+                                value =
                                         ClickHouseDateTimeValue.of(
                                                 toLocalDateTime(((Time) o).toLocalTime()),
                                                 0,
                                                 timeZone);
-                                value = clickHouseDateTimeValue.asString();
                             } else if (o instanceof LocalTime) {
-                                ClickHouseDateTimeValue clickHouseDateTimeValue =
+                                value =
                                         ClickHouseDateTimeValue.of(
                                                 toLocalDateTime(((LocalTime) o)), 0, timeZone);
-                                value = clickHouseDateTimeValue.asString();
                             } else if (o instanceof Instant) {
                                 Instant instant = (Instant) o;
-                                ClickHouseDateTimeValue clickHouseDateTimeValue =
+                                value =
                                         ClickHouseDateTimeValue.of(
                                                 instant.atZone(timeZone.toZoneId())
                                                         .toLocalDateTime(),
                                                 0,
                                                 timeZone);
-                                value = clickHouseDateTimeValue.asString();
                             } else {
-                                // TODO Object and other
-                                value = ClickHouseValues.convertToQuotedString(o);
+                                value = o;
                             }
-                            return value;
-                        });
-    }
 
-    /** TODO The timezone configured via `table.local-time-zone` should be used. */
-    private static TimeZone getFlinkTimeZone() {
-        return TimeZone.getDefault();
+                            return ClickHouseValues.convertToSqlExpression(value);
+                        });
     }
 }

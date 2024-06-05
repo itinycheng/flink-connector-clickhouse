@@ -103,13 +103,14 @@ public class ClickHouseConnectionProvider implements Serializable {
         }
 
         return shardsMap.values().stream()
-                .map(urls -> "clickhouse://" + String.join(",", urls))
+                .map(urls -> "jdbc:ch://" + String.join(",", urls))
                 .collect(toList());
     }
 
     private ClickHouseConnection createConnection(String url, String database) throws SQLException {
         LOG.info("connecting to {}, database {}", url, database);
         Properties configuration = new Properties();
+        configuration.putAll(connectionProperties);
         configuration.setProperty(
                 ClickHouseDefaults.USER.getKey(), options.getUsername().orElse(null));
         configuration.setProperty(

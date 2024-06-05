@@ -37,6 +37,7 @@ import com.clickhouse.data.ClickHouseColumn;
 import com.clickhouse.jdbc.ClickHouseConnection;
 import com.clickhouse.jdbc.ClickHouseDriver;
 import com.clickhouse.jdbc.ClickHouseResultSetMetaData;
+import com.clickhouse.jdbc.ClickHouseStatement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -291,13 +292,15 @@ public class ClickHouseCatalog extends AbstractCatalog {
         // types? 3. All queried data will be obtained before PreparedStatement is closed, so we
         // must add `limit 0` statement to avoid data transmission to the client, look at
         // `ChunkedInputStream.close()` for more info.
-        try (PreparedStatement stmt =
-                connection.prepareStatement(
-                        String.format(
-                                "SELECT * from `%s`.`%s` limit 0", databaseName, tableName))) {
+        try (ClickHouseStatement stmt = connection.createStatement();
+                ResultSet rs =
+                        stmt.executeQuery(
+                                String.format(
+                                        "SELECT * from `%s`.`%s` limit 0",
+                                        databaseName, tableName))) {
             ClickHouseResultSetMetaData metaData =
-                    stmt.getMetaData().unwrap(ClickHouseResultSetMetaData.class);
-            Method getColMethod = metaData.getClass().getDeclaredMethod("getCol", int.class);
+                    rs.getMetaData().unwrap(ClickHouseResultSetMetaData.class);
+            Method getColMethod = metaData.getClass().getDeclaredMethod("getColumn", int.class);
             getColMethod.setAccessible(true);
 
             List<String> primaryKeys = getPrimaryKeys(databaseName, tableName);

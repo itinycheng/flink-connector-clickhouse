@@ -3,7 +3,6 @@ package org.apache.flink.connector.clickhouse.internal.connection;
 import com.clickhouse.jdbc.ClickHousePreparedStatement;
 
 import java.math.BigDecimal;
-import java.sql.Connection;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -12,12 +11,9 @@ import java.sql.Timestamp;
 /** Wrapper class for ClickHousePreparedStatement. */
 public class ClickHouseStatementWrapper {
     public final ClickHousePreparedStatement statement;
-    public final Connection connection;
 
-    public ClickHouseStatementWrapper(
-            Connection connection, ClickHousePreparedStatement statement) {
+    public ClickHouseStatementWrapper(ClickHousePreparedStatement statement) {
         this.statement = statement;
-        this.connection = connection;
     }
 
     public void addBatch() throws SQLException {
@@ -81,8 +77,7 @@ public class ClickHouseStatementWrapper {
     }
 
     public void setArray(int parameterIndex, Object[] array) throws SQLException {
-        java.sql.Array sqlArray = connection.createArrayOf("VARCHAR", array);
-        statement.setArray(parameterIndex, sqlArray);
+        statement.setArray(parameterIndex, new ObjectArray(array));
     }
 
     public void setObject(int parameterIndex, Object x) throws SQLException {

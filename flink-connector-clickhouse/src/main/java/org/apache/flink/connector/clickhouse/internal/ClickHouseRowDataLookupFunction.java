@@ -146,7 +146,7 @@ public class ClickHouseRowDataLookupFunction extends LookupFunction {
         Connection dbConn = connectionProvider.getOrCreateConnection();
         statement =
                 new ClickHouseStatementWrapper(
-                        dbConn, (ClickHousePreparedStatement) dbConn.prepareStatement(query));
+                        (ClickHousePreparedStatement) dbConn.prepareStatement(query));
     }
 
     @Override
