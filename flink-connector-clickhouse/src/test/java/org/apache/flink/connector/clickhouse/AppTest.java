@@ -29,6 +29,7 @@ import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.TimestampData;
 
 import com.clickhouse.data.value.ClickHouseDateTimeValue;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.Serializable;
@@ -54,12 +55,14 @@ import static org.junit.Assert.assertNull;
 /** Unit test for simple App. */
 public class AppTest {
 
+    @Ignore
     @Test
     public void timestampLtzTest() {
         Instant now = Instant.now();
         TimestampData timestampData = TimestampData.fromInstant(now);
         Instant instant = timestampData.toInstant();
         LocalDateTime localDateTime = timestampData.toLocalDateTime();
+        // Error if timezone equals UTC+0.
         LocalDateTime zoneDateTime =
                 instant.atZone(TimeZone.getDefault().toZoneId()).toLocalDateTime();
         assertFalse(Duration.between(localDateTime, zoneDateTime).isZero());
