@@ -128,10 +128,14 @@ public class ClickHouseConnectionProvider implements Serializable {
         LOG.info("connecting to {}, database {}", url, database);
         Properties configuration = new Properties();
         configuration.putAll(connectionProperties);
-        configuration.setProperty(
-                ClickHouseDefaults.USER.getKey(), options.getUsername().orElse(null));
-        configuration.setProperty(
-                ClickHouseDefaults.PASSWORD.getKey(), options.getPassword().orElse(null));
+        if (options.getUsername().isPresent()) {
+            configuration.setProperty(
+                    ClickHouseDefaults.USER.getKey(), options.getUsername().get());
+        }
+        if (options.getPassword().isPresent()) {
+            configuration.setProperty(
+                    ClickHouseDefaults.PASSWORD.getKey(), options.getPassword().get());
+        }
         ClickHouseDriver driver = new ClickHouseDriver();
         return driver.connect(url, configuration);
     }
