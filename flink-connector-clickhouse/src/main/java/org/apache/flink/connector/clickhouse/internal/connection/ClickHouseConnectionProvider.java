@@ -28,8 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,7 +36,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import static java.util.stream.Collectors.toList;
-import static org.apache.flink.connector.clickhouse.util.ClickHouseJdbcUtil.getActualHttpPort;
+import static org.apache.flink.connector.clickhouse.util.ClickHouseJdbcUtil.getClusterSpec;
 
 /** ClickHouse connection provider. Use ClickHouseDriver to create a connection. */
 public class ClickHouseConnectionProvider implements Serializable {
@@ -46,9 +44,6 @@ public class ClickHouseConnectionProvider implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private static final Logger LOG = LoggerFactory.getLogger(ClickHouseConnectionProvider.class);
-
-    private static final String QUERY_CLUSTER_INFO_SQL =
-            "SELECT shard_num, host_address, port FROM system.clusters WHERE cluster = ? ORDER BY shard_num, replica_num ASC";
 
     private final ClickHouseConnectionOptions options;
 
@@ -74,7 +69,7 @@ public class ClickHouseConnectionProvider implements Serializable {
 
     public synchronized ClickHouseConnection getOrCreateConnection() throws SQLException {
         if (connection == null) {
-            connection = createConnection(options.getUrl(), options.getDatabaseName());
+            connection = createConnection(options.getUrl());
         }
         return connection;
     }
@@ -82,9 +77,11 @@ public class ClickHouseConnectionProvider implements Serializable {
     public synchronized Map<Integer, ClickHouseConnection> createShardConnections(
             ClusterSpec clusterSpec, String defaultDatabase) throws SQLException {
         Map<Integer, ClickHouseConnection> connectionMap = new HashMap<>();
+        String urlSuffix = options.getUrlSuffix();
         for (ShardSpec shardSpec : clusterSpec.getShards()) {
+            String shardUrl = shardSpec.getJdbcUrls() + urlSuffix;
             ClickHouseConnection connection =
-                    createAndStoreShardConnection(shardSpec.getJdbcUrls(), defaultDatabase);
+                    createAndStoreShardConnection(shardUrl, defaultDatabase);
             connectionMap.put(shardSpec.getNum(), connection);
         }
 
@@ -97,35 +94,29 @@ public class ClickHouseConnectionProvider implements Serializable {
             shardConnections = new ArrayList<>();
         }
 
-        ClickHouseConnection connection = createConnection(url, database);
+        ClickHouseConnection connection = createConnection(url);
         shardConnections.add(connection);
         return connection;
     }
 
     public List<String> getShardUrls(String remoteCluster) throws SQLException {
-        Map<Long, List<String>> shardsMap = new HashMap<>();
+        Map<Integer, String> shardsMap = new HashMap<>();
         ClickHouseConnection conn = getOrCreateConnection();
-        try (PreparedStatement stmt = conn.prepareStatement(QUERY_CLUSTER_INFO_SQL)) {
-            stmt.setString(1, remoteCluster);
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    String host = rs.getString("host_address");
-                    int port = getActualHttpPort(host, rs.getInt("port"));
-                    List<String> shardUrls =
-                            shardsMap.computeIfAbsent(
-                                    rs.getLong("shard_num"), k -> new ArrayList<>());
-                    shardUrls.add(host + ":" + port);
-                }
-            }
+        ClusterSpec clusterSpec = getClusterSpec(conn, remoteCluster);
+        String urlSuffix = options.getUrlSuffix();
+        for (ShardSpec shardSpec : clusterSpec.getShards()) {
+            String shardUrl = shardSpec.getJdbcUrls() + urlSuffix;
+            shardsMap.put(shardSpec.getNum(), shardUrl);
         }
 
-        return shardsMap.values().stream()
-                .map(urls -> "jdbc:ch://" + String.join(",", urls))
+        return shardsMap.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(Map.Entry::getValue)
                 .collect(toList());
     }
 
-    private ClickHouseConnection createConnection(String url, String database) throws SQLException {
-        LOG.info("connecting to {}, database {}", url, database);
+    private ClickHouseConnection createConnection(String url) throws SQLException {
+        LOG.info("connecting to {}", url);
         Properties configuration = new Properties();
         configuration.putAll(connectionProperties);
         if (options.getUsername().isPresent()) {
