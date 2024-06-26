@@ -17,6 +17,7 @@
 
 package org.apache.flink.connector.clickhouse;
 
+import org.apache.flink.connector.clickhouse.internal.options.ClickHouseConnectionOptions;
 import org.apache.flink.connector.clickhouse.internal.partitioner.ValuePartitioner;
 import org.apache.flink.connector.clickhouse.internal.schema.ClusterSpec;
 import org.apache.flink.connector.clickhouse.internal.schema.ShardSpec;
@@ -216,6 +217,25 @@ public class AppTest {
             assertEquals(
                     "javaHash(toString(date,age))",
                     requireNonNull(parseShardingKey(matcher.group("shardingKey"))).explain());
+        }
+    }
+
+    @Test
+    public void parseJdbcUriTest() {
+        String[] urls = {
+            "jdbc:ch://localhost:8123",
+            "jdbc:ch://localhost:8123?",
+            "jdbc:ch://localhost:8123?ssl=true&sslmode=STRICT",
+            "jdbc:ch://localhost:8123/",
+            "jdbc:ch://localhost:8123/?ssl=true&sslmode=STRICT",
+            "jdbc:ch://localhost:8123/default?ssl=true&sslmode=STRICT",
+            "jdbc:ch://localhost:8123,127.0.0.1:8123/default?ssl=true&sslmode=STRICT"
+        };
+
+        for (String url : urls) {
+            String urlSuffix = new ClickHouseConnectionOptions(url).getUrlSuffix();
+            String urlPrefix = url.substring(0, url.lastIndexOf(urlSuffix));
+            assertEquals(url, urlPrefix + urlSuffix);
         }
     }
 }
