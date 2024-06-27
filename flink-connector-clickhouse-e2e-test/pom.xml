@@ -35,6 +35,17 @@ limitations under the License.
 	</properties>
 
 	<dependencies>
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-connector-test-utils</artifactId>
+			<version>${flink.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>clickhouse</artifactId>
+			<version>1.19.8</version>
+		</dependency>
+
 
 	</dependencies>
 </project>
