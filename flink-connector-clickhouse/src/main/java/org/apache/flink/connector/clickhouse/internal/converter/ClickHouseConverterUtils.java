@@ -29,8 +29,14 @@ import org.apache.flink.table.types.logical.DecimalType;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.MapType;
 
+import com.clickhouse.data.value.UnsignedByte;
+import com.clickhouse.data.value.UnsignedInteger;
+import com.clickhouse.data.value.UnsignedLong;
+import com.clickhouse.data.value.UnsignedShort;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.net.InetAddress;
 import java.sql.Array;
 import java.sql.Date;
 import java.sql.SQLException;
@@ -39,8 +45,10 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.getFlinkTimeZone;
 import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.toEpochDayOneTimestamp;
@@ -129,35 +137,51 @@ public class ClickHouseConverterUtils {
             case DOUBLE:
             case INTERVAL_YEAR_MONTH:
             case INTERVAL_DAY_TIME:
-            case INTEGER:
-            case BIGINT:
+            case TINYINT:
             case BINARY:
             case VARBINARY:
                 return value;
-            case TINYINT:
-                return ((Integer) value).byteValue();
             case SMALLINT:
-                return value instanceof Integer ? ((Integer) value).shortValue() : value;
+                return value instanceof UnsignedByte ? ((UnsignedByte) value).shortValue() : value;
+            case INTEGER:
+                return value instanceof UnsignedShort ? ((UnsignedShort) value).intValue() : value;
+            case BIGINT:
+                return value instanceof UnsignedInteger
+                        ? ((UnsignedInteger) value).longValue()
+                        : value;
             case DECIMAL:
                 final int precision = ((DecimalType) type).getPrecision();
                 final int scale = ((DecimalType) type).getScale();
-                return value instanceof BigInteger
-                        ? DecimalData.fromBigDecimal(
-                                new BigDecimal((BigInteger) value, 0), precision, scale)
-                        : DecimalData.fromBigDecimal((BigDecimal) value, precision, scale);
+                BigDecimal decimalValue =
+                        value instanceof BigDecimal
+                                ? (BigDecimal) value
+                                : new BigDecimal(
+                                        value instanceof UnsignedLong
+                                                ? ((UnsignedLong) value).bigIntegerValue()
+                                                : (BigInteger) value);
+                return DecimalData.fromBigDecimal(decimalValue, precision, scale);
             case DATE:
-                return (int) (((Date) value).toLocalDate().toEpochDay());
+                return (int) (((LocalDate) value).toEpochDay());
             case TIME_WITHOUT_TIME_ZONE:
                 return (int) (((Time) value).toLocalTime().toNanoOfDay() / 1_000_000L);
             case TIMESTAMP_WITH_TIME_ZONE:
             case TIMESTAMP_WITHOUT_TIME_ZONE:
-                return TimestampData.fromLocalDateTime((LocalDateTime) value);
+                return TimestampData.fromLocalDateTime(
+                        value instanceof OffsetDateTime
+                                ? ((OffsetDateTime) value).toLocalDateTime()
+                                : (LocalDateTime) value);
             case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
                 return TimestampData.fromInstant(
                         ((LocalDateTime) value).atZone(getFlinkTimeZone().toZoneId()).toInstant());
             case CHAR:
             case VARCHAR:
-                return StringData.fromString((String) value);
+                if (value instanceof UUID) {
+                    return StringData.fromString(value.toString());
+                } else if (value instanceof InetAddress) {
+                    return StringData.fromString(((InetAddress) value).getHostAddress());
+                } else {
+                    return StringData.fromString((String) value);
+                }
             case ARRAY:
                 LogicalType elementType =
                         type.getChildren().stream()
