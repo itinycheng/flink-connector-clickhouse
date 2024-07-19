@@ -45,6 +45,18 @@ limitations under the License.
 			<artifactId>clickhouse</artifactId>
 			<version>1.19.8</version>
 		</dependency>
+		<dependency>
+			<groupId>com.clickhouse</groupId>
+			<artifactId>clickhouse-jdbc</artifactId>
+			<version>${clickhouse-jdbc.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-connector-clickhouse</artifactId>
+			<version>${project.version}</version>
+			<scope>test</scope>
+		</dependency>
 
 
 	</dependencies>
