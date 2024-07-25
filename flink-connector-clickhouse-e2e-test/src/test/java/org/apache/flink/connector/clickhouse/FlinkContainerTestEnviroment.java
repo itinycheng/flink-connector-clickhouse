@@ -1,24 +1,15 @@
 package org.apache.flink.connector.clickhouse;
 
-import com.clickhouse.jdbc.ClickHouseDriver;
-
-import com.clickhouse.jdbc.ClickHouseStatement;
-
 import org.apache.flink.api.common.JobStatus;
 import org.apache.flink.api.common.time.Deadline;
 import org.apache.flink.client.deployment.StandaloneClusterId;
 import org.apache.flink.client.program.rest.RestClusterClient;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.configuration.JobManagerOptions;
 import org.apache.flink.configuration.RestOptions;
-import org.apache.flink.connector.testframe.container.FlinkContainers;
-import org.apache.flink.connector.testframe.container.FlinkContainersSettings;
 import org.apache.flink.connector.testframe.container.TestcontainersSettings;
-
 import org.apache.flink.runtime.client.JobStatusMessage;
 import org.apache.flink.table.api.ValidationException;
 import org.apache.flink.test.resources.ResourceTestUtils;
-
 import org.apache.flink.test.util.SQLJobSubmission;
 
 import org.junit.Before;
@@ -49,9 +40,11 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.util.Preconditions.checkState;
 
+/** Test environment running job on Flink containers. */
 public class FlinkContainerTestEnviroment {
 
-    private static final Logger logger = LoggerFactory.getLogger(FlinkContainerTestEnviroment.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(FlinkContainerTestEnviroment.class);
     public static final Network NETWORK = Network.newNetwork();
 
     static final ClickHouseContainer CLICKHOUSE_CONTAINER =
@@ -63,7 +56,6 @@ public class FlinkContainerTestEnviroment {
                     .withPassword("test_password")
                     .withLogConsumer(new Slf4jLogConsumer(logger));
 
-
     private static final TestcontainersSettings TESTCONTAINERS_SETTINGS =
             TestcontainersSettings.builder()
                     .logger(logger)
@@ -71,27 +63,16 @@ public class FlinkContainerTestEnviroment {
                     .dependsOn(CLICKHOUSE_CONTAINER)
                     .build();
 
-    public static final FlinkContainers FLINK =
-            FlinkContainers.builder()
-                    .withFlinkContainersSettings(
-                            FlinkContainersSettings
-                                    .builder()
-                                    .numTaskManagers(1)
-                                    .setConfigOption(JobManagerOptions.ADDRESS,"jobmanager").baseImage("flink:1.19.0-scala_2.12").build())
-                    .withTestcontainersSettings(
-                            TESTCONTAINERS_SETTINGS)
-                    .build();
-
-    public static Path SQL_CONNECTOR_CLICKHOUSE_JAR = ResourceTestUtils
-            .getResource("flink-connector-clickhouse-1.0.0-SNAPSHOT.jar");
-    public static Path CLICKHOUSE_JDBC_JAR = ResourceTestUtils
-            .getResource("clickhouse-jdbc-0.6.1.jar");
-    public static Path HTTPCORE_JAR = ResourceTestUtils
-            .getResource("httpcore5-5.2.jar");
-    public static Path HTTPCLIENT_JAR = ResourceTestUtils.getResource("httpclient5-5.2.1.jar");
-    public static Path HTTPCLIENT_H2_JAR = ResourceTestUtils.getResource("httpcore5-h2-5.2.jar");
-    @Rule
-    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+    public static final Path SQL_CONNECTOR_CLICKHOUSE_JAR =
+            ResourceTestUtils.getResource("flink-connector-clickhouse-1.0.0-SNAPSHOT.jar");
+    public static final Path CLICKHOUSE_JDBC_JAR =
+            ResourceTestUtils.getResource("clickhouse-jdbc-0.6.1.jar");
+    public static final Path HTTPCORE_JAR = ResourceTestUtils.getResource("httpcore5-5.2.jar");
+    public static final Path HTTPCLIENT_JAR =
+            ResourceTestUtils.getResource("httpclient5-5.2.1.jar");
+    public static final Path HTTPCLIENT_H2_JAR =
+            ResourceTestUtils.getResource("httpcore5-h2-5.2.jar");
+    @Rule public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private GenericContainer<?> jobManager;
     private GenericContainer<?> taskManager;
@@ -101,29 +82,22 @@ public class FlinkContainerTestEnviroment {
     public void setUp() throws Exception {
         CLICKHOUSE_CONTAINER.start();
 
-        /*connection = driver.connect(CLICKHOUSE_CONTAINER.getJdbcUrl(), null);
-        logger.info("Clickhouse connection is established, url: {}, clickhouse port:{}", CLICKHOUSE_CONTAINER.getJdbcUrl(),
-                CLICKHOUSE_CONTAINER.getMappedPort(8123));
-        logger.info("executing clickhouse sql statements");
-        statement = connection.createStatement();
-        boolean execute = statement.execute(
-                "create table test (id Int32, name String) engine = Memory");
-        execute = statement.execute("create table test_insert (id Int32, name String) engine = Memory");
-        execute = statement.execute("insert into test values (1, 'test');");*/
-        String properties = String.join(
-                "\n",
-                Arrays.asList(
-                        "jobmanager.rpc.address: jobmanager",
-                        "heartbeat.timeout: 60000","parallelism.default: 1"));
+        String properties =
+                String.join(
+                        "\n",
+                        Arrays.asList(
+                                "jobmanager.rpc.address: jobmanager",
+                                "heartbeat.timeout: 60000",
+                                "parallelism.default: 1"));
         jobManager =
                 new GenericContainer<>(new DockerImageName("flink:1.19.0-scala_2.12"))
                         .withCommand("jobmanager")
                         .withNetwork(NETWORK)
                         .withExtraHost("host.docker.internal", "host-gateway")
                         .withNetworkAliases("jobmanager")
-                        .withExposedPorts(8081,6123)
+                        .withExposedPorts(8081, 6123)
                         .dependsOn(CLICKHOUSE_CONTAINER)
-                        .withLabel("com.testcontainers.allow-filesystem-access","true")
+                        .withLabel("com.testcontainers.allow-filesystem-access", "true")
                         .withEnv("FLINK_PROPERTIES", properties)
                         .withLogConsumer(new Slf4jLogConsumer(logger));
         taskManager =
@@ -134,17 +108,20 @@ public class FlinkContainerTestEnviroment {
                         .withNetworkAliases("taskmanager")
                         .withEnv("FLINK_PROPERTIES", properties)
                         .dependsOn(jobManager)
-                        .withLabel("com.testcontainers.allow-filesystem-access","true")
+                        .withLabel("com.testcontainers.allow-filesystem-access", "true")
                         .withLogConsumer(new Slf4jLogConsumer(logger));
         Startables.deepStart(Stream.of(jobManager)).join();
         Startables.deepStart(Stream.of(taskManager)).join();
         Thread.sleep(5000);
         logger.info("Containers are started.");
-
-
-
     }
 
+    /**
+     * Returns the {@link RestClusterClient} for the running cluster.
+     *
+     * <p><b>NOTE:</b> The client is created lazily and should only be retrieved after the cluster
+     * is running.
+     */
     public RestClusterClient<StandaloneClusterId> getRestClusterClient() {
         if (restClusterClient != null) {
             return restClusterClient;
@@ -155,8 +132,7 @@ public class FlinkContainerTestEnviroment {
         try {
             final Configuration clientConfiguration = new Configuration();
             clientConfiguration.set(RestOptions.ADDRESS, jobManager.getHost());
-            clientConfiguration.set(
-                    RestOptions.PORT, jobManager.getMappedPort(8081));
+            clientConfiguration.set(RestOptions.PORT, jobManager.getMappedPort(8081));
             this.restClusterClient =
                     new RestClusterClient<>(clientConfiguration, StandaloneClusterId.getInstance());
         } catch (Exception e) {
@@ -198,13 +174,15 @@ public class FlinkContainerTestEnviroment {
         }
     }
 
+    /*
+     * Copy the file to the container and return the container path.
+     */
     private String copyAndGetContainerPath(GenericContainer<?> container, String filePath) {
         Path path = Paths.get(filePath);
         String containerPath = "/tmp/" + path.getFileName();
         container.copyFileToContainer(MountableFile.forHostPath(path), containerPath);
         return containerPath;
     }
-
 
     private static List<String> readSqlFile(final String resourceName) throws Exception {
         return Files.readAllLines(
