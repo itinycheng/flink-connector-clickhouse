@@ -133,7 +133,7 @@ limitations under the License.
 							<version>${project.version}</version>
 							<type>jar</type>
 							<overWrite>true</overWrite>
-							<outputDirectory>${project.build.directory}/dependencies</outputDirectory>
+							<outputDirectory>${project.build.directory}</outputDirectory>
 						</artifactItem>
 						<artifactItem>
 							<groupId>org.apache.httpcomponents.client5</groupId>
@@ -141,7 +141,7 @@ limitations under the License.
 							<version>5.2.1</version>
 							<type>jar</type>
 							<overWrite>true</overWrite>
-							<outputDirectory>${project.build.directory}/dependencies</outputDirectory>
+							<outputDirectory>${project.build.directory}</outputDirectory>
 						</artifactItem>
 						<artifactItem>
 							<groupId>org.apache.httpcomponents.core5</groupId>
@@ -149,7 +149,7 @@ limitations under the License.
 							<version>5.2</version>
 							<type>jar</type>
 							<overWrite>true</overWrite>
-							<outputDirectory>${project.build.directory}/dependencies</outputDirectory>
+							<outputDirectory>${project.build.directory}</outputDirectory>
 						</artifactItem>
 						<artifactItem>
 							<groupId>org.apache.httpcomponents.core5</groupId>
@@ -157,12 +157,17 @@ limitations under the License.
 							<version>5.2</version>
 							<type>jar</type>
 							<overWrite>true</overWrite>
-							<outputDirectory>${project.build.directory}/dependencies</outputDirectory>
+							<outputDirectory>${project.build.directory}</outputDirectory>
+						</artifactItem>
+						<artifactItem>
+							<groupId>com.clickhouse</groupId>
+							<artifactId>clickhouse-jdbc</artifactId>
+							<version>${clickhouse-jdbc.version}</version>
+							<type>jar</type>
+							<overWrite>true</overWrite>
+							<outputDirectory>${project.build.directory}</outputDirectory>
 						</artifactItem>
 					</artifactItems>
-
-
-
 				</configuration>
 			</plugin>
 		</plugins>
