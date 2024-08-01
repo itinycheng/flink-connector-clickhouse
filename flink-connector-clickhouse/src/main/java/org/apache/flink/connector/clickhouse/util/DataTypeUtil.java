@@ -41,9 +41,9 @@ public class DataTypeUtil {
         switch (clickHouseColumnInfo.getDataType()) {
             case Int8:
                 return DataTypes.TINYINT();
-            case Int16:
             case Bool:
                 return DataTypes.BOOLEAN();
+            case Int16:
             case UInt8:
                 return DataTypes.SMALLINT();
             case Int32:
@@ -92,6 +92,7 @@ public class DataTypeUtil {
             case UUID:
                 return DataTypes.VARCHAR(clickHouseColumnInfo.getPrecision());
             case Date:
+            case Date32:
                 return DataTypes.DATE();
             case DateTime:
             case DateTime32:
