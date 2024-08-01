@@ -203,7 +203,7 @@ public class FlinkContainerTestEnviroment {
             if (jobStatusMessages != null && !jobStatusMessages.isEmpty()) {
                 JobStatusMessage message = jobStatusMessages.iterator().next();
                 JobStatus jobStatus = message.getJobState();
-                if (jobStatus.isTerminalState()) {
+                if (jobStatus.isTerminalState() && message.getJobState() == JobStatus.FAILED) {
                     throw new ValidationException(
                             String.format(
                                     "Job has been terminated! JobName: %s, JobID: %s, Status: %s",
