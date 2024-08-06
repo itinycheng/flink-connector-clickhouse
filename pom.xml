@@ -68,6 +68,9 @@ limitations under the License.
 		<guava.version>32.1.3-jre</guava.version>
 		<jackson.version>2.12.4</jackson.version>
 		<commons-lang3.version>3.13.0</commons-lang3.version>
+		<testcontainer.version>1.19.8</testcontainer.version>
+		<httpclient5.version>5.2.1</httpclient5.version>
+		<httpcore5.version>5.2</httpcore5.version>
 		<shade.base>org.apache.flink.shaded.clickhouse</shade.base>
 		<flink.parent.artifactId>flink-connector-clickhouse-parent</flink.parent.artifactId>
 		<maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
