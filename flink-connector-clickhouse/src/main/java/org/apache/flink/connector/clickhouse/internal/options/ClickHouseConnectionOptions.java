@@ -17,15 +17,25 @@
 
 package org.apache.flink.connector.clickhouse.internal.options;
 
+import org.apache.flink.annotation.VisibleForTesting;
+
 import javax.annotation.Nullable;
 
 import java.io.Serializable;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.EMPTY;
+import static org.apache.flink.util.StringUtils.isNullOrWhitespaceOnly;
 
 /** ClickHouse connection options. */
 public class ClickHouseConnectionOptions implements Serializable {
 
     private static final long serialVersionUID = 1L;
+
+    public static final Pattern URL_PATTERN =
+            Pattern.compile("[^/]+//[^/?]+(/(?<database>[^?]*))?(\\?(?<param>\\S+))?");
 
     private final String url;
 
@@ -36,6 +46,12 @@ public class ClickHouseConnectionOptions implements Serializable {
     private final String databaseName;
 
     private final String tableName;
+
+    // For testing.
+    @VisibleForTesting
+    public ClickHouseConnectionOptions(String url) {
+        this(url, null, null, null, null);
+    }
 
     protected ClickHouseConnectionOptions(
             String url,
@@ -48,6 +64,23 @@ public class ClickHouseConnectionOptions implements Serializable {
         this.password = password;
         this.databaseName = databaseName;
         this.tableName = tableName;
+    }
+
+    /**
+     * The format of the URL suffix is as follows: {@code
+     * [/<database>][?param1=value1&param2=value2]}.
+     */
+    public String getUrlSuffix() {
+        Matcher matcher = URL_PATTERN.matcher(url);
+        if (!matcher.find()) {
+            return EMPTY;
+        }
+
+        String database = matcher.group("database");
+        String param = matcher.group("param");
+        database = isNullOrWhitespaceOnly(database) ? EMPTY : "/" + database;
+        param = isNullOrWhitespaceOnly(param) ? EMPTY : "?" + param;
+        return database + param;
     }
 
     public String getUrl() {
