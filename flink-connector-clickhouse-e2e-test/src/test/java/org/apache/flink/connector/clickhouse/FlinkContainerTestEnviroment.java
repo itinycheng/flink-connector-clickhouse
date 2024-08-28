@@ -66,7 +66,7 @@ public class FlinkContainerTestEnviroment {
     public static final Path SQL_CONNECTOR_CLICKHOUSE_JAR =
             ResourceTestUtils.getResource("flink-connector-clickhouse-1.0.0-SNAPSHOT.jar");
     public static final Path CLICKHOUSE_JDBC_JAR =
-            ResourceTestUtils.getResource("clickhouse-jdbc-0.6.1.jar");
+            ResourceTestUtils.getResource("clickhouse-jdbc-0.6.4.jar");
     public static final Path HTTPCORE_JAR = ResourceTestUtils.getResource("httpcore5-5.2.jar");
     public static final Path HTTPCLIENT_JAR =
             ResourceTestUtils.getResource("httpclient5-5.2.1.jar");

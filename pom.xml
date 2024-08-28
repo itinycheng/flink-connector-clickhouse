@@ -26,7 +26,6 @@ limitations under the License.
 		<version>1.1.0</version>
 	</parent>
 
-	<groupId>org.apache.flink</groupId>
 	<artifactId>flink-connector-clickhouse-parent</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
 
@@ -61,7 +60,7 @@ limitations under the License.
 		<maven.compiler.source>8</maven.compiler.source>
 		<maven.compiler.target>8</maven.compiler.target>
 		<junit.version>4.13.2</junit.version>
-		<clickhouse-jdbc.version>0.6.1</clickhouse-jdbc.version>
+		<clickhouse-jdbc.version>0.6.4</clickhouse-jdbc.version>
 		<scala.binary.version>2.12</scala.binary.version>
 		<flink.version>1.19.0</flink.version>
 		<flink.scope>provided</flink.scope>
