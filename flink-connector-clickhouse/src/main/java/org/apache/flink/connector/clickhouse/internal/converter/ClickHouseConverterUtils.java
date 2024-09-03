@@ -30,13 +30,12 @@ import org.apache.flink.table.types.logical.ArrayType;
 import org.apache.flink.table.types.logical.DecimalType;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.MapType;
+import org.apache.flink.table.types.logical.RowType;
 
 import com.clickhouse.data.value.UnsignedByte;
 import com.clickhouse.data.value.UnsignedInteger;
 import com.clickhouse.data.value.UnsignedLong;
 import com.clickhouse.data.value.UnsignedShort;
-
-import org.apache.flink.table.types.logical.RowType;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -130,8 +129,7 @@ public class ClickHouseConverterUtils {
                 for (int i = 0; i < ((RowData) value).getArity(); i++) {
                     result.add(
                             toExternal(
-                                    RowData.createFieldGetter(
-                                                    ((RowType) type).getTypeAt(i), i)
+                                    RowData.createFieldGetter(((RowType) type).getTypeAt(i), i)
                                             .getFieldOrNull((RowData) value),
                                     ((RowType) type).getTypeAt(i)));
                 }
