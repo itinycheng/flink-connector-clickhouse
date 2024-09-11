@@ -17,6 +17,7 @@
 
 package org.apache.flink.connector.clickhouse.util;
 
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.catalog.exceptions.CatalogException;
 import org.apache.flink.table.types.DataType;
@@ -25,6 +26,7 @@ import com.clickhouse.data.ClickHouseColumn;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.apache.flink.table.types.logical.DecimalType.MAX_PRECISION;
 
@@ -110,6 +112,12 @@ public class DataTypeUtil {
                         toFlinkType(clickHouseColumnInfo.getKeyInfo()),
                         toFlinkType(clickHouseColumnInfo.getValueInfo()));
             case Tuple:
+                return DataTypes.ROW(
+                        clickHouseColumnInfo.getNestedColumns().stream()
+                                .map((col) -> new Tuple2<>(col, toFlinkType(col)))
+                                .map(tuple -> DataTypes.FIELD(tuple.f0.getColumnName(), tuple.f1))
+                                .collect(Collectors.toList()));
+
             case Nested:
             case AggregateFunction:
             default:
