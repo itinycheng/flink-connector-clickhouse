@@ -21,13 +21,16 @@ import org.apache.flink.table.data.ArrayData;
 import org.apache.flink.table.data.DecimalData;
 import org.apache.flink.table.data.GenericArrayData;
 import org.apache.flink.table.data.GenericMapData;
+import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.MapData;
+import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.StringData;
 import org.apache.flink.table.data.TimestampData;
 import org.apache.flink.table.types.logical.ArrayType;
 import org.apache.flink.table.types.logical.DecimalType;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.MapType;
+import org.apache.flink.table.types.logical.RowType;
 
 import com.clickhouse.data.value.UnsignedByte;
 import com.clickhouse.data.value.UnsignedInteger;
@@ -46,7 +49,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -119,9 +124,18 @@ public class ClickHouseConverterUtils {
                             toExternal(valueGetter.getElementOrNull(valueArrayData, i), valueType));
                 }
                 return objectMap;
-            case MULTISET:
             case ROW:
+                List<Object> result = new ArrayList<>();
+                for (int i = 0; i < ((RowData) value).getArity(); i++) {
+                    result.add(
+                            toExternal(
+                                    RowData.createFieldGetter(((RowType) type).getTypeAt(i), i)
+                                            .getFieldOrNull((RowData) value),
+                                    ((RowType) type).getTypeAt(i)));
+                }
+                return result;
             case RAW:
+            case MULTISET:
             default:
                 throw new UnsupportedOperationException("Unsupported type:" + type);
         }
@@ -209,6 +223,12 @@ public class ClickHouseConverterUtils {
                 }
                 return new GenericMapData(internalMap);
             case ROW:
+                List<Object> row = (List<Object>) value;
+                GenericRowData rowData = new GenericRowData(row.size());
+                for (int i = 0; i < row.size(); i++) {
+                    rowData.setField(i, toInternal(row.get(i), type.getChildren().get(i)));
+                }
+                return rowData;
             case MULTISET:
             case RAW:
             default:
