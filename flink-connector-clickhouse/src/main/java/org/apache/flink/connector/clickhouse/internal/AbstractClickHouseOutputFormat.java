@@ -129,7 +129,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
         }
     }
 
-    protected void checkFlushException() {
+    public void checkFlushException() {
         if (flushException != null) {
             throw new RuntimeException("Flush exception found.", flushException);
         }
@@ -150,6 +150,8 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
 
         private Properties connectionProperties;
 
+        private ClickHouseConnectionProvider connectionProvider;
+
         private String[] fieldNames;
 
         private String[] primaryKeys;
@@ -165,6 +167,11 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
 
         public Builder withConnectionProperties(Properties connectionProperties) {
             this.connectionProperties = connectionProperties;
+            return this;
+        }
+
+        public Builder withConnectionProvider(ClickHouseConnectionProvider connectionProvider) {
+            this.connectionProvider = connectionProvider;
             return this;
         }
 
@@ -193,7 +200,6 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
         }
 
         public AbstractClickHouseOutputFormat build() {
-            Preconditions.checkNotNull(options);
             Preconditions.checkNotNull(fieldNames);
             Preconditions.checkNotNull(fieldTypes);
             Preconditions.checkNotNull(primaryKeys);
@@ -204,10 +210,12 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
                         "The data will be updated / deleted by the primary key, you will have significant performance loss.");
             }
 
-            ClickHouseConnectionProvider connectionProvider = null;
-            try {
+            if (connectionProvider == null) {
                 connectionProvider =
                         new ClickHouseConnectionProvider(options, connectionProperties);
+            }
+
+            try {
                 DistributedEngineFull engineFullSchema =
                         getDistributedEngineFull(
                                 connectionProvider.getOrCreateConnection(),
@@ -230,7 +238,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
 
         private ClickHouseBatchOutputFormat createBatchOutputFormat() {
             return new ClickHouseBatchOutputFormat(
-                    new ClickHouseConnectionProvider(options, connectionProperties),
+                    connectionProvider,
                     fieldNames,
                     primaryKeys,
                     partitionKeys,
@@ -277,7 +285,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
 
             ClusterSpec clusterSpec = getClusterSpec(connection, engineFullSchema.getCluster());
             return new ClickHouseShardOutputFormat(
-                    new ClickHouseConnectionProvider(options, connectionProperties),
+                    connectionProvider,
                     clusterSpec,
                     engineFullSchema,
                     fieldNames,

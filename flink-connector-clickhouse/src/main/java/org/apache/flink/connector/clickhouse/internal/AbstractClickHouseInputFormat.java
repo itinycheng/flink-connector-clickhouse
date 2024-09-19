@@ -138,6 +138,8 @@ public abstract class AbstractClickHouseInputFormat extends RichInputFormat<RowD
 
         private Properties connectionProperties;
 
+        private ClickHouseConnectionProvider connectionProvider;
+
         private int[] shardIds;
 
         private Map<Integer, String> shardMap;
@@ -168,6 +170,11 @@ public abstract class AbstractClickHouseInputFormat extends RichInputFormat<RowD
             return this;
         }
 
+        public Builder withConnectionProvider(ClickHouseConnectionProvider connectionProvider) {
+            this.connectionProvider = connectionProvider;
+            return this;
+        }
+
         public Builder withFieldNames(String[] fieldNames) {
             this.fieldNames = fieldNames;
             return this;
@@ -194,16 +201,16 @@ public abstract class AbstractClickHouseInputFormat extends RichInputFormat<RowD
         }
 
         public AbstractClickHouseInputFormat build() {
-            Preconditions.checkNotNull(readOptions);
-            Preconditions.checkNotNull(connectionProperties);
             Preconditions.checkNotNull(fieldNames);
             Preconditions.checkNotNull(fieldTypes);
             Preconditions.checkNotNull(rowDataTypeInfo);
 
-            ClickHouseConnectionProvider connectionProvider = null;
-            try {
+            if (connectionProvider == null) {
                 connectionProvider =
                         new ClickHouseConnectionProvider(readOptions, connectionProperties);
+            }
+
+            try {
                 DistributedEngineFull engineFullSchema =
                         getDistributedEngineFull(
                                 connectionProvider.getOrCreateConnection(),
@@ -282,7 +289,7 @@ public abstract class AbstractClickHouseInputFormat extends RichInputFormat<RowD
         private AbstractClickHouseInputFormat createShardInputFormat(
                 LogicalType[] logicalTypes, DistributedEngineFull engineFullSchema) {
             return new ClickHouseShardInputFormat(
-                    new ClickHouseConnectionProvider(readOptions, connectionProperties),
+                    connectionProvider,
                     new ClickHouseRowConverter(RowType.of(logicalTypes)),
                     readOptions,
                     engineFullSchema,
@@ -298,7 +305,7 @@ public abstract class AbstractClickHouseInputFormat extends RichInputFormat<RowD
 
         private AbstractClickHouseInputFormat createBatchInputFormat(LogicalType[] logicalTypes) {
             return new ClickHouseBatchInputFormat(
-                    new ClickHouseConnectionProvider(readOptions, connectionProperties),
+                    connectionProvider,
                     new ClickHouseRowConverter(RowType.of(logicalTypes)),
                     readOptions,
                     fieldNames,

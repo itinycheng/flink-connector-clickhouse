@@ -20,6 +20,7 @@ package org.apache.flink.connector.clickhouse.internal.connection;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseConnectionOptions;
 import org.apache.flink.connector.clickhouse.internal.schema.ClusterSpec;
 import org.apache.flink.connector.clickhouse.internal.schema.ShardSpec;
+import org.apache.flink.util.Preconditions;
 
 import com.clickhouse.client.config.ClickHouseDefaults;
 import com.clickhouse.jdbc.ClickHouseConnection;
@@ -59,8 +60,8 @@ public class ClickHouseConnectionProvider implements Serializable {
 
     public ClickHouseConnectionProvider(
             ClickHouseConnectionOptions options, Properties connectionProperties) {
-        this.options = options;
-        this.connectionProperties = connectionProperties;
+        this.options = Preconditions.checkNotNull(options);
+        this.connectionProperties = Preconditions.checkNotNull(connectionProperties);
     }
 
     public boolean isConnectionValid() throws SQLException {
