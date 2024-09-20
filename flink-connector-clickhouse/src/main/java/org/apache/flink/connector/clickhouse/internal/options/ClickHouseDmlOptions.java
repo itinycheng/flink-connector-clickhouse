@@ -234,4 +234,9 @@ public class ClickHouseDmlOptions extends ClickHouseConnectionOptions {
                     parallelism);
         }
     }
+
+    @Override
+    public ClickHouseDmlOptions clone() {
+        return (ClickHouseDmlOptions) super.clone();
+    }
 }

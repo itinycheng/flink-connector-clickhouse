@@ -18,6 +18,7 @@
 package org.apache.flink.connector.clickhouse.internal.options;
 
 import org.apache.flink.annotation.VisibleForTesting;
+import org.apache.flink.util.FlinkRuntimeException;
 
 import javax.annotation.Nullable;
 
@@ -30,7 +31,7 @@ import static org.apache.flink.connector.clickhouse.util.ClickHouseUtil.EMPTY;
 import static org.apache.flink.util.StringUtils.isNullOrWhitespaceOnly;
 
 /** ClickHouse connection options. */
-public class ClickHouseConnectionOptions implements Serializable {
+public class ClickHouseConnectionOptions implements Cloneable, Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -101,5 +102,14 @@ public class ClickHouseConnectionOptions implements Serializable {
 
     public String getTableName() {
         return this.tableName;
+    }
+
+    @Override
+    public ClickHouseConnectionOptions clone() {
+        try {
+            return (ClickHouseConnectionOptions) super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new FlinkRuntimeException(e);
+        }
     }
 }
