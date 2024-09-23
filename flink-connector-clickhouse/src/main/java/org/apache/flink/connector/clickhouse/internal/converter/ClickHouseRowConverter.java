@@ -18,6 +18,7 @@
 package org.apache.flink.connector.clickhouse.internal.converter;
 
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseStatementWrapper;
+import org.apache.flink.connector.clickhouse.internal.connection.ObjectArray;
 import org.apache.flink.table.data.DecimalData;
 import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
@@ -51,6 +52,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.apache.flink.connector.clickhouse.internal.converter.ClickHouseConverterUtils.BOOL_TRUE;
@@ -203,8 +205,14 @@ public class ClickHouseRowConverter implements Serializable {
             case CHAR:
             case VARCHAR:
                 // value is BinaryString
-                return (val, index, statement) ->
-                        statement.setString(index + 1, val.getString(index).toString());
+                return (val, index, statement) -> {
+                    Object data = getFieldFromGenericRowData(val, index);
+                    statement.setString(
+                            index + 1,
+                            data instanceof String
+                                    ? (String) data
+                                    : val.getString(index).toString());
+                };
             case BINARY:
             case VARBINARY:
                 return (val, index, statement) ->
@@ -221,44 +229,71 @@ public class ClickHouseRowConverter implements Serializable {
             case TIMESTAMP_WITH_TIME_ZONE:
             case TIMESTAMP_WITHOUT_TIME_ZONE:
                 final int timestampPrecision = ((TimestampType) type).getPrecision();
-                return (val, index, statement) ->
-                        statement.setTimestamp(
-                                index + 1,
-                                val.getTimestamp(index, timestampPrecision).toTimestamp());
+                return (val, index, statement) -> {
+                    Object data = getFieldFromGenericRowData(val, index);
+                    statement.setTimestamp(
+                            index + 1,
+                            data instanceof LocalDateTime
+                                    ? Timestamp.valueOf((LocalDateTime) data)
+                                    : val.getTimestamp(index, timestampPrecision).toTimestamp());
+                };
             case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
                 final int localZonedTimestampPrecision =
                         ((LocalZonedTimestampType) type).getPrecision();
-                return (val, index, statement) ->
-                        statement.setTimestamp(
-                                index + 1,
-                                Timestamp.from(
-                                        val.getTimestamp(index, localZonedTimestampPrecision)
-                                                .toInstant()));
+                return (val, index, statement) -> {
+                    Object data = getFieldFromGenericRowData(val, index);
+                    statement.setTimestamp(
+                            index + 1,
+                            data instanceof LocalDateTime
+                                    ? Timestamp.valueOf((LocalDateTime) data)
+                                    : Timestamp.from(
+                                            val.getTimestamp(index, localZonedTimestampPrecision)
+                                                    .toInstant()));
+                };
             case DECIMAL:
                 final int decimalPrecision = ((DecimalType) type).getPrecision();
                 final int decimalScale = ((DecimalType) type).getScale();
-                return (val, index, statement) ->
-                        statement.setBigDecimal(
-                                index + 1,
-                                val.getDecimal(index, decimalPrecision, decimalScale)
-                                        .toBigDecimal());
+                return (val, index, statement) -> {
+                    Object data = getFieldFromGenericRowData(val, index);
+                    statement.setBigDecimal(
+                            index + 1,
+                            data instanceof BigDecimal
+                                    ? (BigDecimal) data
+                                    : val.getDecimal(index, decimalPrecision, decimalScale)
+                                            .toBigDecimal());
+                };
             case ARRAY:
-                return (val, index, statement) ->
-                        statement.setArray(
-                                index + 1,
-                                (Object[])
-                                        ClickHouseConverterUtils.toExternal(
-                                                val.getArray(index), type));
+                return (val, index, statement) -> {
+                    Object data = getFieldFromGenericRowData(val, index);
+                    data =
+                            data instanceof ObjectArray
+                                    ? ((ObjectArray) data).getArray()
+                                    : ClickHouseConverterUtils.toExternal(
+                                            val.getArray(index), type);
+                    statement.setArray(index + 1, (Object[]) data);
+                };
             case MAP:
-                return (val, index, statement) ->
-                        statement.setObject(
-                                index + 1,
-                                ClickHouseConverterUtils.toExternal(val.getMap(index), type));
+                return (val, index, statement) -> {
+                    Object data = getFieldFromGenericRowData(val, index);
+                    statement.setObject(
+                            index + 1,
+                            data instanceof Map<?, ?>
+                                    ? data
+                                    : ClickHouseConverterUtils.toExternal(val.getMap(index), type));
+                };
             case MULTISET:
             case ROW:
             case RAW:
             default:
                 throw new UnsupportedOperationException("Unsupported type:" + type);
+        }
+    }
+
+    public Object getFieldFromGenericRowData(RowData rowData, int index) {
+        if (rowData instanceof GenericRowData) {
+            return ((GenericRowData) rowData).getField(index);
+        } else {
+            return null;
         }
     }
 
