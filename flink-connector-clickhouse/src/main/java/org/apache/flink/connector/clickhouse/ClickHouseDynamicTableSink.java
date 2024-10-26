@@ -18,10 +18,11 @@
 package org.apache.flink.connector.clickhouse;
 
 import org.apache.flink.connector.clickhouse.internal.AbstractClickHouseOutputFormat;
+import org.apache.flink.connector.clickhouse.internal.ClickHouseRowDataSinkFunction;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
-import org.apache.flink.table.connector.sink.OutputFormatProvider;
+import org.apache.flink.table.connector.sink.SinkFunctionProvider;
 import org.apache.flink.table.connector.sink.abilities.SupportsPartitioning;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.types.RowKind;
@@ -98,7 +99,8 @@ public class ClickHouseDynamicTableSink implements DynamicTableSink, SupportsPar
                         .withPrimaryKey(primaryKeys)
                         .withPartitionKey(partitionKeys)
                         .build();
-        return OutputFormatProvider.of(outputFormat, options.getParallelism());
+        return SinkFunctionProvider.of(
+                new ClickHouseRowDataSinkFunction(outputFormat), options.getParallelism());
     }
 
     @Override
