@@ -27,47 +27,24 @@ limitations under the License.
 	<artifactId>flink-sql-connector-clickhouse</artifactId>
 	<name>Flink : Connectors : SQL : Clickhouse</name>
 	<url>https://flink.apache.org</url>
-
 	<packaging>jar</packaging>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
+	
+	<dependencies>
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-connector-clickhouse</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+	</dependencies>
 	<build>
 		<plugins>
 			<plugin>
-				<groupId>com.diffplug.spotless</groupId>
-				<artifactId>spotless-maven-plugin</artifactId>
-				<version>${spotless-maven-plugin.version}</version>
-				<configuration>
-					<java>
-						<googleJavaFormat>
-							<version>1.7</version>
-							<style>AOSP</style>
-						</googleJavaFormat>
-						<!-- \# refers to the static imports -->
-						<importOrder>
-							<order>
-								org.apache.flink,org.apache.flink.shaded,,javax,java,scala,\#
-							</order>
-						</importOrder>
-						<removeUnusedImports/>
-					</java>
-				</configuration>
-				<executions>
-					<execution>
-						<id>spotless-check</id>
-						<phase>validate</phase>
-						<goals>
-							<goal>check</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>
-				<version>${maven-shade-plugin.version}</version>
 				<executions>
 					<execution>
 						<phase>package</phase>
@@ -77,10 +54,6 @@ limitations under the License.
 						<configuration>
 							<shadeTestJar>false</shadeTestJar>
 							<artifactSet>
-								<includes>
-									<include>org.apache.flink:flink-connector-base</include>
-									<include>org.apache.flink:flink-connector-clickhouse</include>
-								</includes>
 								<excludes>
 									<!-- These jars must exist on the server side -->
 									<exclude>log4j:*</exclude>
@@ -90,24 +63,20 @@ limitations under the License.
 							</artifactSet>
 							<relocations>
 								<relocation>
-									<pattern>ru.yandex.clickhouse</pattern>
-									<shadedPattern>${shade.base}.ru.yandex.clickhouse</shadedPattern>
-								</relocation>
-								<relocation>
-									<pattern>com.fasterxml</pattern>
-									<shadedPattern>${shade.base}.com.fasterxml</shadedPattern>
+									<pattern>com.clickhouse</pattern>
+									<shadedPattern>${shade.base}.com.clickhouse</shadedPattern>
 								</relocation>
 								<relocation>
 									<pattern>org.apache.commons</pattern>
 									<shadedPattern>${shade.base}.org.apache.commons</shadedPattern>
 								</relocation>
 								<relocation>
-									<pattern>org.apache.http</pattern>
-									<shadedPattern>${shade.base}.org.apache.http</shadedPattern>
+									<pattern>org.apache.hc.client5</pattern>
+									<shadedPattern>${shade.base}.org.apache.hc.client5</shadedPattern>
 								</relocation>
 								<relocation>
-									<pattern>net.jpountz</pattern>
-									<shadedPattern>${shade.base}.net.jpountz</shadedPattern>
+									<pattern>org.apache.hc.core5</pattern>
+									<shadedPattern>${shade.base}.org.apache.hc.core5</shadedPattern>
 								</relocation>
 							</relocations>
 							<filters>

@@ -57,25 +57,17 @@ limitations under the License.
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<maven.compiler.source>8</maven.compiler.source>
-		<maven.compiler.target>8</maven.compiler.target>
 		<junit.version>4.13.2</junit.version>
 		<clickhouse-jdbc.version>0.6.4</clickhouse-jdbc.version>
 		<scala.binary.version>2.12</scala.binary.version>
 		<flink.version>1.19.0</flink.version>
-		<flink.scope>provided</flink.scope>
-		<guava.version>32.1.3-jre</guava.version>
-		<jackson.version>2.12.4</jackson.version>
 		<commons-lang3.version>3.13.0</commons-lang3.version>
 		<testcontainer.version>1.19.8</testcontainer.version>
 		<httpclient5.version>5.2.1</httpclient5.version>
 		<httpcore5.version>5.2</httpcore5.version>
 		<shade.base>org.apache.flink.shaded.clickhouse</shade.base>
 		<flink.parent.artifactId>flink-connector-clickhouse-parent</flink.parent.artifactId>
-		<maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
-		<maven-shade-plugin.version>3.2.4</maven-shade-plugin.version>
-		<maven-checkstyle-plugin.version>2.17</maven-checkstyle-plugin.version>
-		<spotless-maven-plugin.version>2.4.2</spotless-maven-plugin.version>
+		<spotless.skip>false</spotless.skip>
 		<maven-release-plugin.version>2.5.3</maven-release-plugin.version>
 	</properties>
 
@@ -86,31 +78,41 @@ limitations under the License.
 			<version>${junit.version}</version>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>com.clickhouse</groupId>
-			<artifactId>clickhouse-jdbc</artifactId>
-			<version>${clickhouse-jdbc.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-lang3</artifactId>
-			<version>${commons-lang3.version}</version>
-		</dependency>
-
-		<!-- flink jars -->
-		<dependency>
-			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-table-api-java</artifactId>
-			<version>${flink.version}</version>
-			<scope>${flink.scope}</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-runtime</artifactId>
-			<version>${flink.version}</version>
-			<scope>${flink.scope}</scope>
-		</dependency>
 	</dependencies>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>com.clickhouse</groupId>
+				<artifactId>clickhouse-jdbc</artifactId>
+				<version>${clickhouse-jdbc.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.httpcomponents.client5</groupId>
+				<artifactId>httpclient5</artifactId>
+				<version>${httpclient5.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-lang3</artifactId>
+				<version>${commons-lang3.version}</version>
+			</dependency>
+			<!-- flink jars -->
+			<dependency>
+				<groupId>org.apache.flink</groupId>
+				<artifactId>flink-connector-base</artifactId>
+				<version>${flink.version}</version>
+				<scope>provided</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.flink</groupId>
+				<artifactId>flink-table-api-java-bridge</artifactId>
+				<version>${flink.version}</version>
+				<scope>provided</scope>
+				<optional>true</optional>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
 	<build>
 		<plugins>
@@ -127,16 +129,16 @@ limitations under the License.
 				</dependencies>
 			</plugin>
 
-            <plugin>
+			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
 			</plugin>
 
-            <plugin>
+			<plugin>
 				<!-- activate API compatibility checks -->
 				<groupId>com.github.siom79.japicmp</groupId>
 				<artifactId>japicmp-maven-plugin</artifactId>
-                <version>0.20.0</version>
+				<version>0.20.0</version>
 			</plugin>
 
 			<plugin>
@@ -151,31 +153,63 @@ limitations under the License.
 			<plugin>
 				<groupId>com.diffplug.spotless</groupId>
 				<artifactId>spotless-maven-plugin</artifactId>
+				<configuration>
+					<skip>${spotless.skip}</skip>
+				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 			</plugin>
-
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 			</plugin>
-
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-enforcer-plugin</artifactId>
 			</plugin>
-
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>
 			</plugin>
-
 			<plugin>
 				<groupId>org.commonjava.maven.plugins</groupId>
 				<artifactId>directory-maven-plugin</artifactId>
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<profile>
+			<id>java11</id>
+			<activation>
+				<jdk>[11,)</jdk>
+			</activation>
+			<properties>
+				<spotless.skip>false</spotless.skip>
+				<target.java.version>11</target.java.version>
+			</properties>
+		</profile>
+		<profile>
+			<id>java17</id>
+			<activation>
+				<jdk>[17,)</jdk>
+			</activation>
+			<properties>
+				<spotless.skip>false</spotless.skip>
+				<target.java.version>17</target.java.version>
+			</properties>
+		</profile>
+		<profile>
+			<id>java21</id>
+			<activation>
+				<jdk>[21,)</jdk>
+			</activation>
+			<properties>
+				<spotless.skip>true</spotless.skip>
+				<target.java.version>21</target.java.version>
+			</properties>
+		</profile>
+	</profiles>
 </project>
