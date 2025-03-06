@@ -1,39 +1,35 @@
 package org.apache.flink.connector.clickhouse;
 
-import com.clickhouse.jdbc.ClickHouseConnection;
-import com.clickhouse.jdbc.ClickHouseDataSource;
-import com.clickhouse.jdbc.ClickHouseDriver;
-import com.clickhouse.jdbc.ClickHouseStatement;
 import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Array;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-import java.util.stream.Collectors;
 
 /** A proxy for Clickhouse to execute SQLs and check results. */
 public class ClickhouseProxy {
-    private String jdbcUrl;
-    private String username;
-    private String password;
+    private final String jdbcUrl;
+    private final String username;
+    private final String password;
     private static final Logger logger = LoggerFactory.getLogger(ClickhouseProxy.class);
-    ClickHouseDriver driver;
-    ClickHouseStatement statement;
-    ClickHouseConnection connection;
+    Statement statement;
+    Connection connection;
 
     ClickhouseProxy(String jdbcUrl, String username, String password) {
         this.jdbcUrl = jdbcUrl;
         this.username = username;
         this.password = password;
-        this.driver = new ClickHouseDriver();
     }
 
     public void connect() {
@@ -42,9 +38,7 @@ public class ClickhouseProxy {
                 Properties properties = new Properties();
                 properties.put("username", username);
                 properties.put("password", password);
-                ClickHouseDataSource clickHouseDataSource =
-                        new ClickHouseDataSource(jdbcUrl, properties);
-                connection = clickHouseDataSource.getConnection(username, password);
+                connection = DriverManager.getConnection(jdbcUrl, properties);
                 statement = connection.createStatement();
             }
         } catch (Exception e) {
@@ -88,7 +82,7 @@ public class ClickhouseProxy {
                 }
             }
 
-            results.add(result.stream().collect(Collectors.joining(",")));
+            results.add(String.join(",", result));
         }
         Collections.sort(results);
         Collections.sort(expectedResult);

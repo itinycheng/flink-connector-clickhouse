@@ -35,12 +35,12 @@ import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.util.Preconditions;
 import org.apache.flink.util.concurrent.ExecutorThreadFactory;
 
-import com.clickhouse.jdbc.ClickHouseConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Flushable;
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -239,8 +239,7 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
         }
 
         private ClickHouseShardOutputFormat createShardOutputFormat(
-                ClickHouseConnection connection, DistributedEngineFull engineFullSchema)
-                throws SQLException {
+                Connection connection, DistributedEngineFull engineFullSchema) throws SQLException {
             SinkShardingStrategy shardingStrategy;
             List<FieldGetter> fieldGetters = null;
             if (options.isShardingUseTableDef()) {

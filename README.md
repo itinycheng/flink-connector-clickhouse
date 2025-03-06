@@ -11,9 +11,9 @@ Please create issues if you encounter bugs and any help for the project is great
 
 | Option                                   | Required | Default  | Type     | Description                                                                                                                                                                     |
 |:-----------------------------------------|:---------|:---------|:---------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| url                                      | required | none     | String   | The ClickHouse jdbc url in format `clickhouse://<host>:<port>`.                                                                                                                 |
-| username                                 | optional | none     | String   | The 'username' and 'password' must both be specified if any of them is specified.                                                                                               |
-| password                                 | optional | none     | String   | The ClickHouse password.                                                                                                                                                        |
+| url                                      | required | none     | String   | The ClickHouse jdbc url in format `jdbc:clickhouse://<host>:<port>`.                                                                                                            |
+| username                                 | optional | none     | String   | The 'username' and 'password' must be specified.                                                                                                                                |
+| password                                 | optional | none     | String   | The ClickHouse password, allow empty.                                                                                                                                           |
 | database-name                            | optional | default  | String   | The ClickHouse database name.                                                                                                                                                   |
 | table-name                               | required | none     | String   | The ClickHouse table name.                                                                                                                                                      |
 | use-local                                | optional | false    | Boolean  | Directly read/write local tables in case of distributed table engine.                                                                                                           |
@@ -131,8 +131,10 @@ CREATE TABLE t_user (
     PRIMARY KEY (`user_id`) NOT ENFORCED
 ) WITH (
     'connector' = 'clickhouse',
-    'url' = 'clickhouse://{ip}:{port}',
+    'url' = 'jdbc:clickhouse://{ip}:{port}',
     'database-name' = 'tutorial',
+    'username' = 'default',
+    'password' = '',
     'table-name' = 'users',
     'sink.batch-size' = '500',
     'sink.flush-interval' = '1000',
@@ -157,7 +159,7 @@ val tEnv = TableEnvironment.create(setting)
 
 val props = new util.HashMap[String, String]()
 props.put(ClickHouseConfig.DATABASE_NAME, "default")
-props.put(ClickHouseConfig.URL, "clickhouse://127.0.0.1:8123")
+props.put(ClickHouseConfig.URL, "jdbc:clickhouse://127.0.0.1:8123")
 props.put(ClickHouseConfig.USERNAME, "username")
 props.put(ClickHouseConfig.PASSWORD, "password")
 props.put(ClickHouseConfig.SINK_FLUSH_INTERVAL, "30s")
@@ -175,7 +177,7 @@ TableEnvironment tEnv = TableEnvironment.create(setting);
 
 Map<String, String> props = new HashMap<>();
 props.put(ClickHouseConfig.DATABASE_NAME, "default")
-props.put(ClickHouseConfig.URL, "clickhouse://127.0.0.1:8123")
+props.put(ClickHouseConfig.URL, "jdbc:clickhouse://127.0.0.1:8123")
 props.put(ClickHouseConfig.USERNAME, "username")
 props.put(ClickHouseConfig.PASSWORD, "password")
 props.put(ClickHouseConfig.SINK_FLUSH_INTERVAL, "30s");
@@ -191,7 +193,7 @@ tEnv.executeSql("insert into `clickhouse`.`default`.`t_table` select...");
 ```sql
 > CREATE CATALOG clickhouse WITH (
     'type' = 'clickhouse',
-    'url' = 'clickhouse://127.0.0.1:8123',
+    'url' = 'jdbc:clickhouse://127.0.0.1:8123',
     'username' = 'username',
     'password' = 'password',
     'database-name' = 'default',

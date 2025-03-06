@@ -13,7 +13,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /** End-to-end test for Clickhouse. */
-public class ClickhouseE2ECase extends FlinkContainerTestEnviroment {
+public class ClickhouseE2ECase extends FlinkContainerTestEnvironment {
 
     private static final Logger logger = LoggerFactory.getLogger(ClickhouseE2ECase.class);
 

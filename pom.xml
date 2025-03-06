@@ -58,13 +58,13 @@ limitations under the License.
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<junit.version>4.13.2</junit.version>
-		<clickhouse-jdbc.version>0.6.4</clickhouse-jdbc.version>
+		<clickhouse-jdbc.version>0.8.2</clickhouse-jdbc.version>
 		<scala.binary.version>2.12</scala.binary.version>
 		<flink.version>1.19.0</flink.version>
 		<commons-lang3.version>3.13.0</commons-lang3.version>
 		<testcontainer.version>1.19.8</testcontainer.version>
 		<httpclient5.version>5.2.1</httpclient5.version>
-		<httpcore5.version>5.2</httpcore5.version>
+
 		<shade.base>org.apache.flink.shaded.clickhouse</shade.base>
 		<flink.parent.artifactId>flink-connector-clickhouse-parent</flink.parent.artifactId>
 		<spotless.skip>false</spotless.skip>

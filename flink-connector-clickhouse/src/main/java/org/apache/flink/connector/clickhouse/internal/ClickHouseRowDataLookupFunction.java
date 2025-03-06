@@ -20,7 +20,6 @@ package org.apache.flink.connector.clickhouse.internal;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.connector.clickhouse.ClickHouseDynamicTableSource;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
-import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseStatementWrapper;
 import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseReadOptions;
 import org.apache.flink.table.data.RowData;
@@ -30,11 +29,11 @@ import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.RowType;
 
-import com.clickhouse.jdbc.ClickHousePreparedStatement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -59,7 +58,7 @@ public class ClickHouseRowDataLookupFunction extends LookupFunction {
     private final ClickHouseRowConverter clickhouseRowConverter;
     private final ClickHouseRowConverter lookupKeyRowConverter;
 
-    private transient ClickHouseStatementWrapper statement;
+    private transient PreparedStatement statement;
 
     public ClickHouseRowDataLookupFunction(
             ClickHouseReadOptions options,
@@ -129,8 +128,7 @@ public class ClickHouseRowDataLookupFunction extends LookupFunction {
                     return rows;
                 }
             } catch (SQLException e) {
-                LOG.error(
-                        String.format("ClickHouse executeBatch error, retry times = %d", retry), e);
+                LOG.error("ClickHouse executeBatch error, retry times = {}", retry, e);
                 if (retry >= maxRetryTimes) {
                     throw new RuntimeException("Execution of ClickHouse statement failed.", e);
                 }
@@ -161,9 +159,7 @@ public class ClickHouseRowDataLookupFunction extends LookupFunction {
 
     private void establishConnectionAndStatement() throws SQLException {
         Connection dbConn = connectionProvider.getOrCreateConnection();
-        statement =
-                new ClickHouseStatementWrapper(
-                        (ClickHousePreparedStatement) dbConn.prepareStatement(query));
+        statement = dbConn.prepareStatement(query);
     }
 
     @Override
@@ -172,7 +168,7 @@ public class ClickHouseRowDataLookupFunction extends LookupFunction {
             try {
                 statement.close();
             } catch (SQLException e) {
-                LOG.info("ClickHouse statement could not be closed: " + e.getMessage());
+                LOG.info("ClickHouse statement could not be closed: {}", e.getMessage());
             } finally {
                 statement = null;
             }
