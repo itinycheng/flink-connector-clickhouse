@@ -159,7 +159,7 @@ public class ClickHouseDynamicTableFactory
         SinkShardingStrategy shardingStrategy = config.get(SINK_PARTITION_STRATEGY);
         if (!config.get(SINK_SHARDING_USE_TABLE_DEF)
                 && shardingStrategy.shardingKeyNeeded
-                && !config.getOptional(SINK_PARTITION_KEY).isPresent()) {
+                && config.getOptional(SINK_PARTITION_KEY).isEmpty()) {
             throw new IllegalArgumentException(
                     "A sharding key must be provided for sharding strategy: "
                             + shardingStrategy.value);

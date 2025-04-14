@@ -17,7 +17,7 @@
 
 package org.apache.flink.connector.clickhouse.internal.converter;
 
-import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseStatementWrapper;
+import org.apache.flink.connector.clickhouse.internal.connection.ObjectArray;
 import org.apache.flink.table.data.DecimalData;
 import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
@@ -35,7 +35,6 @@ import com.clickhouse.data.value.UnsignedByte;
 import com.clickhouse.data.value.UnsignedInteger;
 import com.clickhouse.data.value.UnsignedLong;
 import com.clickhouse.data.value.UnsignedShort;
-import com.clickhouse.jdbc.ClickHousePreparedStatement;
 import com.clickhouse.jdbc.ClickHouseResultSet;
 
 import java.io.Serializable;
@@ -43,6 +42,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.sql.Date;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Time;
@@ -94,8 +94,7 @@ public class ClickHouseRowConverter implements Serializable {
         return genericRowData;
     }
 
-    public void toExternal(RowData rowData, ClickHouseStatementWrapper statement)
-            throws SQLException {
+    public void toExternal(RowData rowData, PreparedStatement statement) throws SQLException {
         for (int index = 0; index < rowData.getArity(); index++) {
             if (!rowData.isNullAt(index)) {
                 toExternalConverters[index].serialize(rowData, index, statement);
@@ -246,9 +245,10 @@ public class ClickHouseRowConverter implements Serializable {
                 return (val, index, statement) ->
                         statement.setArray(
                                 index + 1,
-                                (Object[])
-                                        ClickHouseConverterUtils.toExternal(
-                                                val.getArray(index), type));
+                                new ObjectArray(
+                                        (Object[])
+                                                ClickHouseConverterUtils.toExternal(
+                                                        val.getArray(index), type)));
             case MAP:
                 return (val, index, statement) ->
                         statement.setObject(
@@ -265,12 +265,8 @@ public class ClickHouseRowConverter implements Serializable {
     @FunctionalInterface
     interface SerializationConverter extends Serializable {
 
-        /**
-         * Convert an internal field to java object and fill into the {@link
-         * ClickHousePreparedStatement}.
-         */
-        void serialize(RowData rowData, int index, ClickHouseStatementWrapper statement)
-                throws SQLException;
+        /** Convert an internal field to java object and fill into the {@link PreparedStatement}. */
+        void serialize(RowData rowData, int index, PreparedStatement statement) throws SQLException;
     }
 
     @FunctionalInterface

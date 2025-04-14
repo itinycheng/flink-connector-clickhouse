@@ -27,11 +27,10 @@ import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.util.Preconditions;
 
-import com.clickhouse.jdbc.ClickHouseConnection;
-
 import javax.annotation.Nonnull;
 
 import java.io.IOException;
+import java.sql.Connection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -89,11 +88,10 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
     @Override
     public void open(int taskNumber, int numTasks) throws IOException {
         try {
-            Map<Integer, ClickHouseConnection> connectionMap =
+            Map<Integer, Connection> connectionMap =
                     connectionProvider.createShardConnections(
                             clusterSpec, shardTableSchema.getDatabase());
-            for (Map.Entry<Integer, ClickHouseConnection> connectionEntry :
-                    connectionMap.entrySet()) {
+            for (Map.Entry<Integer, Connection> connectionEntry : connectionMap.entrySet()) {
                 ClickHouseExecutor executor =
                         ClickHouseExecutor.createClickHouseExecutor(
                                 shardTableSchema.getTable(),

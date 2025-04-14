@@ -18,18 +18,16 @@
 package org.apache.flink.connector.clickhouse.internal.executor;
 
 import org.apache.flink.api.common.functions.RuntimeContext;
-import org.apache.flink.connector.clickhouse.internal.ClickHouseShardOutputFormat;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
-import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseStatementWrapper;
 import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.table.data.RowData;
 
-import com.clickhouse.jdbc.ClickHouseConnection;
-import com.clickhouse.jdbc.ClickHousePreparedStatement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 /** ClickHouse's batch executor. */
@@ -37,7 +35,7 @@ public class ClickHouseBatchExecutor implements ClickHouseExecutor {
 
     private static final long serialVersionUID = 1L;
 
-    private static final Logger LOG = LoggerFactory.getLogger(ClickHouseShardOutputFormat.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ClickHouseBatchExecutor.class);
 
     private final String insertSql;
 
@@ -45,7 +43,7 @@ public class ClickHouseBatchExecutor implements ClickHouseExecutor {
 
     private final int maxRetries;
 
-    private transient ClickHouseStatementWrapper statement;
+    private transient PreparedStatement statement;
 
     private transient ClickHouseConnectionProvider connectionProvider;
 
@@ -57,10 +55,8 @@ public class ClickHouseBatchExecutor implements ClickHouseExecutor {
     }
 
     @Override
-    public void prepareStatement(ClickHouseConnection connection) throws SQLException {
-        statement =
-                new ClickHouseStatementWrapper(
-                        (ClickHousePreparedStatement) connection.prepareStatement(insertSql));
+    public void prepareStatement(Connection connection) throws SQLException {
+        statement = connection.prepareStatement(insertSql);
     }
 
     @Override

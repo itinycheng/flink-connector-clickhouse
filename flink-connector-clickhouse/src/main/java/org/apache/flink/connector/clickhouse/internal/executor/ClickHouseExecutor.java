@@ -20,7 +20,6 @@ package org.apache.flink.connector.clickhouse.internal.executor;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.connector.clickhouse.internal.ClickHouseStatementFactory;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
-import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseStatementWrapper;
 import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.table.data.GenericRowData;
@@ -28,12 +27,13 @@ import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.RowType;
 
-import com.clickhouse.jdbc.ClickHouseConnection;
 import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.function.Function;
@@ -46,7 +46,7 @@ public interface ClickHouseExecutor extends Serializable {
 
     Logger LOG = LoggerFactory.getLogger(ClickHouseExecutor.class);
 
-    void prepareStatement(ClickHouseConnection connection) throws SQLException;
+    void prepareStatement(Connection connection) throws SQLException;
 
     void prepareStatement(ClickHouseConnectionProvider connectionProvider) throws SQLException;
 
@@ -58,8 +58,7 @@ public interface ClickHouseExecutor extends Serializable {
 
     void closeStatement();
 
-    default void attemptExecuteBatch(ClickHouseStatementWrapper stmt, int maxRetries)
-            throws SQLException {
+    default void attemptExecuteBatch(PreparedStatement stmt, int maxRetries) throws SQLException {
         for (int i = 0; i <= maxRetries; i++) {
             try {
                 stmt.executeBatch();

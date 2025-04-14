@@ -41,10 +41,10 @@ import java.util.stream.Stream;
 import static org.assertj.core.util.Preconditions.checkState;
 
 /** Test environment running job on Flink containers. */
-public class FlinkContainerTestEnviroment {
+public class FlinkContainerTestEnvironment {
 
     private static final Logger logger =
-            LoggerFactory.getLogger(FlinkContainerTestEnviroment.class);
+            LoggerFactory.getLogger(FlinkContainerTestEnvironment.class);
     public static final Network NETWORK = Network.newNetwork();
 
     static final ClickHouseContainer CLICKHOUSE_CONTAINER =
@@ -90,7 +90,7 @@ public class FlinkContainerTestEnviroment {
                                 "heartbeat.timeout: 60000",
                                 "parallelism.default: 1"));
         jobManager =
-                new GenericContainer<>(new DockerImageName("flink:1.19.0-scala_2.12"))
+                new GenericContainer<>(DockerImageName.parse("flink:1.19.0-scala_2.12"))
                         .withCommand("jobmanager")
                         .withNetwork(NETWORK)
                         .withExtraHost("host.docker.internal", "host-gateway")
@@ -101,7 +101,7 @@ public class FlinkContainerTestEnviroment {
                         .withEnv("FLINK_PROPERTIES", properties)
                         .withLogConsumer(new Slf4jLogConsumer(logger));
         taskManager =
-                new GenericContainer<>(new DockerImageName("flink:1.19.0-scala_2.12"))
+                new GenericContainer<>(DockerImageName.parse("flink:1.19.0-scala_2.12"))
                         .withCommand("taskmanager")
                         .withExtraHost("host.docker.internal", "host-gateway")
                         .withNetwork(NETWORK)

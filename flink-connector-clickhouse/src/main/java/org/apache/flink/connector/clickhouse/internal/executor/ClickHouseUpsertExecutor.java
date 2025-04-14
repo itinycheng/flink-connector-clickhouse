@@ -19,18 +19,16 @@ package org.apache.flink.connector.clickhouse.internal.executor;
 
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.connector.clickhouse.config.ClickHouseConfigOptions.SinkUpdateStrategy;
-import org.apache.flink.connector.clickhouse.internal.ClickHouseShardOutputFormat;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
-import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseStatementWrapper;
 import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
 import org.apache.flink.connector.clickhouse.internal.options.ClickHouseDmlOptions;
 import org.apache.flink.table.data.RowData;
 
-import com.clickhouse.jdbc.ClickHouseConnection;
-import com.clickhouse.jdbc.ClickHousePreparedStatement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -46,7 +44,7 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
 
     private static final long serialVersionUID = 1L;
 
-    private static final Logger LOG = LoggerFactory.getLogger(ClickHouseShardOutputFormat.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ClickHouseUpsertExecutor.class);
 
     private final String insertSql;
 
@@ -72,11 +70,11 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
 
     private final Map<RowData, RowData> reduceBuffer = new HashMap<>();
 
-    private transient ClickHouseStatementWrapper insertStatement;
+    private transient PreparedStatement insertStatement;
 
-    private transient ClickHouseStatementWrapper updateStatement;
+    private transient PreparedStatement updateStatement;
 
-    private transient ClickHouseStatementWrapper deleteStatement;
+    private transient PreparedStatement deleteStatement;
 
     private transient ClickHouseConnectionProvider connectionProvider;
 
@@ -104,16 +102,10 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
     }
 
     @Override
-    public void prepareStatement(ClickHouseConnection connection) throws SQLException {
-        this.insertStatement =
-                new ClickHouseStatementWrapper(
-                        (ClickHousePreparedStatement) connection.prepareStatement(this.insertSql));
-        this.updateStatement =
-                new ClickHouseStatementWrapper(
-                        (ClickHousePreparedStatement) connection.prepareStatement(this.updateSql));
-        this.deleteStatement =
-                new ClickHouseStatementWrapper(
-                        (ClickHousePreparedStatement) connection.prepareStatement(this.deleteSql));
+    public void prepareStatement(Connection connection) throws SQLException {
+        this.insertStatement = connection.prepareStatement(this.insertSql);
+        this.updateStatement = connection.prepareStatement(this.updateSql);
+        this.deleteStatement = connection.prepareStatement(this.deleteSql);
     }
 
     @Override
@@ -138,7 +130,7 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
             addValueToBatch(value);
         }
 
-        for (ClickHouseStatementWrapper clickHouseStatement :
+        for (PreparedStatement clickHouseStatement :
                 Arrays.asList(insertStatement, updateStatement, deleteStatement)) {
             if (clickHouseStatement != null) {
                 attemptExecuteBatch(clickHouseStatement, maxRetries);
@@ -185,7 +177,7 @@ public class ClickHouseUpsertExecutor implements ClickHouseExecutor {
 
     @Override
     public void closeStatement() {
-        for (ClickHouseStatementWrapper clickHouseStatement :
+        for (PreparedStatement clickHouseStatement :
                 Arrays.asList(insertStatement, updateStatement, deleteStatement)) {
             if (clickHouseStatement != null) {
                 try {

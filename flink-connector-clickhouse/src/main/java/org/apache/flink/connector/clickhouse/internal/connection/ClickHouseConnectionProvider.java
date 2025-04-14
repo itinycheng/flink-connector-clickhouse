@@ -21,13 +21,13 @@ import org.apache.flink.connector.clickhouse.internal.options.ClickHouseConnecti
 import org.apache.flink.connector.clickhouse.internal.schema.ClusterSpec;
 import org.apache.flink.connector.clickhouse.internal.schema.ShardSpec;
 
-import com.clickhouse.client.config.ClickHouseDefaults;
-import com.clickhouse.jdbc.ClickHouseConnection;
-import com.clickhouse.jdbc.ClickHouseDriver;
+import com.clickhouse.client.api.ClientConfigProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,9 +49,9 @@ public class ClickHouseConnectionProvider implements Serializable {
 
     private final Properties connectionProperties;
 
-    private transient ClickHouseConnection connection;
+    private transient Connection connection;
 
-    private transient List<ClickHouseConnection> shardConnections;
+    private transient List<Connection> shardConnections;
 
     public ClickHouseConnectionProvider(ClickHouseConnectionOptions options) {
         this(options, new Properties());
@@ -67,41 +67,40 @@ public class ClickHouseConnectionProvider implements Serializable {
         return connection != null;
     }
 
-    public synchronized ClickHouseConnection getOrCreateConnection() throws SQLException {
+    public synchronized Connection getOrCreateConnection() throws SQLException {
         if (connection == null) {
             connection = createConnection(options.getUrl());
         }
         return connection;
     }
 
-    public synchronized Map<Integer, ClickHouseConnection> createShardConnections(
+    public synchronized Map<Integer, Connection> createShardConnections(
             ClusterSpec clusterSpec, String defaultDatabase) throws SQLException {
-        Map<Integer, ClickHouseConnection> connectionMap = new HashMap<>();
+        Map<Integer, Connection> connectionMap = new HashMap<>();
         String urlSuffix = options.getUrlSuffix();
         for (ShardSpec shardSpec : clusterSpec.getShards()) {
             String shardUrl = shardSpec.getJdbcUrls() + urlSuffix;
-            ClickHouseConnection connection =
-                    createAndStoreShardConnection(shardUrl, defaultDatabase);
+            Connection connection = createAndStoreShardConnection(shardUrl, defaultDatabase);
             connectionMap.put(shardSpec.getNum(), connection);
         }
 
         return connectionMap;
     }
 
-    public synchronized ClickHouseConnection createAndStoreShardConnection(
-            String url, String database) throws SQLException {
+    public synchronized Connection createAndStoreShardConnection(String url, String database)
+            throws SQLException {
         if (shardConnections == null) {
             shardConnections = new ArrayList<>();
         }
 
-        ClickHouseConnection connection = createConnection(url);
+        Connection connection = createConnection(url);
         shardConnections.add(connection);
         return connection;
     }
 
     public List<String> getShardUrls(String remoteCluster) throws SQLException {
         Map<Integer, String> shardsMap = new HashMap<>();
-        ClickHouseConnection conn = getOrCreateConnection();
+        Connection conn = getOrCreateConnection();
         ClusterSpec clusterSpec = getClusterSpec(conn, remoteCluster);
         String urlSuffix = options.getUrlSuffix();
         for (ShardSpec shardSpec : clusterSpec.getShards()) {
@@ -115,20 +114,20 @@ public class ClickHouseConnectionProvider implements Serializable {
                 .collect(toList());
     }
 
-    private ClickHouseConnection createConnection(String url) throws SQLException {
+    private Connection createConnection(String url) throws SQLException {
         LOG.info("connecting to {}", url);
         Properties configuration = new Properties();
         configuration.putAll(connectionProperties);
         if (options.getUsername().isPresent()) {
             configuration.setProperty(
-                    ClickHouseDefaults.USER.getKey(), options.getUsername().get());
+                    ClientConfigProperties.USER.getKey(), options.getUsername().get());
         }
         if (options.getPassword().isPresent()) {
             configuration.setProperty(
-                    ClickHouseDefaults.PASSWORD.getKey(), options.getPassword().get());
+                    ClientConfigProperties.PASSWORD.getKey(), options.getPassword().get());
         }
-        ClickHouseDriver driver = new ClickHouseDriver();
-        return driver.connect(url, configuration);
+
+        return DriverManager.getConnection(url, configuration);
     }
 
     public void closeConnections() {
@@ -143,7 +142,7 @@ public class ClickHouseConnectionProvider implements Serializable {
         }
 
         if (shardConnections != null) {
-            for (ClickHouseConnection shardConnection : this.shardConnections) {
+            for (Connection shardConnection : this.shardConnections) {
                 try {
                     shardConnection.close();
                 } catch (SQLException exception) {

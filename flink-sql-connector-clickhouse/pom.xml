@@ -44,6 +44,28 @@ limitations under the License.
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>attach-test-sources</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+						<configuration>
+							<archive>
+								<!-- Globally exclude maven metadata, because it may accidentally bundle files we don't intend to -->
+								<addMavenDescriptor>false</addMavenDescriptor>
+							</archive>
+							<includes>
+								<include>META-INF/LICENSE</include>
+								<include>META-INF/NOTICE</include>
+							</includes>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>
 				<executions>
 					<execution>
@@ -62,6 +84,10 @@ limitations under the License.
 								</excludes>
 							</artifactSet>
 							<relocations>
+								<relocation>
+									<pattern>com.fasterxml</pattern>
+									<shadedPattern>${shade.base}.com.fasterxml</shadedPattern>
+								</relocation>
 								<relocation>
 									<pattern>com.clickhouse</pattern>
 									<shadedPattern>${shade.base}.com.clickhouse</shadedPattern>

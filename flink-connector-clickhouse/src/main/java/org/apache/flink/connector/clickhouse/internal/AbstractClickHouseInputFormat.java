@@ -115,7 +115,7 @@ public abstract class AbstractClickHouseInputFormat extends RichInputFormat<RowD
         }
 
         if (parameterClause != null) {
-            if (whereBuilder.length() > 0) {
+            if (!whereBuilder.isEmpty()) {
                 whereBuilder.append(" AND ");
             }
             whereBuilder.append(parameterClause);
@@ -126,7 +126,7 @@ public abstract class AbstractClickHouseInputFormat extends RichInputFormat<RowD
             limitClause = "LIMIT " + limit;
         }
 
-        return whereBuilder.length() > 0
+        return !whereBuilder.isEmpty()
                 ? String.join(" ", queryTemplate, "WHERE", whereBuilder.toString(), limitClause)
                 : String.join(" ", queryTemplate, limitClause);
     }

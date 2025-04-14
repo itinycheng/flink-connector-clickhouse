@@ -23,7 +23,6 @@ import org.apache.flink.connector.clickhouse.internal.schema.ReplicaSpec;
 import org.apache.flink.connector.clickhouse.internal.schema.ShardSpec;
 import org.apache.flink.util.Preconditions;
 
-import com.clickhouse.jdbc.ClickHouseConnection;
 import org.apache.hc.client5.http.HttpResponseException;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase;
@@ -34,6 +33,7 @@ import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.net.URIBuilder;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -65,8 +65,7 @@ public class ClickHouseJdbcUtil {
             "SELECT cluster, shard_num, shard_weight, replica_num, host_address, port FROM system.clusters WHERE cluster = ?";
 
     public static DistributedEngineFull getDistributedEngineFull(
-            ClickHouseConnection connection, String databaseName, String tableName)
-            throws SQLException {
+            Connection connection, String databaseName, String tableName) throws SQLException {
         try (PreparedStatement stmt = connection.prepareStatement(QUERY_TABLE_ENGINE_SQL)) {
             stmt.setString(1, databaseName);
             stmt.setString(2, tableName);
@@ -92,7 +91,7 @@ public class ClickHouseJdbcUtil {
                 String.format("table `%s`.`%s` does not exist", databaseName, tableName));
     }
 
-    public static ClusterSpec getClusterSpec(ClickHouseConnection connection, String clusterName)
+    public static ClusterSpec getClusterSpec(Connection connection, String clusterName)
             throws SQLException {
         List<ClusterRow> clusterRows = new ArrayList<>();
         try (PreparedStatement stmt = connection.prepareStatement(QUERY_CLUSTER_INFO_SQL)) {
