@@ -11,7 +11,7 @@ Please create issues if you encounter bugs and any help for the project is great
 
 | Option                                   | Required | Default  | Type     | Description                                                                                                                                                                     |
 |:-----------------------------------------|:---------|:---------|:---------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| url                                      | required | none     | String   | The ClickHouse jdbc url in format `clickhouse://<host>:<port>`.                                                                                                                 |
+| url                                      | required | none     | String   | The ClickHouse jdbc url in format `jdbc:(ch|clickhouse)[:<protocol>]://endpoint1[,endpoint2,...][/<database>][?param1=value1&param2=value2]`.                                   |
 | username                                 | optional | none     | String   | The 'username' and 'password' must both be specified if any of them is specified.                                                                                               |
 | password                                 | optional | none     | String   | The ClickHouse password.                                                                                                                                                        |
 | database-name                            | optional | default  | String   | The ClickHouse database name.                                                                                                                                                   |
@@ -54,31 +54,31 @@ Since version 1.16, we have taken shard weight into consideration, this may affe
 
 ## Data Type Mapping
 
-| Flink Type          | ClickHouse Type                                         |
-|:--------------------|:--------------------------------------------------------|
-| CHAR                | String                                                  |
-| VARCHAR             | String / IP / UUID                                      |
-| STRING              | String / Enum                                           |
-| BOOLEAN             | UInt8                                                   |
-| BYTES               | FixedString                                             |
-| DECIMAL             | Decimal / Int128 / Int256 / UInt64 / UInt128 / UInt256  |
-| TINYINT             | Int8                                                    |
-| SMALLINT            | Int16 / UInt8                                           |
-| INTEGER             | Int32 / UInt16 / Interval                               |
-| BIGINT              | Int64 / UInt32                                          |
-| FLOAT               | Float32                                                 |
-| DOUBLE              | Float64                                                 |
-| DATE                | Date                                                    |
-| TIME                | DateTime                                                |
-| TIMESTAMP           | DateTime                                                |
-| TIMESTAMP_LTZ       | DateTime                                                |
-| INTERVAL_YEAR_MONTH | Int32                                                   |
-| INTERVAL_DAY_TIME   | Int64                                                   |
-| ARRAY               | Array                                                   |
-| MAP                 | Map                                                     |
-| ROW                 | Not supported                                           |
-| MULTISET            | Not supported                                           |
-| RAW                 | Not supported                                           |
+| Flink Type          | ClickHouse Type                                        |
+|:--------------------|:-------------------------------------------------------|
+| CHAR                | String                                                 |
+| VARCHAR             | String / IP / UUID                                     |
+| STRING              | String / Enum                                          |
+| BOOLEAN             | UInt8                                                  |
+| BYTES               | FixedString                                            |
+| DECIMAL             | Decimal / Int128 / Int256 / UInt64 / UInt128 / UInt256 |
+| TINYINT             | Int8                                                   |
+| SMALLINT            | Int16 / UInt8                                          |
+| INTEGER             | Int32 / UInt16 / Interval                              |
+| BIGINT              | Int64 / UInt32                                         |
+| FLOAT               | Float32                                                |
+| DOUBLE              | Float64                                                |
+| DATE                | Date                                                   |
+| TIME                | DateTime                                               |
+| TIMESTAMP           | DateTime                                               |
+| TIMESTAMP_LTZ       | DateTime                                               |
+| INTERVAL_YEAR_MONTH | Int32                                                  |
+| INTERVAL_DAY_TIME   | Int64                                                  |
+| ARRAY               | Array                                                  |
+| MAP                 | Map                                                    |
+| ROW                 | Not supported                                          |
+| MULTISET            | Not supported                                          |
+| RAW                 | Not supported                                          |
 
 ## Maven Dependency
 
@@ -131,7 +131,7 @@ CREATE TABLE t_user (
     PRIMARY KEY (`user_id`) NOT ENFORCED
 ) WITH (
     'connector' = 'clickhouse',
-    'url' = 'clickhouse://{ip}:{port}',
+    'url' = 'jdbc:ch://127.0.0.1:8123',
     'database-name' = 'tutorial',
     'table-name' = 'users',
     'sink.batch-size' = '500',
@@ -157,7 +157,7 @@ val tEnv = TableEnvironment.create(setting)
 
 val props = new util.HashMap[String, String]()
 props.put(ClickHouseConfig.DATABASE_NAME, "default")
-props.put(ClickHouseConfig.URL, "clickhouse://127.0.0.1:8123")
+props.put(ClickHouseConfig.URL, "jdbc:ch://127.0.0.1:8123")
 props.put(ClickHouseConfig.USERNAME, "username")
 props.put(ClickHouseConfig.PASSWORD, "password")
 props.put(ClickHouseConfig.SINK_FLUSH_INTERVAL, "30s")
@@ -175,7 +175,7 @@ TableEnvironment tEnv = TableEnvironment.create(setting);
 
 Map<String, String> props = new HashMap<>();
 props.put(ClickHouseConfig.DATABASE_NAME, "default")
-props.put(ClickHouseConfig.URL, "clickhouse://127.0.0.1:8123")
+props.put(ClickHouseConfig.URL, "jdbc:ch://127.0.0.1:8123")
 props.put(ClickHouseConfig.USERNAME, "username")
 props.put(ClickHouseConfig.PASSWORD, "password")
 props.put(ClickHouseConfig.SINK_FLUSH_INTERVAL, "30s");
@@ -191,7 +191,7 @@ tEnv.executeSql("insert into `clickhouse`.`default`.`t_table` select...");
 ```sql
 > CREATE CATALOG clickhouse WITH (
     'type' = 'clickhouse',
-    'url' = 'clickhouse://127.0.0.1:8123',
+    'url' = 'jdbc:ch://127.0.0.1:8123',
     'username' = 'username',
     'password' = 'password',
     'database-name' = 'default',

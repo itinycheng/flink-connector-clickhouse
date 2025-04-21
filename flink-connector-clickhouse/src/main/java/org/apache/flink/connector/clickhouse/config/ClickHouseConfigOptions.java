@@ -40,7 +40,8 @@ public class ClickHouseConfigOptions {
             ConfigOptions.key(ClickHouseConfig.URL)
                     .stringType()
                     .noDefaultValue()
-                    .withDescription("The ClickHouse url in format `clickhouse://<host>:<port>`.");
+                    .withDescription(
+                            "The ClickHouse url in format `jdbc:(ch|clickhouse)[:<protocol>]://endpoint1[,endpoint2,...][/<database>][?param1=value1&param2=value2]`.");
 
     public static final ConfigOption<String> USERNAME =
             ConfigOptions.key(ClickHouseConfig.USERNAME)
