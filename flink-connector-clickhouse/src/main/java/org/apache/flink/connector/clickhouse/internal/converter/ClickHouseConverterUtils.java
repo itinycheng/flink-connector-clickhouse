@@ -141,6 +141,7 @@ public class ClickHouseConverterUtils {
         }
     }
 
+    @SuppressWarnings({"t", "unchecked"})
     public static Object toInternal(Object value, LogicalType type) throws SQLException {
         switch (type.getTypeRoot()) {
             case NULL:

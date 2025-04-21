@@ -17,13 +17,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-import java.util.stream.Collectors;
 
 /** A proxy for Clickhouse to execute SQLs and check results. */
 public class ClickhouseProxy {
-    private String jdbcUrl;
-    private String username;
-    private String password;
+    private final String jdbcUrl;
+    private final String username;
+    private final String password;
     private static final Logger logger = LoggerFactory.getLogger(ClickhouseProxy.class);
     ClickHouseDriver driver;
     ClickHouseStatement statement;
@@ -88,7 +87,7 @@ public class ClickhouseProxy {
                 }
             }
 
-            results.add(result.stream().collect(Collectors.joining(",")));
+            results.add(String.join(",", result));
         }
         Collections.sort(results);
         Collections.sort(expectedResult);

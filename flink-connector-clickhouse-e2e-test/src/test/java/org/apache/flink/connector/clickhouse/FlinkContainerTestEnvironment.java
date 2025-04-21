@@ -41,10 +41,10 @@ import java.util.stream.Stream;
 import static org.assertj.core.util.Preconditions.checkState;
 
 /** Test environment running job on Flink containers. */
-public class FlinkContainerTestEnviroment {
+public class FlinkContainerTestEnvironment {
 
     private static final Logger logger =
-            LoggerFactory.getLogger(FlinkContainerTestEnviroment.class);
+            LoggerFactory.getLogger(FlinkContainerTestEnvironment.class);
     public static final Network NETWORK = Network.newNetwork();
 
     static final ClickHouseContainer CLICKHOUSE_CONTAINER =

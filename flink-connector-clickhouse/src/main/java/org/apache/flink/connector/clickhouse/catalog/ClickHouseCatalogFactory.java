@@ -18,7 +18,6 @@
 package org.apache.flink.connector.clickhouse.catalog;
 
 import org.apache.flink.configuration.ConfigOption;
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.table.catalog.Catalog;
 import org.apache.flink.table.connector.source.lookup.LookupOptions;
 import org.apache.flink.table.factories.CatalogFactory;
@@ -111,6 +110,6 @@ public class ClickHouseCatalogFactory implements CatalogFactory {
                 helper.getOptions().get(URL),
                 helper.getOptions().get(USERNAME),
                 helper.getOptions().get(PASSWORD),
-                ((Configuration) helper.getOptions()).toMap());
+                helper.getOptions().toMap());
     }
 }

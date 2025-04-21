@@ -113,6 +113,7 @@ public class ClickHouseRowDataLookupFunction extends LookupFunction {
      *
      * @param keyRow lookup keys
      */
+    @SuppressWarnings("t")
     @Override
     public Collection<RowData> lookup(RowData keyRow) {
         for (int retry = 0; retry <= maxRetryTimes; retry++) {

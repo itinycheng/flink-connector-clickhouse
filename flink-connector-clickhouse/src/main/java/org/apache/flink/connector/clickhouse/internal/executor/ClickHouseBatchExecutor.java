@@ -18,7 +18,6 @@
 package org.apache.flink.connector.clickhouse.internal.executor;
 
 import org.apache.flink.api.common.functions.RuntimeContext;
-import org.apache.flink.connector.clickhouse.internal.ClickHouseShardOutputFormat;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseConnectionProvider;
 import org.apache.flink.connector.clickhouse.internal.connection.ClickHouseStatementWrapper;
 import org.apache.flink.connector.clickhouse.internal.converter.ClickHouseRowConverter;
@@ -37,7 +36,7 @@ public class ClickHouseBatchExecutor implements ClickHouseExecutor {
 
     private static final long serialVersionUID = 1L;
 
-    private static final Logger LOG = LoggerFactory.getLogger(ClickHouseShardOutputFormat.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ClickHouseBatchExecutor.class);
 
     private final String insertSql;
 

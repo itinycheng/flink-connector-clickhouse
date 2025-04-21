@@ -5,7 +5,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.SQLException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -13,7 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /** End-to-end test for Clickhouse. */
-public class ClickhouseE2ECase extends FlinkContainerTestEnviroment {
+public class ClickhouseE2ECase extends FlinkContainerTestEnvironment {
 
     private static final Logger logger = LoggerFactory.getLogger(ClickhouseE2ECase.class);
 
@@ -91,7 +90,7 @@ public class ClickhouseE2ECase extends FlinkContainerTestEnviroment {
     }
 
     @After
-    public void tearDown() throws SQLException {
+    public void tearDown() {
         CLICKHOUSE_CONTAINER.stop();
     }
 }

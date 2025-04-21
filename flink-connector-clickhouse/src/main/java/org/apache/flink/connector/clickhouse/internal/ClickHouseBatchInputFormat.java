@@ -36,7 +36,7 @@ import java.sql.SQLException;
 /** ClickHouse batch input format. */
 public class ClickHouseBatchInputFormat extends AbstractClickHouseInputFormat {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ClickHouseBatchOutputFormat.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ClickHouseBatchInputFormat.class);
 
     private final ClickHouseConnectionProvider connectionProvider;
 

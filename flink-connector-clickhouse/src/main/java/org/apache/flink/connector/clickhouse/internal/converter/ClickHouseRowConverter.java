@@ -105,6 +105,7 @@ public class ClickHouseRowConverter implements Serializable {
         }
     }
 
+    @SuppressWarnings("t")
     private DeserializationConverter createToInternalConverter(LogicalType type) {
         switch (type.getTypeRoot()) {
             case NULL:
