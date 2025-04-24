@@ -20,21 +20,22 @@ on:
   pull_request:
     branches: [ master ]
 jobs:
-  Linux:
+  maven_verify:
     strategy:
       matrix:
         java-version: [ 8, 11 ]
-        runs-on: [ubuntu-latest]
-    runs-on:  ${{ matrix.runs-on }}
+        runs-on: [ ubuntu-latest ]
+    runs-on: ${{ matrix.runs-on }}
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up JDK ${{ matrix.java-version }}
-      uses: actions/setup-java@v2
-      with:
-        java-version: ${{ matrix.java-version }}
-        distribution: 'adopt'
-        cache: maven
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
-    - name: Build with Maven
-      run: ./mvnw verify
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up JDK ${{ matrix.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java-version }}
+          distribution: temurin
+          cache: maven
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3.10.0
+      - name: Build with Maven
+        run: ./mvnw verify
