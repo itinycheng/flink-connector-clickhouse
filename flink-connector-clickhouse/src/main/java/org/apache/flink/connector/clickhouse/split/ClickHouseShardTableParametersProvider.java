@@ -33,7 +33,7 @@ public class ClickHouseShardTableParametersProvider extends ClickHouseParameters
     private final int shardNum;
 
     public ClickHouseShardTableParametersProvider(int[] shardIds) {
-        checkArgument(shardIds.length > 1, "length of shardIds must be larger than 0");
+        checkArgument(shardIds.length > 0, "length of shardIds must be larger than 0");
         this.shardIds = shardIds;
         this.shardNum = shardIds.length;
     }
