@@ -156,6 +156,7 @@ public class ClickHouseDynamicTableFactory
     }
 
     private void validateConfigOptions(ReadableConfig config) {
+        // check sharding strategy and sharding key.
         SinkShardingStrategy shardingStrategy = config.get(SINK_PARTITION_STRATEGY);
         if (!config.get(SINK_SHARDING_USE_TABLE_DEF)
                 && shardingStrategy.shardingKeyNeeded
@@ -163,24 +164,39 @@ public class ClickHouseDynamicTableFactory
             throw new IllegalArgumentException(
                     "A sharding key must be provided for sharding strategy: "
                             + shardingStrategy.value);
-        } else if (config.getOptional(USERNAME).isPresent()
-                ^ config.getOptional(PASSWORD).isPresent()) {
+        }
+
+        // check username and password.
+        if (config.getOptional(USERNAME).isPresent() ^ config.getOptional(PASSWORD).isPresent()) {
             throw new IllegalArgumentException(
                     "Either all or none of username and password should be provided");
-        } else if (!config.get(LookupOptions.CACHE_TYPE).equals(LookupOptions.LookupCacheType.NONE)
-                && !config.get(LookupOptions.CACHE_TYPE)
-                        .equals(LookupOptions.LookupCacheType.PARTIAL)) {
+        }
+
+        // check cache type.
+        LookupOptions.LookupCacheType lookupCacheType = config.get(LookupOptions.CACHE_TYPE);
+        if (!lookupCacheType.equals(LookupOptions.LookupCacheType.NONE)
+                && !lookupCacheType.equals(LookupOptions.LookupCacheType.PARTIAL)) {
             throw new IllegalArgumentException(
                     String.format(
                             "The value of '%s' option should be 'NONE' or 'PARTIAL'(not support 'FULL' yet), but is %s.",
                             LookupOptions.CACHE_TYPE.key(), config.get(LookupOptions.CACHE_TYPE)));
-        } else if (config.getOptional(SCAN_PARTITION_COLUMN).isPresent()
-                ^ config.getOptional(SCAN_PARTITION_NUM).isPresent()
-                ^ config.getOptional(SCAN_PARTITION_LOWER_BOUND).isPresent()
-                ^ config.getOptional(SCAN_PARTITION_UPPER_BOUND).isPresent()) {
+        }
+
+        // check scan partition config.
+        boolean partitionColumnPresent = config.getOptional(SCAN_PARTITION_COLUMN).isPresent();
+        if (partitionColumnPresent != config.getOptional(SCAN_PARTITION_LOWER_BOUND).isPresent()
+                || partitionColumnPresent
+                        != config.getOptional(SCAN_PARTITION_UPPER_BOUND).isPresent()) {
             throw new IllegalArgumentException(
-                    "Either all or none of partition configs should be provided");
-        } else if (config.get(LookupOptions.MAX_RETRIES) < 0) {
+                    String.format(
+                            "Either all or none of the scan partition options should be provided:  %s, %s, %s.",
+                            SCAN_PARTITION_COLUMN.key(),
+                            SCAN_PARTITION_LOWER_BOUND.key(),
+                            SCAN_PARTITION_UPPER_BOUND.key()));
+        }
+
+        // check max retries.
+        if (config.get(LookupOptions.MAX_RETRIES) < 0) {
             throw new IllegalArgumentException(
                     String.format(
                             "The value of '%s' option shouldn't be negative, but is %s.",
