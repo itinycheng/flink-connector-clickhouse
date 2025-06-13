@@ -90,8 +90,7 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
     public void open(int taskNumber, int numTasks) throws IOException {
         try {
             Map<Integer, ClickHouseConnection> connectionMap =
-                    connectionProvider.createShardConnections(
-                            clusterSpec, shardTableSchema.getDatabase());
+                    connectionProvider.createShardConnections(clusterSpec);
             for (Map.Entry<Integer, ClickHouseConnection> connectionEntry :
                     connectionMap.entrySet()) {
                 ClickHouseExecutor executor =

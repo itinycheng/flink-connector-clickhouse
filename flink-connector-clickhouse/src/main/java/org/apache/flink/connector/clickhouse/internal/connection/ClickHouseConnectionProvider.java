@@ -75,21 +75,20 @@ public class ClickHouseConnectionProvider implements Serializable {
     }
 
     public synchronized Map<Integer, ClickHouseConnection> createShardConnections(
-            ClusterSpec clusterSpec, String defaultDatabase) throws SQLException {
+            ClusterSpec clusterSpec) throws SQLException {
         Map<Integer, ClickHouseConnection> connectionMap = new HashMap<>();
         String urlSuffix = options.getUrlSuffix();
         for (ShardSpec shardSpec : clusterSpec.getShards()) {
             String shardUrl = shardSpec.getJdbcUrls() + urlSuffix;
-            ClickHouseConnection connection =
-                    createAndStoreShardConnection(shardUrl, defaultDatabase);
+            ClickHouseConnection connection = createAndStoreShardConnection(shardUrl);
             connectionMap.put(shardSpec.getNum(), connection);
         }
 
         return connectionMap;
     }
 
-    public synchronized ClickHouseConnection createAndStoreShardConnection(
-            String url, String database) throws SQLException {
+    public synchronized ClickHouseConnection createAndStoreShardConnection(String url)
+            throws SQLException {
         if (shardConnections == null) {
             shardConnections = new ArrayList<>();
         }
