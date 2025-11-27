@@ -20,7 +20,7 @@ package org.apache.flink.connector.clickhouse.catalog;
 import org.apache.flink.connector.clickhouse.ClickHouseDynamicTableFactory;
 import org.apache.flink.connector.clickhouse.internal.schema.DistributedEngineFull;
 import org.apache.flink.connector.clickhouse.util.DataTypeUtil;
-import org.apache.flink.table.api.TableSchema;
+import org.apache.flink.table.api.Schema;
 import org.apache.flink.table.catalog.AbstractCatalog;
 import org.apache.flink.table.catalog.CatalogBaseTable;
 import org.apache.flink.table.catalog.CatalogDatabase;
@@ -28,7 +28,7 @@ import org.apache.flink.table.catalog.CatalogDatabaseImpl;
 import org.apache.flink.table.catalog.CatalogFunction;
 import org.apache.flink.table.catalog.CatalogPartition;
 import org.apache.flink.table.catalog.CatalogPartitionSpec;
-import org.apache.flink.table.catalog.CatalogTableImpl;
+import org.apache.flink.table.catalog.CatalogTable;
 import org.apache.flink.table.catalog.ObjectPath;
 import org.apache.flink.table.catalog.exceptions.CatalogException;
 import org.apache.flink.table.catalog.exceptions.DatabaseAlreadyExistException;
@@ -296,14 +296,14 @@ public class ClickHouseCatalog extends AbstractCatalog {
                     e);
         }
 
-        return new CatalogTableImpl(
-                createTableSchema(databaseName, tableName),
-                getPartitionKeys(databaseName, tableName),
-                configuration,
-                "");
+        return CatalogTable.newBuilder()
+                .schema(createTableSchema(databaseName, tableName))
+                .partitionKeys(getPartitionKeys(databaseName, tableName))
+                .options(configuration)
+                .build();
     }
 
-    private synchronized TableSchema createTableSchema(String databaseName, String tableName) {
+    private synchronized Schema createTableSchema(String databaseName, String tableName) {
         // 1.Maybe has compatibility problems with the different version of clickhouse jdbc. 2. Is
         // it more appropriate to use type literals from `system.columns` to convert Flink data
         // types? 3. All queried data will be obtained before PreparedStatement is closed, so we
@@ -321,7 +321,7 @@ public class ClickHouseCatalog extends AbstractCatalog {
             getColMethod.setAccessible(true);
 
             List<String> primaryKeys = getPrimaryKeys(databaseName, tableName);
-            TableSchema.Builder builder = TableSchema.builder();
+            Schema.Builder builder = Schema.newBuilder();
             for (int idx = 1; idx <= metaData.getColumnCount(); idx++) {
                 ClickHouseColumn columnInfo = (ClickHouseColumn) getColMethod.invoke(metaData, idx);
                 String columnName = columnInfo.getColumnName();
@@ -329,7 +329,7 @@ public class ClickHouseCatalog extends AbstractCatalog {
                 if (primaryKeys.contains(columnName)) {
                     columnType = columnType.notNull();
                 }
-                builder.field(columnName, columnType);
+                builder.column(columnName, columnType);
             }
 
             if (!primaryKeys.isEmpty()) {

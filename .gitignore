@@ -39,3 +39,5 @@ buildNumber.properties
 .idea/
 *.iml
 
+# Mac OS
+.DS_Store

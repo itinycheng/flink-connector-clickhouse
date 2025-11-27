@@ -66,7 +66,7 @@ public class ClickHouseBatchOutputFormat extends AbstractClickHouseOutputFormat 
     }
 
     @Override
-    public void open(int taskNumber, int numTasks) throws IOException {
+    protected void open() throws IOException {
         try {
             // TODO Distributed tables don't support update and delete statements.
             executor =
@@ -80,13 +80,18 @@ public class ClickHouseBatchOutputFormat extends AbstractClickHouseOutputFormat 
                             fieldTypes,
                             options);
             executor.prepareStatement(connectionProvider);
-            executor.setRuntimeContext(getRuntimeContext());
 
             long flushIntervalMillis = options.getFlushInterval().toMillis();
             scheduledFlush(flushIntervalMillis, "clickhouse-batch-output-format");
         } catch (Exception exception) {
             throw new IOException("Unable to establish connection with ClickHouse.", exception);
         }
+    }
+
+    /** @Deprecated: moved to open() */
+    @Override
+    public void open(InitializationContext initializationContext) throws IOException {
+        throw new UnsupportedOperationException();
     }
 
     @Override

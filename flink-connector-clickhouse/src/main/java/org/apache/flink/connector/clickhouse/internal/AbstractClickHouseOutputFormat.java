@@ -75,6 +75,8 @@ public abstract class AbstractClickHouseOutputFormat extends RichOutputFormat<Ro
 
     public AbstractClickHouseOutputFormat() {}
 
+    protected abstract void open() throws IOException;
+
     @Override
     public void configure(Configuration parameters) {}
 

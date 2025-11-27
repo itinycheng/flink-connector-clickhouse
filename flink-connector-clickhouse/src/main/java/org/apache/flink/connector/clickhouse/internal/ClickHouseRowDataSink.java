@@ -18,12 +18,12 @@
 package org.apache.flink.connector.clickhouse.internal;
 
 import org.apache.flink.annotation.Internal;
-import org.apache.flink.api.common.functions.RuntimeContext;
-import org.apache.flink.configuration.Configuration;
+import org.apache.flink.api.connector.sink2.Sink;
+import org.apache.flink.api.connector.sink2.SinkWriter;
+import org.apache.flink.api.connector.sink2.WriterInitContext;
 import org.apache.flink.runtime.state.FunctionInitializationContext;
 import org.apache.flink.runtime.state.FunctionSnapshotContext;
 import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction;
-import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.util.Preconditions;
 
@@ -33,28 +33,17 @@ import java.io.IOException;
 
 /** A rich sink function to write {@link RowData} records into ClickHouse. */
 @Internal
-public class ClickHouseRowDataSinkFunction extends RichSinkFunction<RowData>
-        implements CheckpointedFunction {
+public class ClickHouseRowDataSink implements Sink<RowData>, CheckpointedFunction {
 
     private final AbstractClickHouseOutputFormat outputFormat;
 
-    public ClickHouseRowDataSinkFunction(@Nonnull AbstractClickHouseOutputFormat outputFormat) {
+    public ClickHouseRowDataSink(@Nonnull AbstractClickHouseOutputFormat outputFormat) {
         this.outputFormat = Preconditions.checkNotNull(outputFormat);
     }
 
     @Override
-    public void open(Configuration parameters) throws Exception {
-        outputFormat.configure(parameters);
-        RuntimeContext runtimeContext = getRuntimeContext();
-        outputFormat.setRuntimeContext(runtimeContext);
-        outputFormat.open(
-                runtimeContext.getIndexOfThisSubtask(),
-                runtimeContext.getNumberOfParallelSubtasks());
-    }
-
-    @Override
-    public void invoke(RowData value, Context context) throws IOException {
-        outputFormat.writeRecord(value);
+    public SinkWriter<RowData> createWriter(WriterInitContext initContext) throws IOException {
+        return new ClickHouseRowDataSinkWriter(initContext, outputFormat);
     }
 
     @Override
@@ -64,9 +53,30 @@ public class ClickHouseRowDataSinkFunction extends RichSinkFunction<RowData>
     public void snapshotState(FunctionSnapshotContext context) throws Exception {
         outputFormat.flush();
     }
+}
+
+class ClickHouseRowDataSinkWriter implements SinkWriter<RowData> {
+    private final AbstractClickHouseOutputFormat outputFormat;
+
+    public ClickHouseRowDataSinkWriter(
+            WriterInitContext context, AbstractClickHouseOutputFormat outputFormat)
+            throws IOException {
+        this.outputFormat = outputFormat;
+        this.outputFormat.open();
+    }
 
     @Override
-    public void close() {
+    public void write(RowData value, Context context) throws IOException, InterruptedException {
+        outputFormat.writeRecord(value);
+    }
+
+    @Override
+    public void close() throws Exception {
         outputFormat.close();
+    }
+
+    @Override
+    public void flush(boolean b) throws IOException, InterruptedException {
+        outputFormat.flush();
     }
 }
