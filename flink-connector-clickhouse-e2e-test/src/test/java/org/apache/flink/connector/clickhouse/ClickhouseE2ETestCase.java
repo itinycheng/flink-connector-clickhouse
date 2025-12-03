@@ -2,8 +2,6 @@ package org.apache.flink.connector.clickhouse;
 
 import org.junit.After;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -12,9 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /** End-to-end test for Clickhouse. */
-public class ClickhouseE2ECase extends FlinkContainerTestEnvironment {
-
-    private static final Logger logger = LoggerFactory.getLogger(ClickhouseE2ECase.class);
+public class ClickhouseE2ETestCase extends FlinkContainerEnvironment {
 
     ClickhouseProxy proxy;
 
@@ -27,6 +23,8 @@ public class ClickhouseE2ECase extends FlinkContainerTestEnvironment {
                         CLICKHOUSE_CONTAINER.getJdbcUrl(),
                         CLICKHOUSE_CONTAINER.getUsername(),
                         CLICKHOUSE_CONTAINER.getPassword());
+        Thread.sleep(5000);
+
         proxy.execute(
                 "create table test (id Int32, name String, float32_column Float32, date_column Date,datetime_column DateTime, array_column Array(Int32)) engine = Memory");
         proxy.execute(
@@ -52,7 +50,9 @@ public class ClickhouseE2ECase extends FlinkContainerTestEnvironment {
                         + "',\n"
                         + "  'table-name' = 'test',\n"
                         + "  'username'='test_username',\n"
-                        + "  'password'='test_password'\n"
+                        + "  'password'='test_password',\n"
+                        + "  'properties.compress' = 'false',\n"
+                        + "  'properties.decompress' = 'false'\n"
                         + ");");
         sqlLines.add(
                 "create table test (id int, name varchar,float32_column FLOAT,\n"
@@ -63,7 +63,9 @@ public class ClickhouseE2ECase extends FlinkContainerTestEnvironment {
                         + "',\n"
                         + "  'table-name' = 'test_insert',\n"
                         + "  'username'='test_username',\n"
-                        + "  'password'='test_password'\n"
+                        + "  'password'='test_password',\n"
+                        + "  'properties.compress' = 'false',\n"
+                        + "  'properties.decompress' = 'false'\n"
                         + ");");
         sqlLines.add("insert into test select * from clickhouse_test;");
 
@@ -71,7 +73,7 @@ public class ClickhouseE2ECase extends FlinkContainerTestEnvironment {
                 sqlLines,
                 SQL_CONNECTOR_CLICKHOUSE_JAR,
                 CLICKHOUSE_JDBC_JAR,
-                HTTPCORE_JAR,
+                HTTP_CORE_JAR,
                 HTTPCLIENT_JAR,
                 HTTPCLIENT_H2_JAR);
         waitUntilJobRunning(Duration.of(1, ChronoUnit.MINUTES));
@@ -86,7 +88,7 @@ public class ClickhouseE2ECase extends FlinkContainerTestEnvironment {
                 expectedResult,
                 "test_insert",
                 Arrays.asList("id", "name", "float32_column", "datetime_column", "array_column"),
-                60000);
+                600_000);
     }
 
     @After

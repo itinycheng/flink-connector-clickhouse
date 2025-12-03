@@ -39,3 +39,13 @@ jobs:
         uses: docker/setup-buildx-action@v3.10.0
       - name: Build with Maven
         run: ./mvnw verify
+      - name: Upload test logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs-java-${{ matrix.java-version }}
+          path: |
+            **/target/surefire-reports/
+            **/target/failsafe-reports/
+            **/hs_err_*.log
+          retention-days: 7

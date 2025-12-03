@@ -5,8 +5,6 @@ import com.clickhouse.jdbc.ClickHouseDataSource;
 import com.clickhouse.jdbc.ClickHouseDriver;
 import com.clickhouse.jdbc.ClickHouseStatement;
 import org.junit.Assert;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.sql.Array;
 import java.sql.ResultSet;
@@ -20,10 +18,10 @@ import java.util.Properties;
 
 /** A proxy for Clickhouse to execute SQLs and check results. */
 public class ClickhouseProxy {
+
     private final String jdbcUrl;
     private final String username;
     private final String password;
-    private static final Logger logger = LoggerFactory.getLogger(ClickhouseProxy.class);
     ClickHouseDriver driver;
     ClickHouseStatement statement;
     ClickHouseConnection connection;
@@ -41,13 +39,15 @@ public class ClickhouseProxy {
                 Properties properties = new Properties();
                 properties.put("username", username);
                 properties.put("password", password);
+                properties.put("compress", "false");
+                properties.put("decompress", "false");
                 ClickHouseDataSource clickHouseDataSource =
                         new ClickHouseDataSource(jdbcUrl, properties);
                 connection = clickHouseDataSource.getConnection(username, password);
                 statement = connection.createStatement();
             }
         } catch (Exception e) {
-            logger.error("Failed to connect to clickhouse", e);
+            throw new RuntimeException("Cannot establish ClickHouse connection", e);
         }
     }
 
