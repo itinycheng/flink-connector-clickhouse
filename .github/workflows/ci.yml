@@ -23,7 +23,7 @@ jobs:
   maven_verify:
     strategy:
       matrix:
-        java-version: [ 8, 11 ]
+        java-version: [ 11, 17 ]
         runs-on: [ ubuntu-latest ]
     runs-on: ${{ matrix.runs-on }}
     steps:

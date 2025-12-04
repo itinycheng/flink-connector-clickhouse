@@ -87,7 +87,7 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
     }
 
     @Override
-    public void open(int taskNumber, int numTasks) throws IOException {
+    public void open() throws IOException {
         try {
             Map<Integer, ClickHouseConnection> connectionMap =
                     connectionProvider.createShardConnections(clusterSpec);
@@ -112,6 +112,12 @@ public class ClickHouseShardOutputFormat extends AbstractClickHouseOutputFormat 
         } catch (Exception exception) {
             throw new IOException("Unable to establish connection to ClickHouse", exception);
         }
+    }
+
+    /** @Deprecated: moved to open() */
+    @Override
+    public void open(InitializationContext initializationContext) throws IOException {
+        throw new UnsupportedOperationException();
     }
 
     @Override

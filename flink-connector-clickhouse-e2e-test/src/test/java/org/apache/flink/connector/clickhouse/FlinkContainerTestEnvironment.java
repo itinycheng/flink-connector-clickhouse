@@ -90,7 +90,7 @@ public class FlinkContainerTestEnvironment {
                                 "heartbeat.timeout: 60000",
                                 "parallelism.default: 1"));
         jobManager =
-                new GenericContainer<>(new DockerImageName("flink:1.19.0-scala_2.12"))
+                new GenericContainer<>(new DockerImageName("flink:2.1-scala_2.12"))
                         .withCommand("jobmanager")
                         .withNetwork(NETWORK)
                         .withExtraHost("host.docker.internal", "host-gateway")
@@ -101,7 +101,7 @@ public class FlinkContainerTestEnvironment {
                         .withEnv("FLINK_PROPERTIES", properties)
                         .withLogConsumer(new Slf4jLogConsumer(logger));
         taskManager =
-                new GenericContainer<>(new DockerImageName("flink:1.19.0-scala_2.12"))
+                new GenericContainer<>(new DockerImageName("flink:2.1-scala_2.12"))
                         .withCommand("taskmanager")
                         .withExtraHost("host.docker.internal", "host-gateway")
                         .withNetwork(NETWORK)
