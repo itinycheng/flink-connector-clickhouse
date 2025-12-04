@@ -36,14 +36,21 @@ limitations under the License.
 	<dependencies>
 		<dependency>
 			<groupId>org.testcontainers</groupId>
-			<artifactId>clickhouse</artifactId>
+			<artifactId>testcontainers-clickhouse</artifactId>
 			<version>${testcontainer.version}</version>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-connector-test-utils</artifactId>
 			<version>${flink.version}</version>
 			<scope>test</scope>
+			<exclusions>
+				<exclusion>
+					<artifactId>commons-io</artifactId>
+					<groupId>commons-io</groupId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.flink</groupId>

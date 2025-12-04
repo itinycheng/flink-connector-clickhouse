@@ -6,7 +6,6 @@ import org.apache.flink.client.deployment.StandaloneClusterId;
 import org.apache.flink.client.program.rest.RestClusterClient;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.RestOptions;
-import org.apache.flink.connector.testframe.container.TestcontainersSettings;
 import org.apache.flink.runtime.client.JobStatusMessage;
 import org.apache.flink.table.api.ValidationException;
 import org.apache.flink.test.resources.ResourceTestUtils;
@@ -56,13 +55,6 @@ public class FlinkContainerTestEnvironment {
                     .withPassword("test_password")
                     .withLogConsumer(new Slf4jLogConsumer(logger));
 
-    private static final TestcontainersSettings TESTCONTAINERS_SETTINGS =
-            TestcontainersSettings.builder()
-                    .logger(logger)
-                    .network(NETWORK)
-                    .dependsOn(CLICKHOUSE_CONTAINER)
-                    .build();
-
     public static final Path SQL_CONNECTOR_CLICKHOUSE_JAR =
             ResourceTestUtils.getResource("flink-connector-clickhouse-1.0.0-SNAPSHOT.jar");
     public static final Path CLICKHOUSE_JDBC_JAR =
@@ -90,7 +82,7 @@ public class FlinkContainerTestEnvironment {
                                 "heartbeat.timeout: 60000",
                                 "parallelism.default: 1"));
         jobManager =
-                new GenericContainer<>(new DockerImageName("flink:2.1-scala_2.12"))
+                new GenericContainer<>(DockerImageName.parse("flink:2.1-scala_2.12"))
                         .withCommand("jobmanager")
                         .withNetwork(NETWORK)
                         .withExtraHost("host.docker.internal", "host-gateway")
@@ -101,7 +93,7 @@ public class FlinkContainerTestEnvironment {
                         .withEnv("FLINK_PROPERTIES", properties)
                         .withLogConsumer(new Slf4jLogConsumer(logger));
         taskManager =
-                new GenericContainer<>(new DockerImageName("flink:2.1-scala_2.12"))
+                new GenericContainer<>(DockerImageName.parse("flink:2.1-scala_2.12"))
                         .withCommand("taskmanager")
                         .withExtraHost("host.docker.internal", "host-gateway")
                         .withNetwork(NETWORK)
@@ -182,11 +174,6 @@ public class FlinkContainerTestEnvironment {
         String containerPath = "/tmp/" + path.getFileName();
         container.copyFileToContainer(MountableFile.forHostPath(path), containerPath);
         return containerPath;
-    }
-
-    private static List<String> readSqlFile(final String resourceName) throws Exception {
-        return Files.readAllLines(
-                Paths.get(ClickhouseE2ECase.class.getResource("/" + resourceName).toURI()));
     }
 
     public void waitUntilJobRunning(Duration timeout) {

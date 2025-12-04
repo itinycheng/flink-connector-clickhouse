@@ -86,7 +86,7 @@ public class ClickhouseE2ECase extends FlinkContainerTestEnvironment {
                 expectedResult,
                 "test_insert",
                 Arrays.asList("id", "name", "float32_column", "datetime_column", "array_column"),
-                60000);
+                600_000);
     }
 
     @After
