@@ -185,6 +185,29 @@ limitations under the License.
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>3.6.0</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<artifactSet>
+								<includes>
+									<include>com.clickhouse:clickhouse-jdbc</include>
+									<include>org.apache.httpcomponents.client5:httpclient5</include>
+									<include>org.apache.httpcomponents.core5:httpcore5</include>
+									<include>org.apache.httpcomponents.core5:httpcore5-h2</include>
+								</includes>
+							</artifactSet>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 
