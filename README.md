@@ -1,48 +1,145 @@
-# Flink ClickHouse Connector
+# Flink SQL Connector for ClickHouse
 
-NOTE: this fork version only update clickhouse connector as Flink sink.
+A maintained fork of [itinycheng/flink-connector-clickhouse](https://github.com/itinycheng/flink-connector-clickhouse), focused on improving the stability and reliability of the **Flink SQL sink for ClickHouse**.
 
-[Flink](https://github.com/apache/flink) SQL connector
-for [ClickHouse](https://github.com/yandex/ClickHouse) database, this project Powered
-by [ClickHouse JDBC](https://github.com/ClickHouse/clickhouse-jdbc).
+This project is built on top of the original connector and keeps its history and attribution. The current development direction focuses primarily on the sink path, including failure handling, retries, checkpoint recovery, memory bounds, metrics, and CDC workloads.
 
-The production-supported scope of this build is the Flink SQL sink. Source, lookup, and catalog
-classes remain for compatibility with the original project but are not covered by the production
-release contract or compatibility matrix.
+## Project Scope
 
-The sink currently provides at-least-once delivery. A checkpoint flushes pending JDBC batches,
-but a batch can be replayed when ClickHouse accepts it before the corresponding checkpoint
-completes. See the [production-readiness plan](docs/production-readiness.md) for guarantees,
-remaining work, and release gates.
+The actively maintained scope of this fork is the **Flink SQL sink**.
 
-For append workloads, retry deduplication is a ClickHouse table concern rather than an exactly-once
-guarantee from this connector. Replicated MergeTree-family tables can deduplicate identical recent
-insert blocks, while non-replicated MergeTree tables require a non-zero
-`non_replicated_deduplication_window`. This mechanism is bounded by the configured window and only
-works when a retry reconstructs the same block with the same rows and order. Parallel writers,
-different batch boundaries, or an expired window can therefore still produce duplicates.
+Source, lookup, and catalog implementations inherited from the upstream project remain available for compatibility, but they are not the main focus of this fork.
 
-Do not configure `properties.insert_deduplication_token`: table options are static, so the token
-would be reused by independent batches and could silently discard valid data. The factory rejects
-this option until tokens can be generated per batch and restored consistently with checkpoints.
-When using `properties.async_insert = 1`, `properties.wait_for_async_insert` must remain enabled so
-an acknowledgement means the buffered insert was flushed; the unsafe fire-and-forget combination
-is rejected.
+Current work focuses on:
 
-`ReplacingMergeTree` is an alternative for versioned append/CDC designs, but replacement happens
-during asynchronous merges. Queries that require an immediately reconciled current-state view must
-use an appropriate `FINAL` strategy and account for its read cost. A ClickHouse `PRIMARY KEY` is a
-sparse index and does not enforce row uniqueness.
+* checkpoint-aware flushing
+* asynchronous failure propagation
+* bounded JDBC retries
+* configurable connection and socket timeouts
+* bounded record and memory buffering
+* sink metrics
+* append workloads
+* ClickHouse mutation-based updates and deletes
+* versioned CDC with `ReplacingMergeTree`
+* Flink checkpoint recovery
+* compatibility testing with recent Flink and ClickHouse versions
 
-### Versioned CDC with ReplacingMergeTree
+The connector currently provides **at-least-once delivery**.
 
-The connector does not inspect or validate the target ClickHouse engine. When a Flink sink declares
-a primary key and sets `sink.update-strategy = 'insert'`, the sink uses an append-only CDC path and
-requires physical `_version` and `_is_deleted` columns. `_version` must be a non-null value supplied
-by the upstream CDC pipeline; the connector does not generate ordering values. `_is_deleted` must be
-`BOOLEAN`, `TINYINT`, or `SMALLINT` (the Flink type normally used for ClickHouse `UInt8`).
+Exactly-once delivery is not claimed.
 
-Use a target table such as:
+More details about completed and remaining work are available in [docs/production-readiness.md](docs/production-readiness.md).
+
+## Why This Fork?
+
+The original [itinycheng/flink-connector-clickhouse](https://github.com/itinycheng/flink-connector-clickhouse) project provides the foundation of this connector.
+
+This fork keeps that foundation while concentrating development on the Flink SQL sink.
+
+The main changes include:
+
+* Flink Sink V2 checkpoint integration
+* scheduled flush failure propagation through the Flink mailbox
+* retryable and non-retryable JDBC error classification
+* bounded retry with jittered backoff
+* connection and socket timeout configuration
+* buffering limits by records and estimated bytes
+* sink metrics
+* checkpoint recovery testing
+* ambiguous JDBC failure testing
+* append-only CDC support using `ReplacingMergeTree`
+* newer Flink and ClickHouse JDBC compatibility
+* containerized integration tests
+
+The goal is not to replace the upstream project, but to maintain a specialized fork with a stronger focus on sink stability.
+
+## Connector Architecture
+
+```mermaid
+flowchart LR
+    Source["Kafka / Flink Source"]
+    Flink["Flink SQL Job"]
+    Sink["ClickHouse SQL Sink"]
+    Buffer["Writer Buffer"]
+    JDBC["ClickHouse JDBC"]
+    CH["ClickHouse"]
+
+    Source --- Flink
+    Flink --- Sink
+    Sink --- Buffer
+    Buffer --- JDBC
+    JDBC --- CH
+
+    Checkpoint["Flink Checkpoint"]
+    Retry["Retry & Failure Handling"]
+    Metrics["Flink Metrics"]
+
+    Checkpoint --- Sink
+    Retry --- Sink
+    Metrics --- Sink
+```
+
+The sink buffers incoming records and writes them to ClickHouse in JDBC batches.
+
+Checkpointing, retry handling, and scheduled flush failures are handled as part of the sink lifecycle.
+
+## Delivery Semantics
+
+The sink provides **at-least-once delivery**.
+
+A Flink checkpoint flushes pending JDBC batches before the checkpoint completes.
+
+However, ClickHouse and the Flink checkpoint do not participate in the same distributed transaction.
+
+ClickHouse may successfully accept a batch while the client loses the acknowledgement or the Flink checkpoint later fails.
+
+After recovery, Flink may replay those records.
+
+This means duplicate physical rows are possible.
+
+Applications that require logical deduplication should design the ClickHouse table accordingly.
+
+## Append Workloads
+
+For append workloads, retry deduplication is primarily a ClickHouse table design concern.
+
+Replicated MergeTree-family tables can deduplicate identical recent insert blocks.
+
+For non-replicated MergeTree tables, `non_replicated_deduplication_window` can be configured.
+
+This mechanism is bounded and depends on ClickHouse receiving an equivalent block during retry.
+
+Different batch boundaries, row ordering, parallel writers, or an expired deduplication window may still result in duplicates.
+
+### insert_deduplication_token
+
+Do not configure a static:
+
+```text
+properties.insert_deduplication_token
+```
+
+A static token would be reused across independent batches and could cause valid rows to be discarded.
+
+The connector currently rejects this configuration.
+
+### Async inserts
+
+When using:
+
+```text
+properties.async_insert = 1
+```
+
+`wait_for_async_insert` must remain enabled.
+
+This ensures that a successful acknowledgement means ClickHouse has completed the buffered insert rather than only accepting it into an asynchronous queue.
+
+## Versioned CDC with ReplacingMergeTree
+
+For CDC workloads, the connector supports an append-based strategy designed for ClickHouse `ReplacingMergeTree`.
+
+Example ClickHouse table:
 
 ```sql
 CREATE TABLE customer_cdc
@@ -56,268 +153,382 @@ ENGINE = ReplacingMergeTree(_version, _is_deleted)
 ORDER BY id;
 ```
 
-For this strategy, `INSERT` and `UPDATE_AFTER` are inserted with `_is_deleted = 0`,
-`UPDATE_BEFORE` is ignored, and every version is retained in the JDBC batch. A `DELETE` is ignored
-when `sink.ignore-delete = 'true'`; otherwise it is inserted as a new version with
-`_is_deleted = 1`. No `ALTER UPDATE` or `ALTER DELETE` statement is prepared or executed on this
-path. The Flink primary key and ClickHouse `ORDER BY` replacement identity must represent the same
-logical key.
+The Flink sink can use:
 
-The sink exposes Flink's standard `numRecordsSend`, `numRecordsSendErrors`, `numBytesSend`, and
-`currentSendTime` metrics. Under the `clickhouse` metric group it also exposes `batchesSent`,
-`batchesSendErrors`, `retries`, `bufferedRecords`, and `bufferedBytes`.
+```sql
+'sink.update-strategy' = 'insert'
+```
 
-### Asynchronous flush failures and recovery
+This strategy requires physical `_version` and `_is_deleted` columns in ClickHouse.
 
-The flush interval is implemented by a background scheduler. If a scheduled flush encounters a
-non-retryable JDBC error, or exhausts `sink.max-retries`, the connector stores the original error,
-stops the flush scheduler, and submits an urgent failure action to the Flink task mailbox. The sink
-task therefore fails immediately without waiting for another source record, checkpoint, or close
-callback. This includes errors such as a ClickHouse target table being dropped while the job is
-running.
+`_version` represents the ordering of changes for the same logical record.
 
-The connector does not keep running with a permanently failed batch and does not retry that batch
-indefinitely in process. Recovery is delegated to Flink and the deployment platform:
+The connector does not generate this value automatically. The Flink pipeline is responsible for providing and mapping it.
 
-1. Inspect the task failure and repair or recreate the ClickHouse target table with the expected
-   schema and engine.
-2. Restart or resume the Flink job.
-3. Restore from the latest completed checkpoint so a replayable source can emit records that were
-   not included in a successful checkpoint.
+### Using Kafka offset as `_version`
 
-Enable checkpointing and use a source that supports checkpointed replay for this recovery model.
-Delivery remains at-least-once: records accepted by ClickHouse before an ambiguous failure, or
-records written after the latest completed checkpoint, can be replayed and produce duplicates.
+In a Kafka-based CDC pipeline, `_version` can be derived directly from Kafka metadata.
 
-Flink's configured restart strategy still controls the job-level state. An automatic strategy can
-move the job through `FAILING` and `RESTARTING`, potentially retrying before the ClickHouse table is
-recreated. When an external operator owns recovery, configure restart attempts/backoff to match
-that workflow or disable automatic restart and resume the deployment after repair.
+Flink's Kafka source can expose the Kafka record offset as a virtual metadata column:
 
-## Connector Options
+```sql
+CREATE TABLE kafka_source (
+    id BIGINT,
+    name STRING,
 
-| Option                                   | Required | Default  | Type     | Description                                                                                                                                                                     |
-|:-----------------------------------------|:---------|:---------|:---------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| url                                      | required | none     | String   | The ClickHouse jdbc url in format `jdbc:(ch|clickhouse)[:<protocol>]://endpoint1[,endpoint2,...][/<database>][?param1=value1&param2=value2]`.                                   |
-| username                                 | optional | none     | String   | The 'username' and 'password' must both be specified if any of them is specified.                                                                                               |
-| password                                 | optional | none     | String   | The ClickHouse password.                                                                                                                                                        |
-| database-name                            | optional | default  | String   | The ClickHouse database name.                                                                                                                                                   |
-| table-name                               | required | none     | String   | The ClickHouse table name.                                                                                                                                                      |
-| use-local                                | optional | false    | Boolean  | Directly read/write local tables in case of distributed table engine.                                                                                                           |
-| sink.batch-size                          | optional | 1000     | Integer  | The max flush size, over this will flush data.                                                                                                                                  |
-| sink.max-buffered-bytes                  | optional | 64mb     | Memory   | Estimated maximum serialized size of rows retained by each sink writer before flushing.                                                                                        |
-| sink.flush-interval                      | optional | 1s       | Duration | Interval for scheduled asynchronous flushes. A terminal scheduled-flush failure is propagated through the Flink mailbox and fails the sink task.                               |
-| sink.max-retries                         | optional | 3        | Integer  | Additional retries after the initial attempt for retryable JDBC failures. Non-retryable or exhausted failures fail the sink task.                                               |
-| sink.connection-timeout                  | optional | 10s      | Duration | Timeout for establishing a ClickHouse sink connection. Can be overridden by `properties.connection_timeout`.                                                                   |
-| sink.socket-timeout                      | optional | 5min     | Duration | Socket timeout for ClickHouse sink requests. Can be overridden by `properties.socket_timeout`.                                                                                  |
-| ~~sink.write-local~~                     | optional | false    | Boolean  | Removed from version 1.15, use `use-local` instead.                                                                                                                             |
-| sink.update-strategy                     | optional | update   | String   | Handle `UPDATE_AFTER` using ClickHouse mutation (`update`), versioned append-only CDC (`insert`), or discard it. The `insert` strategy requires `_version` and `_is_deleted`.    |
-| sink.partition-strategy                  | optional | balanced | String   | Partition strategy: balanced(round-robin), hash(partition key), shuffle(random).                                                                                                |
-| sink.partition-key                       | optional | none     | String   | Partition key used for hash strategy.                                                                                                                                           |
-| sink.sharding.use-table-definition       | optional | false    | Boolean  | Sharding strategy consistent with definition of distributed table, if set to true, the configuration of `sink.partition-strategy` and `sink.partition-key` will be overwritten. |
-| sink.ignore-delete                       | optional | true     | Boolean  | Ignore deletes when true. When false, use `ALTER DELETE` for `update`/`discard`, or insert `_is_deleted = 1` tombstones for the `insert` strategy.                               |
-| sink.parallelism                         | optional | none     | Integer  | Defines a custom parallelism for the sink.                                                                                                                                      |
-| scan.partition.column                    | optional | none     | String   | The column name used for partitioning the input.                                                                                                                                |
-| scan.partition.num                       | optional | none     | Integer  | The number of partitions.                                                                                                                                                       |
-| scan.partition.lower-bound               | optional | none     | Long     | The smallest value of the first partition.                                                                                                                                      |
-| scan.partition.upper-bound               | optional | none     | Long     | The largest value of the last partition.                                                                                                                                        |
-| catalog.ignore-primary-key               | optional | true     | Boolean  | Whether to ignore primary keys when using ClickHouseCatalog to create table.                                                                                                    |
-| properties.*                             | optional | none     | String   | This can set and pass `clickhouse-jdbc` configurations.                                                                                                                         |
-| lookup.cache                             | optional | NONE     | String   | The caching strategy for this lookup table, including NONE and PARTIAL(not support FULL yet)                                                                                    |
-| lookup.partial-cache.expire-after-access | optional | none     | Duration | Duration to expire an entry in the cache after accessing, over this time, the oldest rows will be expired.                                                                      |
-| lookup.partial-cache.expire-after-write  | optional | none     | Duration | Duration to expire an entry in the cache after writing, over this time, the oldest rows will be expired.                                                                        |
-| lookup.partial-cache.max-rows            | optional | none     | Long     | The max number of rows of lookup cache, over this value, the oldest rows will be expired.                                                                                       |
-| lookup.partial-cache.caching-missing-key | optional | true     | Boolean  | Flag to cache missing key, true by default                                                                                                                                      |
-| lookup.max-retries                       | optional | 3        | Integer  | The max retry times if lookup database failed.                                                                                                                                  |
+    kafka_partition INT METADATA FROM 'partition' VIRTUAL,
+    kafka_offset BIGINT METADATA FROM 'offset' VIRTUAL
+) WITH (
+    'connector' = 'kafka',
+    ...
+);
+```
 
-**Update/Delete Data Considerations:**
+The Flink job can then map `kafka_offset` into the ClickHouse `_version` column:
 
-1. Distributed table don't support the update/delete statements, if you want to use the
-   update/delete statements, please be sure to write records to local table or set `use-local` to
-   true.
-2. The data is updated and deleted by the primary key, please be aware of this when using it in the
-   partition table.
-3. `UPDATE_AFTER` and `DELETE` are implemented with ClickHouse `ALTER TABLE ... UPDATE/DELETE`
-   mutations. These are substantially more expensive than inserts and are asynchronous by default.
-   If downstream correctness requires waiting for completion, pass an appropriate
-   `properties.mutations_sync` value and account for the resulting write latency.
+```sql
+INSERT INTO clickhouse_sink
+SELECT
+    id,
+    name,
+    kafka_offset AS _version,
+    CAST(0 AS TINYINT) AS _is_deleted
+FROM kafka_source;
+```
 
-## Verified Compatibility
+The mapping belongs to the Flink job rather than the ClickHouse connector, which means the versioning strategy can be customized for each pipeline.
 
-| Component        | Verified version |
-|:-----------------|:-----------------|
-| Flink            | 2.1.0            |
-| Java             | 17               |
-| ClickHouse       | 24.8, 26.3       |
-| clickhouse-jdbc  | 0.9.8            |
+```mermaid
+flowchart LR
+    Kafka["Kafka Record"]
+    Metadata["Kafka Metadata<br/>partition + offset"]
+    Flink["Flink SQL"]
+    Version["_version"]
+    ClickHouse["ReplacingMergeTree"]
 
-This matrix records the containerized combination exercised by this repository; other versions
-are not implied to be incompatible, but must pass the same unit and E2E suites before release.
+    Kafka --- Metadata
+    Metadata --- Flink
+    Flink --- Version
+    Version --- ClickHouse
+```
 
-With clickhouse-jdbc 0.9.x, unknown `properties.*` entries are treated as ClickHouse server
-settings and normalized to the driver's `clickhouse_setting_` prefix. JDBC client properties such
-as `properties.connection_timeout`, `properties.socket_timeout`, `properties.compress`, and
-`properties.decompress` are passed through unchanged. Already-prefixed server settings are also
-accepted.
+Kafka offsets are monotonically increasing **within a Kafka partition**, not across the entire topic.
 
-**breaking**
+Therefore, using the Kafka offset directly as `_version` works best when all changes for the same logical primary key are guaranteed to stay in the same Kafka partition, which is normally achieved by partitioning Kafka records by that key.
 
-Since version 1.16, we have taken shard weight into consideration, this may affect which shard the data is distributed to.
+For example:
 
-## Data Type Mapping
+```text
+customer_id = 1001
+```
 
-| Flink Type          | ClickHouse Type                                        |
-|:--------------------|:-------------------------------------------------------|
-| CHAR                | String                                                 |
-| VARCHAR             | String / IP / UUID                                     |
-| STRING              | String / Enum                                          |
-| BOOLEAN             | UInt8                                                  |
-| BYTES               | FixedString                                            |
-| DECIMAL             | Decimal / Int128 / Int256 / UInt64 / UInt128 / UInt256 |
-| TINYINT             | Int8                                                   |
-| SMALLINT            | Int16 / UInt8                                          |
-| INTEGER             | Int32 / UInt16 / Interval                              |
-| BIGINT              | Int64 / UInt32                                         |
-| FLOAT               | Float32                                                |
-| DOUBLE              | Float64                                                |
-| DATE                | Date                                                   |
-| TIME                | DateTime                                               |
-| TIMESTAMP           | DateTime                                               |
-| TIMESTAMP_LTZ       | DateTime                                               |
-| INTERVAL_YEAR_MONTH | Int32                                                  |
-| INTERVAL_DAY_TIME   | Int64                                                  |
-| ARRAY               | Array                                                  |
-| MAP                 | Map                                                    |
-| ROW                 | Not supported                                          |
-| MULTISET            | Not supported                                          |
-| RAW                 | Not supported                                          |
+should consistently be routed to the same Kafka partition.
 
-## Maven Dependency
+Its change sequence can then look like:
 
-The project isn't published to the maven central repository, we need to deploy/install to our own
-repository before use it, step as follows:
+```text
+offset 120  INSERT
+offset 145  UPDATE
+offset 182  UPDATE
+offset 240  DELETE
+```
+
+For that logical key, the offset provides a natural ordering value that can be used as `_version`.
+
+If the same logical key can move between Kafka partitions, Kafka offset alone is not a globally comparable ordering value. In that case, another source ordering field such as a database LSN, transaction sequence, timestamp-plus-sequence value, or another monotonic CDC version should be used instead.
+
+## CDC Changelog Mapping
+
+For `sink.update-strategy = 'insert'`, the connector treats changelog records as follows:
+
+| Flink RowKind   | Sink behavior                                                               |
+| --------------- | --------------------------------------------------------------------------- |
+| `INSERT`        | Insert with `_is_deleted = 0`                                               |
+| `UPDATE_AFTER`  | Insert a new version with `_is_deleted = 0`                                 |
+| `UPDATE_BEFORE` | Ignore                                                                      |
+| `DELETE`        | Insert a new version with `_is_deleted = 1` when delete handling is enabled |
+
+This strategy does not execute ClickHouse `ALTER UPDATE` or `ALTER DELETE` mutations.
+
+The Flink primary key and the ClickHouse `ORDER BY` key should represent the same logical record identity.
+
+## ReplacingMergeTree Behavior
+
+`ReplacingMergeTree` does not immediately remove older versions of a row.
+
+Replacement happens during ClickHouse background merges.
+
+Multiple physical versions may therefore exist at the same time.
+
+Queries requiring a reconciled current-state view can use an appropriate ClickHouse query strategy such as `FINAL`, while considering its additional read cost.
+
+ClickHouse `PRIMARY KEY` does not enforce uniqueness. It is primarily used as a sparse index for data skipping.
+
+## Failure Handling
+
+Scheduled flushes run asynchronously.
+
+If a flush encounters a permanent JDBC error, or all configured retries are exhausted, the connector propagates the failure to the Flink task.
+
+The sink does not continue indefinitely with a permanently failed batch.
+
+Recovery is controlled by Flink and the deployment environment.
+
+A typical recovery process is:
+
+1. Inspect the Flink task failure.
+2. Fix the ClickHouse table, connection, or underlying failure.
+3. Restart or resume the Flink job.
+4. Restore from the latest completed checkpoint.
+5. Allow the source to replay records not covered by that checkpoint.
+
+Because delivery is at-least-once, records accepted by ClickHouse before an ambiguous failure may be written again after recovery.
+
+## Compatibility
+
+The currently verified environment is:
+
+| Component       | Verified version |
+| --------------- | ---------------- |
+| Apache Flink    | 2.1.0, 2.2.1     |
+| Java            | 17               |
+| ClickHouse      | 24.8, 26.3       |
+| clickhouse-jdbc | 0.9.8            |
+
+Other versions may work, but are not currently covered by the same test suite.
+
+## Installation
+
+The connector is currently built from source and is not published to Maven Central.
+
+Clone this repository:
 
 ```bash
-# clone the project
-git clone https://github.com/itinycheng/flink-connector-clickhouse.git
+git clone https://github.com/VQHieu1012/flink-connector-clickhouse.git
 
-# enter the project directory
-cd flink-connector-clickhouse/
+cd flink-connector-clickhouse
+```
 
-# display remote branches
-git branch -r
+Build the project:
 
-# checkout the branch you need
-git checkout $branch_name
+```bash
+mvn clean install
+```
 
-# install or deploy the project to our own repository
+For a local build without tests:
+
+```bash
 mvn clean install -DskipTests
-mvn clean deploy -DskipTests
 ```
 
-```xml
+The deployable SQL connector module is:
 
-<dependency>
-    <groupId>org.apache.flink</groupId>
-    <artifactId>flink-connector-clickhouse</artifactId>
-    <version>1.16.0-SNAPSHOT</version>
-</dependency>
+```text
+flink-sql-connector-clickhouse
 ```
 
-## How to use
+## Flink SQL Example
 
-### Create and read/write table
-
-```SQL
-
--- register a clickhouse table `t_user` in flink sql.
+```sql
 CREATE TABLE t_user (
-    `user_id` BIGINT,
-    `user_type` INTEGER,
-    `language` STRING,
-    `country` STRING,
-    `gender` STRING,
-    `score` DOUBLE,
-    `list` ARRAY<STRING>,
-    `map` Map<STRING, BIGINT>,
-    PRIMARY KEY (`user_id`) NOT ENFORCED
+    user_id BIGINT,
+    user_type INT,
+    language STRING,
+    country STRING,
+    score DOUBLE,
+    PRIMARY KEY (user_id) NOT ENFORCED
 ) WITH (
     'connector' = 'clickhouse',
     'url' = 'jdbc:ch://127.0.0.1:8123',
     'database-name' = 'tutorial',
     'table-name' = 'users',
-    'sink.batch-size' = '500',
-    'sink.flush-interval' = '1000',
+    'sink.batch-size' = '1000',
+    'sink.max-buffered-bytes' = '64mb',
+    'sink.flush-interval' = '1s',
     'sink.max-retries' = '3'
 );
-
--- read data from clickhouse 
-SELECT user_id, user_type from t_user;
-
--- write data into the clickhouse table from the table `T`
-INSERT INTO t_user
-SELECT cast(`user_id` as BIGINT), `user_type`, `lang`, `country`, `gender`, `score`, ARRAY['CODER', 'SPORTSMAN'], CAST(MAP['BABA', cast(10 as BIGINT), 'NIO', cast(8 as BIGINT)] AS MAP<STRING, BIGINT>) FROM T;
-
 ```
 
-### Create and use ClickHouseCatalog
-
-#### Scala
-
-```scala
-val tEnv = TableEnvironment.create(setting)
-
-val props = new util.HashMap[String, String]()
-props.put(ClickHouseConfig.DATABASE_NAME, "default")
-props.put(ClickHouseConfig.URL, "jdbc:ch://127.0.0.1:8123")
-props.put(ClickHouseConfig.USERNAME, "username")
-props.put(ClickHouseConfig.PASSWORD, "password")
-props.put(ClickHouseConfig.SINK_FLUSH_INTERVAL, "30s")
-val cHcatalog = new ClickHouseCatalog("clickhouse", props)
-tEnv.registerCatalog("clickhouse", cHcatalog)
-tEnv.useCatalog("clickhouse")
-
-tEnv.executeSql("insert into `clickhouse`.`default`.`t_table` select...");
-```
-
-#### Java
-
-```java
-TableEnvironment tEnv = TableEnvironment.create(setting);
-
-Map<String, String> props = new HashMap<>();
-props.put(ClickHouseConfig.DATABASE_NAME, "default")
-props.put(ClickHouseConfig.URL, "jdbc:ch://127.0.0.1:8123")
-props.put(ClickHouseConfig.USERNAME, "username")
-props.put(ClickHouseConfig.PASSWORD, "password")
-props.put(ClickHouseConfig.SINK_FLUSH_INTERVAL, "30s");
-Catalog cHcatalog = new ClickHouseCatalog("clickhouse", props);
-tEnv.registerCatalog("clickhouse", cHcatalog);
-tEnv.useCatalog("clickhouse");
-
-tEnv.executeSql("insert into `clickhouse`.`default`.`t_table` select...");
-```
-
-#### SQL
+Write data:
 
 ```sql
-> CREATE CATALOG clickhouse WITH (
-    'type' = 'clickhouse',
-    'url' = 'jdbc:ch://127.0.0.1:8123',
-    'username' = 'username',
-    'password' = 'password',
-    'database-name' = 'default',
-    'use-local' = 'false',
-    ...
-);
-
-> USE CATALOG clickhouse;
-> SELECT user_id, user_type FROM `default`.`t_user` limit 10;
-> INSERT INTO `default`.`t_user` SELECT ...;
+INSERT INTO t_user
+SELECT
+    user_id,
+    user_type,
+    language,
+    country,
+    score
+FROM source_table;
 ```
 
-## Roadmap
+## Sink Options
 
-No roadmap for this fork version.
+| Option                    | Required | Default    | Description                                    |
+| ------------------------- | -------- | ---------- | ---------------------------------------------- |
+| `url`                     | yes      | none       | ClickHouse JDBC URL                            |
+| `database-name`           | no       | `default`  | ClickHouse database                            |
+| `table-name`              | yes      | none       | ClickHouse target table                        |
+| `username`                | no       | none       | ClickHouse username                            |
+| `password`                | no       | none       | ClickHouse password                            |
+| `use-local`               | no       | `false`    | Write to local tables when appropriate         |
+| `sink.batch-size`         | no       | `1000`     | Maximum buffered records before flushing       |
+| `sink.max-buffered-bytes` | no       | `64mb`     | Estimated maximum buffered row size per writer |
+| `sink.flush-interval`     | no       | `1s`       | Scheduled flush interval                       |
+| `sink.max-retries`        | no       | `3`        | Additional retries for retryable JDBC failures |
+| `sink.connection-timeout` | no       | `10s`      | JDBC connection timeout                        |
+| `sink.socket-timeout`     | no       | `5min`     | JDBC socket timeout                            |
+| `sink.update-strategy`    | no       | `update`   | Update handling strategy                       |
+| `sink.ignore-delete`      | no       | `true`     | Ignore or process delete events                |
+| `sink.parallelism`        | no       | inherited  | Explicit sink parallelism                      |
+| `sink.partition-strategy` | no       | `balanced` | `balanced`, `hash`, or `shuffle`               |
+| `sink.partition-key`      | no       | none       | Partition key for hash partitioning            |
+| `properties.*`            | no       | none       | Additional ClickHouse JDBC or server settings  |
 
-See the upstream project for the original roadmap and development direction.
+## Update Strategies
+
+### update
+
+`UPDATE_AFTER` records are handled using ClickHouse mutation operations.
+
+ClickHouse mutations are more expensive than normal inserts and are asynchronous by default.
+
+If the application requires waiting for mutation completion, configure an appropriate `properties.mutations_sync` value.
+
+### insert
+
+Uses the append-based CDC strategy with `ReplacingMergeTree`.
+
+Requires:
+
+```text
+_version
+_is_deleted
+```
+
+### discard
+
+Update records are discarded according to the configured changelog behavior.
+
+## Memory Bounds
+
+Each sink writer limits buffered data using both:
+
+```text
+sink.batch-size
+```
+
+and:
+
+```text
+sink.max-buffered-bytes
+```
+
+A flush occurs when either threshold is reached.
+
+The byte limit is based on estimated serialized row size.
+
+A single record larger than the configured limit is still accepted as one batch.
+
+Total buffering also depends on sink parallelism because each writer maintains its own buffer.
+
+## Metrics
+
+The sink exposes standard Flink metrics including:
+
+```text
+numRecordsSend
+numRecordsSendErrors
+numBytesSend
+currentSendTime
+```
+
+The `clickhouse` metric group also exposes:
+
+```text
+batchesSent
+batchesSendErrors
+retries
+bufferedRecords
+bufferedBytes
+```
+
+## Development Model
+
+The repository can use separate branches for stable code and active development.
+
+```mermaid
+flowchart TD
+    Feature["feature/* and fix/*"]
+    Develop["develop"]
+    Stable["master<br/>stable"]
+    Release["Version tag<br/>v1.0.0"]
+
+    Feature --- Develop
+    Develop --- Stable
+    Stable --- Release
+```
+
+`master` contains the latest stable code.
+
+`develop` contains ongoing development.
+
+Feature and bug-fix branches are merged into `develop` first.
+
+When a tested development state is considered stable, it can be merged into `master` and marked with a version tag.
+
+Users should prefer a version tag for reproducible deployments.
+
+Example tags:
+
+```text
+v1.0.0
+v1.0.1
+v1.1.0
+```
+
+## Data Type Mapping
+
+| Flink Type            | ClickHouse Type                                               |
+| --------------------- | ------------------------------------------------------------- |
+| `CHAR`                | `String`                                                      |
+| `VARCHAR`             | `String`, `IP`, `UUID`                                        |
+| `STRING`              | `String`, `Enum`                                              |
+| `BOOLEAN`             | `UInt8`                                                       |
+| `BYTES`               | `FixedString`                                                 |
+| `DECIMAL`             | `Decimal`, `Int128`, `Int256`, `UInt64`, `UInt128`, `UInt256` |
+| `TINYINT`             | `Int8`                                                        |
+| `SMALLINT`            | `Int16`, `UInt8`                                              |
+| `INTEGER`             | `Int32`, `UInt16`, `Interval`                                 |
+| `BIGINT`              | `Int64`, `UInt32`                                             |
+| `FLOAT`               | `Float32`                                                     |
+| `DOUBLE`              | `Float64`                                                     |
+| `DATE`                | `Date`                                                        |
+| `TIME`                | `DateTime`                                                    |
+| `TIMESTAMP`           | `DateTime`                                                    |
+| `TIMESTAMP_LTZ`       | `DateTime`                                                    |
+| `INTERVAL_YEAR_MONTH` | `Int32`                                                       |
+| `INTERVAL_DAY_TIME`   | `Int64`                                                       |
+| `ARRAY`               | `Array`                                                       |
+| `MAP`                 | `Map`                                                         |
+| `ROW`                 | Not supported                                                 |
+| `MULTISET`            | Not supported                                                 |
+| `RAW`                 | Not supported                                                 |
+
+## Upstream and Attribution
+
+This repository is based on:
+
+[itinycheng/flink-connector-clickhouse](https://github.com/itinycheng/flink-connector-clickhouse)
+
+The original connector design and implementation come from the upstream project and its contributors.
+
+This fork preserves that history while maintaining a separate development direction focused mainly on Flink SQL sink stability.
+
+Contributions inherited from upstream remain subject to their original copyright and license notices.
+
+## License
+
+This project is licensed under the Apache License 2.0.
+
+See [LICENSE](LICENSE) and [NOTICE](NOTICE) for details.
